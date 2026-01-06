@@ -1,4 +1,4 @@
-/* ===== Base Styles ===== */
+/* ===== Base Styles - Scoped to Home Page ===== */
 :root {
   --primary: #269691;
   --primary-dark: #1d857f;
@@ -15,13 +15,13 @@
   --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-* {
+.home-page * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-body {
+.home-page {
   font-family: "Poppins", sans-serif;
   line-height: 1.6;
   color: var(--dark);
@@ -29,39 +29,39 @@ body {
   overflow-x: hidden;
 }
 
-.container {
+.home-page .container {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
 }
 
-section {
+.home-page section {
   padding: 100px 0;
   position: relative;
 }
 
-h1,
-h2,
-h3,
-h4 {
+.home-page h1,
+.home-page h2,
+.home-page h3,
+.home-page h4 {
   margin-bottom: 1rem;
   line-height: 1.2;
   font-weight: 700;
 }
 
-h1 {
+.home-page h1 {
   font-size: 3rem;
 }
 
-h2 {
+.home-page h2 {
   font-size: 2.5rem;
   text-align: center;
   margin-bottom: 3rem;
   position: relative;
 }
 
-h2:after {
+.home-page h2:after {
   content: "";
   display: block;
   width: 80px;
@@ -71,27 +71,27 @@ h2:after {
   border-radius: 2px;
 }
 
-h3 {
+.home-page h3 {
   font-size: 1.75rem;
 }
 
-p {
+.home-page p {
   margin-bottom: 1.5rem;
   color: var(--gray);
   font-weight: 400;
 }
 
-a {
+.home-page a {
   text-decoration: none;
   color: var(--primary);
   transition: var(--transition);
 }
 
-a:hover {
+.home-page a:hover {
   color: var(--primary-dark);
 }
 
-.btn {
+.home-page .btn {
   display: inline-block;
   padding: 14px 28px;
   background: var(--primary);
@@ -107,45 +107,45 @@ a:hover {
   overflow: hidden;
 }
 
-.btn:hover {
+.home-page .btn:hover {
   background: var(--primary-dark);
   transform: translateY(-3px);
   box-shadow: var(--shadow-md);
 }
 
-.btn:active {
+.home-page .btn:active {
   transform: translateY(1px);
 }
 
-.btn-secondary {
+.home-page .btn-secondary {
   background: var(--secondary);
 }
 
-.btn-secondary:hover {
+.home-page .btn-secondary:hover {
   background: #e5177e;
 }
 
-.btn-outline {
+.home-page .btn-outline {
   background: transparent;
   border: 2px solid var(--primary);
   color: var(--primary);
 }
 
-.btn-outline:hover {
+.home-page .btn-outline:hover {
   background: var(--primary);
   color: var(--white);
 }
 
-.text-center {
+.home-page .text-center {
   text-align: center;
 }
 
-.mb-4 {
+.home-page .mb-4 {
   margin-bottom: 2rem;
 }
 
 /* ===== Header ===== */
-header {
+.home-page header {
   position: fixed;
   top: 0;
   left: 0;
@@ -158,18 +158,18 @@ header {
   box-shadow: none;
 }
 
-header.scrolled {
+.home-page header.scrolled {
   padding: 15px 0;
   box-shadow: none;
 }
 
-.header-container {
+.home-page .header-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.logo {
+.home-page .logo {
   font-size: 1.8rem;
   font-weight: 700;
   color: var(--primary);
@@ -177,31 +177,31 @@ header.scrolled {
   align-items: center;
 }
 
-.logo span {
+.home-page .logo span {
   color: var(--secondary);
 }
 
-.logo i {
+.home-page .logo i {
   margin-right: 10px;
   font-size: 1.5rem;
 }
 
-nav ul {
+.home-page nav ul {
   display: flex;
   list-style: none;
 }
 
-nav ul li {
+.home-page nav ul li {
   margin-left: 30px;
 }
 
-nav ul li a {
+.home-page nav ul li a {
   font-weight: 500;
   position: relative;
   padding: 5px 0;
 }
 
-nav ul li a:after {
+.home-page nav ul li a:after {
   content: "";
   position: absolute;
   bottom: 0;
@@ -212,11 +212,11 @@ nav ul li a:after {
   transition: var(--transition);
 }
 
-nav ul li a:hover:after {
+.home-page nav ul li a:hover:after {
   width: 100%;
 }
 
-.mobile-menu-btn {
+.home-page .mobile-menu-btn {
   display: none;
   background: none;
   border: none;
@@ -227,7 +227,7 @@ nav ul li a:hover:after {
 }
 
 /* ===== Hero Section with Modern Slider ===== */
-.hero {
+.home-page .hero {
   display: flex;
   align-items: center;
   position: relative;
@@ -238,7 +238,7 @@ nav ul li a:hover:after {
   min-height: 100vh;
 }
 
-.hero-slider {
+.home-page .hero-slider {
   position: absolute;
   top: 0;
   left: 0;

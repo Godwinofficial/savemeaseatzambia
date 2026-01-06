@@ -1,0 +1,258 @@
+/* Admin.css - Styled to match Home.css */
+
+:root {
+    --primary: #269691;
+    --primary-dark: #1d857f;
+    --secondary: #ea8612;
+    --accent: #f7901b;
+    --dark: #1a1a1a;
+    --light: #f8f9fa;
+    --gray: #6c757d;
+    --light-gray: #e9ecef;
+    --white: #ffffff;
+    --shadow-sm: 0 2px 8px rgba(45, 122, 45, 0.1);
+    --shadow-md: 0 4px 12px rgba(45, 122, 45, 0.15);
+    --shadow-lg: 0 8px 24px rgba(45, 122, 45, 0.2);
+    --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+body {
+    font-family: "Poppins", sans-serif;
+    color: var(--dark);
+    background-color: var(--light);
+}
+
+/* === Login Page === */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, rgba(38, 150, 145, 0.1), rgba(234, 134, 18, 0.1));
+}
+
+.login-card {
+    background: var(--white);
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 400px;
+    border: 1px solid var(--light-gray);
+    text-align: center;
+}
+
+.login-card h1 {
+    font-family: "Poppins", sans-serif;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 30px;
+    font-size: 2rem;
+}
+
+.form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--gray);
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--light-gray);
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: "Poppins", sans-serif;
+    transition: var(--transition);
+    background: var(--light);
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: var(--white);
+    box-shadow: 0 0 0 3px rgba(38, 150, 145, 0.1);
+}
+
+.btn {
+    display: inline-block;
+    padding: 12px 28px;
+    border-radius: 50px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: center;
+    border: none;
+    font-size: 1rem;
+    font-family: "Poppins", sans-serif;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: var(--white);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+    background: var(--light-gray);
+    color: var(--dark);
+}
+
+.btn-secondary:hover {
+    background: var(--gray);
+    color: var(--white);
+}
+
+.btn-block {
+    width: 100%;
+    margin-top: 10px;
+}
+
+/* === Dashboard === */
+.admin-container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+    background: var(--white);
+    padding: 20px 30px;
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--light-gray);
+}
+
+.admin-header h1 {
+    font-family: "Poppins", sans-serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--dark);
+    margin: 0;
+}
+
+.admin-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.weddings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 30px;
+}
+
+.wedding-card {
+    background: var(--white);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: var(--transition);
+    border: 1px solid var(--light-gray);
+}
+
+.wedding-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary);
+}
+
+.card-header {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--white);
+}
+
+.card-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--white);
+    font-weight: 600;
+}
+
+.date-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: var(--white);
+    font-weight: 500;
+}
+
+.card-body {
+    padding: 25px;
+}
+
+.card-body p {
+    color: var(--gray);
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+}
+
+.links {
+    display: flex;
+    gap: 10px;
+}
+
+.links a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 8px 16px;
+    background: rgba(38, 150, 145, 0.1);
+    border-radius: 8px;
+    transition: var(--transition);
+}
+
+.links a:hover {
+    background: var(--primary);
+    color: var(--white);
+}
+
+.card-footer {
+    padding: 15px 25px;
+    border-top: 1px solid var(--light-gray);
+    display: flex;
+    justify-content: flex-end;
+    background: var(--light);
+}
+
+.btn-delete {
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+    transition: var(--transition);
+    padding: 8px 12px;
+    border-radius: 8px;
+}
+
+.btn-delete:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+}

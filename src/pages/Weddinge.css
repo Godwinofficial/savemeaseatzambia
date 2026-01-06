@@ -1,4 +1,6 @@
-/* Global Styles */
+/* Import Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500&display=swap');
+
 :root {
     --primary-color: #FAFAF9;
     --secondary-color: #E7E5E4;
@@ -61,32 +63,6 @@ section {
     position: relative;
 }
 
-.section-title {
-    text-align: center;
-    margin-bottom: 80px;
-    position: relative;
-    z-index: 2;
-}
-
-.section-title h2 {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 3.5rem;
-    color: var(--text-color);
-    display: inline-block;
-    font-weight: 300;
-    margin-bottom: 1rem;
-    line-height: 1.1;
-}
-
-.section-title p {
-    font-family: 'Montserrat', sans-serif;
-    font-size: 0.9rem;
-    color: var(--accent-color);
-    text-transform: uppercase;
-    letter-spacing: 0.2rem;
-    font-weight: 500;
-}
-
 /* Page Loader */
 .page-loader {
     position: fixed;
@@ -126,23 +102,25 @@ section {
     }
 }
 
-/* Header Styles */
-.header {
+/* Header & Navigation */
+.wedding-page header {
     position: fixed;
     width: 100%;
     top: 0;
     left: 0;
+    right: 0;
     z-index: 1000;
+    background-color: transparent;
+    transition: var(--transition);
+    padding: 1.5rem 0;
+}
+
+.wedding-page header.scrolled {
+    padding: 1rem 0;
     background-color: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     box-shadow: var(--shadow-sm);
-    transition: var(--transition);
-    padding: 1rem 0;
-}
-
-.header.scrolled {
-    padding: 1.5rem 0;
 }
 
 .navbar {
@@ -151,14 +129,24 @@ section {
     align-items: center;
 }
 
-.logonobold {
+.wedding-page .logonobold {
     font-family: 'Cormorant Garamond', serif;
     font-size: 1.8rem;
     font-weight: 400;
-    color: var(--text-color);
+    color: var(--white);
     text-decoration: none;
     letter-spacing: 0.1em;
     transition: var(--transition);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    /* Stronger shadow */
+    position: relative;
+    z-index: 1002;
+}
+
+header.scrolled .logonobold {
+    color: var(--text-color);
+    /* Dark text when scrolled */
+    text-shadow: none;
 }
 
 .nav-links {
@@ -173,7 +161,8 @@ section {
 
 .nav-links a {
     text-decoration: none;
-    color: var(--text-color);
+    color: var(--white);
+    /* White text initially */
     font-weight: 500;
     font-size: 0.85rem;
     transition: var(--transition);
@@ -181,6 +170,11 @@ section {
     text-transform: uppercase;
     letter-spacing: 0.2em;
     padding-bottom: 5px;
+}
+
+header.scrolled .nav-links a {
+    color: var(--text-color);
+    /* Dark text when scrolled */
 }
 
 .nav-links a:hover {
@@ -203,11 +197,23 @@ section {
     width: 100%;
 }
 
-.mobile-menu {
+.wedding-page .mobile-menu {
     display: none;
-    font-size: 1.5rem;
+    font-size: 1.8rem;
+    /* Slightly larger */
     cursor: pointer;
+    color: var(--white);
+    transition: var(--transition);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    /* Stronger shadow */
+    z-index: 1002;
+    position: relative;
+}
+
+header.scrolled .mobile-menu {
     color: var(--text-color);
+    /* Dark icon when scrolled */
+    text-shadow: none;
 }
 
 /* Hero Slider */
@@ -265,7 +271,6 @@ section {
     margin: 0 auto;
     padding: 0 20px;
     color: var(--white);
-    animation: slideInContent 1s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
 }
 
 .hero h1 {
@@ -275,12 +280,6 @@ section {
     font-weight: 700;
     text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     color: var(--white);
-    position: relative;
-    display: inline-block;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.9));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
 }
 
 .hero .hero-tagline {
@@ -290,9 +289,6 @@ section {
     margin-bottom: 1rem;
     color: rgba(255, 255, 255, 0.95);
     letter-spacing: 0.04em;
-    position: relative;
-    opacity: 0;
-    animation: fadeInUp 0.8s ease 0.3s forwards;
 }
 
 .hero .hero-meta {
@@ -308,8 +304,6 @@ section {
     color: rgba(255, 255, 255, 0.95);
     font-weight: 500;
     letter-spacing: 0.05em;
-    opacity: 0;
-    animation: fadeInUp 0.8s ease 0.5s forwards;
 }
 
 .hero .hero-meta>div {
@@ -317,6 +311,11 @@ section {
     align-items: center;
     gap: 10px;
     justify-content: center;
+}
+
+.hero .hero-meta .sep {
+    opacity: 0.8;
+    display: none;
 }
 
 .hero .hero-meta a {
@@ -330,7 +329,7 @@ section {
     border-bottom-color: #fff;
 }
 
-.slider-dots {
+.hero .slider-dots {
     position: absolute;
     bottom: 40px;
     left: 50%;
@@ -340,7 +339,7 @@ section {
     z-index: 2;
 }
 
-.slider-dot {
+.hero .slider-dot {
     width: 14px;
     height: 14px;
     border-radius: 50%;
@@ -354,7 +353,7 @@ section {
     overflow: hidden;
 }
 
-.slider-dot::before {
+.hero .slider-dot::before {
     content: "";
     position: absolute;
     top: 50%;
@@ -367,18 +366,19 @@ section {
     transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-.slider-dot.active {
+.hero .slider-dot.active {
     background: transparent;
     border-color: var(--white);
     transform: scale(1.15);
 }
 
-.slider-dot.active::before {
+.hero .slider-dot.active::before {
     width: 8px;
     height: 8px;
 }
 
-.slider-controls {
+/* Enhanced Slider Controls */
+.hero .slider-controls {
     position: absolute;
     bottom: 50px;
     left: 50%;
@@ -389,12 +389,12 @@ section {
     z-index: 10;
 }
 
-.slider-arrows-container {
+.hero .slider-arrows-container {
     display: flex;
     gap: 15px;
 }
 
-.slider-arrow-btn {
+.hero .slider-arrow-btn {
     width: 48px;
     height: 48px;
     border-radius: 50%;
@@ -410,20 +410,24 @@ section {
     font-size: 1.2rem;
 }
 
-.slider-arrow-btn:hover {
+.hero .slider-arrow-btn:hover {
     background: rgba(255, 255, 255, 0.25);
     border-color: rgba(255, 255, 255, 0.7);
     transform: scale(1.1);
     box-shadow: 0 8px 32px rgba(255, 255, 255, 0.1);
 }
 
-.slider-progress {
+.hero .slider-arrow-btn:active {
+    transform: scale(0.95);
+}
+
+.hero .slider-progress {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.progress-bar {
+.hero .progress-bar {
     width: 60px;
     height: 3px;
     background: rgba(255, 255, 255, 0.2);
@@ -431,7 +435,7 @@ section {
     overflow: hidden;
 }
 
-.progress-fill {
+.hero .progress-fill {
     height: 100%;
     background: linear-gradient(90deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.4));
     width: 0%;
@@ -439,13 +443,51 @@ section {
     border-radius: 2px;
 }
 
-.progress-text {
+.hero .progress-text {
     color: rgba(255, 255, 255, 0.7);
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     font-weight: 600;
     min-width: 30px;
+}
+
+/* Enhanced Hero Content Animation */
+.hero-content {
+    animation: slideInContent 1s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+.hero-content h1 {
+    position: relative;
+    display: inline-block;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.9));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-content .hero-tagline {
+    position: relative;
+    opacity: 0;
+    animation: fadeInUp 0.8s ease 0.3s forwards;
+}
+
+.hero-content .hero-meta {
+    opacity: 0;
+    animation: fadeInUp 0.8s ease 0.5s forwards;
+}
+
+/* Slide transition enhancement */
+.hero-slide {
+    filter: brightness(0.8);
+}
+
+.hero-slide.active {
+    filter: brightness(1);
+}
+
+.hero-slide.active::after {
+    animation: slideOverlay 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 @keyframes slideInContent {
@@ -460,16 +502,32 @@ section {
     }
 }
 
-@keyframes fadeInUp {
+@keyframes slideOverlay {
     from {
         opacity: 0;
-        transform: translateY(20px);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0);
     }
+}
+
+/* Dots enhancement */
+.hero .slider-dots {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 300px;
+}
+
+.hero .slider-dot {
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.hero .slider-dot:hover {
+    background: rgba(255, 255, 255, 0.5);
+    transform: scale(1.2);
 }
 
 /* Countdown Section */
@@ -544,6 +602,32 @@ section {
     position: relative;
 }
 
+.section-title {
+    text-align: center;
+    margin-bottom: 80px;
+    position: relative;
+    z-index: 2;
+}
+
+.section-title h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 3.5rem;
+    color: var(--text-color);
+    display: inline-block;
+    font-weight: 300;
+    margin-bottom: 1rem;
+    line-height: 1.1;
+}
+
+.section-title p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    color: var(--accent-color);
+    text-transform: uppercase;
+    letter-spacing: 0.2rem;
+    font-weight: 500;
+}
+
 .couple-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -597,9 +681,15 @@ section {
     margin: 0 auto;
 }
 
+/* Story Section */
+.story {
+    background-color: var(--primary-color);
+    position: relative;
+}
+
 .story-content {
     max-width: 800px;
-    margin: 60px auto 0;
+    margin: 0 auto;
     text-align: center;
 }
 
@@ -638,7 +728,7 @@ section {
 }
 
 /* Wedding Party Section */
-.wedding-party {
+.party {
     background-color: var(--primary-color);
     padding: 120px 0;
 }
@@ -730,6 +820,28 @@ section {
     font-family: 'Montserrat', sans-serif;
 }
 
+.member-social {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.party-member:hover .member-social {
+    opacity: 1;
+}
+
+.member-social a {
+    color: var(--text-color);
+    font-size: 0.9rem;
+    transition: var(--transition);
+}
+
+.member-social a:hover {
+    color: var(--accent-color);
+}
+
 /* Wedding Details Section */
 .wedding-details {
     padding: 120px 0;
@@ -754,6 +866,7 @@ section {
     text-align: center;
 }
 
+/* Event Item Styles */
 .event-item {
     background: var(--white);
     border-left: 3px solid var(--accent-color);
@@ -840,6 +953,11 @@ section {
     margin-right: 6px;
 }
 
+.event-info .time,
+.event-info .venue {
+    display: block;
+}
+
 .event-info .address {
     color: var(--accent-color);
     font-style: italic;
@@ -854,6 +972,79 @@ section {
     max-width: 960px;
     margin: 40px auto 0;
     padding: 0 10px;
+}
+
+#gifts-section .info-card {
+    padding: 20px 16px;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    align-items: center;
+    text-align: center;
+    background: var(--white);
+    border: 1px solid rgba(166, 138, 100, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#gifts-section .info-card:hover {
+    transform: translateY(-12px);
+    border-color: var(--accent-color);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.1);
+}
+
+#gifts-section .info-card h4 {
+    font-size: 1.05rem;
+    margin-bottom: 8px;
+    font-family: 'Cormorant Garamond', serif;
+    color: var(--text-color);
+    font-weight: 400;
+}
+
+#gifts-section .info-card p {
+    font-size: 0.95rem;
+    margin-bottom: 6px;
+    color: var(--light-text);
+}
+
+#gifts-section .info-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, rgba(166, 138, 100, 0.1) 0%, rgba(166, 138, 100, 0.05) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+    color: var(--accent-color);
+    border: 2px solid rgba(166, 138, 100, 0.2);
+    transition: var(--transition);
+}
+
+#gifts-section .info-card:hover .info-icon {
+    background: linear-gradient(135deg, var(--accent-color) 0%, #b38b5d 100%);
+    color: var(--white);
+    border-color: var(--accent-color);
+    transform: scale(1.1);
+}
+
+#gifts-section .btn.copy-account-btn {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    border-radius: 6px;
+    max-width: 160px;
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#gifts-section .btn.copy-account-btn:hover {
+    background: #b38b5d;
 }
 
 .info-cards {
@@ -927,37 +1118,6 @@ section {
     margin-top: 10px;
 }
 
-.btn {
-    background: linear-gradient(90deg, var(--accent-color) 0%, var(--secondary-color) 100%);
-    color: var(--white);
-    border: 1px solid var(--accent-color);
-    padding: 18px 45px;
-    letter-spacing: 0.2rem;
-    font-size: 0.9rem;
-    margin-top: 30px;
-    width: auto;
-    max-width: 300px;
-    transition: var(--transition);
-    cursor: pointer;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    display: block;
-    margin: 30px auto;
-}
-
-.btn:hover {
-    background: linear-gradient(90deg, var(--secondary-color) 0%, var(--accent-color) 100%);
-    border-color: var(--white);
-    color: var(--white);
-}
-
-.btn.copy-account-btn {
-    padding: 8px 12px;
-    font-size: 0.9rem;
-    border-radius: 6px;
-    max-width: 160px;
-}
-
 .info-link {
     display: inline-flex;
     align-items: center;
@@ -1018,6 +1178,14 @@ section {
     text-align: center;
 }
 
+.map-overlay h3 {
+    display: none;
+}
+
+.map-overlay p {
+    display: none;
+}
+
 .directions-btn {
     display: inline-flex;
     align-items: center;
@@ -1048,143 +1216,8 @@ section {
     border-color: var(--white);
 }
 
-/* Gallery Section */
-.gallery {
-    background-color: var(--primary-color);
-    padding-bottom: 100px;
-}
-
-.gallery-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 0;
-    margin-top: 60px;
-    max-width: 1400px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.gallery-item {
-    height: 350px;
-    overflow: hidden;
-    position: relative;
-    cursor: pointer;
-}
-
-.gallery-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: var(--transition);
-}
-
-.gallery-item:hover img {
-    transform: scale(1.1);
-}
-
-.gallery-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.2);
-    transition: var(--transition);
-    opacity: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.gallery-item:hover .gallery-overlay {
-    background: rgba(0, 0, 0, 0);
-}
-
-.gallery-overlay i {
-    color: white;
-    font-size: 2rem;
-    opacity: 0;
-    transform: scale(0.8);
-    transition: all 0.3s ease;
-}
-
-.gallery-item:hover .gallery-overlay i {
-    opacity: 1;
-    transform: scale(1);
-}
-
-/* Lightbox Styles */
-.lightbox {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.9);
-    z-index: 2000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.lightbox-content {
-    max-width: 90%;
-    max-height: 90%;
-}
-
-.lightbox-content img {
-    max-width: 100%;
-    max-height: 90vh;
-    object-fit: contain;
-}
-
-.lightbox-close {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: none;
-    border: none;
-    color: white;
-    font-size: 2rem;
-    cursor: pointer;
-    z-index: 2001;
-}
-
-.lightbox-nav {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: white;
-    font-size: 2rem;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    cursor: pointer;
-    z-index: 2001;
-    transition: all 0.3s ease;
-}
-
-.lightbox-nav:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.lightbox-nav.prev {
-    left: 20px;
-}
-
-.lightbox-nav.next {
-    right: 20px;
-}
-
-.lightbox-counter {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: white;
-    font-size: 1rem;
+.directions-btn:active {
+    transform: scale(0.95);
 }
 
 /* RSVP Section */
@@ -1240,32 +1273,23 @@ section {
     margin-bottom: 8px;
     color: rgba(255, 255, 255, 0.8);
     font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
 }
 
 .form-control {
     background: transparent;
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     padding: 15px 20px;
-    font-size: 1.1rem;
+    font-size: 1rem;
     transition: var(--transition);
     width: 100%;
-    margin-bottom: 20px;
     border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .form-control:focus {
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    padding-left: 20px;
-    padding-right: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 10px rgba(166, 138, 100, 0.3);
 }
 
 .form-control::placeholder {
@@ -1277,34 +1301,164 @@ select.form-control option {
     color: #fff;
 }
 
-/* Footer */
+.btn {
+    background: linear-gradient(90deg, var(--accent-color) 0%, #b38b5d 100%);
+    color: var(--white);
+    border: 1px solid var(--accent-color);
+    padding: 18px 45px;
+    letter-spacing: 0.2rem;
+    font-size: 0.9rem;
+    margin-top: 30px;
+    width: auto;
+    max-width: 300px;
+    transition: var(--transition);
+    cursor: pointer;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    display: block;
+    margin: 30px auto;
+}
+
+.btn:hover {
+    background: linear-gradient(90deg, #b38b5d 0%, var(--accent-color) 100%);
+    border-color: var(--white);
+    color: var(--white);
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Elegant Footer Styles */
 .elegant-footer {
     background-color: var(--primary-color);
+    color: var(--text-color);
     position: relative;
-    padding: 20px 0;
+    padding: 40px 0 20px 0;
     display: flex;
     align-items: center;
     min-height: 100px;
     overflow: hidden;
-    padding: 40px 0;
 }
 
 .footer-bottom {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding-top: 25px;
-    margin-top: 40px;
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
-    font-size: 0.9rem;
-    color: var(--light-text);
-    text-align: center;
     width: 100%;
+    text-align: center;
+    padding: 20px 0;
 }
 
 .copyright {
-    font-size: 0.85rem;
-    color: var(--light-text);
+    font-size: 1rem;
+    color: var(--text-color);
+    margin: 0;
+    padding: 10px 0;
+    line-height: 1.5;
+}
+
+.footer-love {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text-color);
+}
+
+.heart-emoji {
+    color: #ff6b6b;
+    animation: pulse 1.5s infinite;
+    display: inline-block;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Gallery Section */
+.gallery {
+    background-color: var(--primary-color);
+    padding-bottom: 100px;
+}
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 0;
+    margin-top: 60px;
+    max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.gallery-item {
+    height: 350px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: var(--transition);
+}
+
+.gallery-item:hover img {
+    transform: scale(1.1);
+}
+
+.gallery-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.2);
+    transition: var(--transition);
+    opacity: 1;
+}
+
+.gallery-item:hover .gallery-overlay {
+    background: rgba(0, 0, 0, 0);
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes bounce {
+
+    0%,
+    20%,
+    50%,
+    80%,
+    100% {
+        transform: translateY(0) translateX(-50%);
+    }
+
+    40% {
+        transform: translateY(-20px) translateX(-50%);
+    }
+
+    60% {
+        transform: translateY(-10px) translateX(-50%);
+    }
 }
 
 /* Responsive Design */
@@ -1324,9 +1478,74 @@ select.form-control option {
     .countdown-item {
         min-width: 80px;
     }
+
+    .footer-content {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+
+    .couple-footer {
+        padding-right: 0;
+        text-align: center;
+    }
+
+    .divider {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .event-card {
+        grid-template-columns: 1fr;
+    }
+
+    .event-date {
+        flex-direction: row;
+        justify-content: center;
+        padding: 30px 20px;
+        min-width: 100%;
+    }
+
+    .event-date .date {
+        margin: 0 15px 0 0;
+        font-size: 2.5rem;
+    }
+
+    .event-date .month,
+    .event-date .year {
+        margin: 0 10px;
+        font-size: 0.9rem;
+    }
+
+    .event-details {
+        padding: 35px 25px;
+    }
+
+    .event-icon {
+        top: 20px;
+        right: 20px;
+    }
+
+    .map-overlay {
+        bottom: 20px;
+        right: 20px;
+    }
+
+    .directions-btn {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+    }
 }
 
 @media (max-width: 768px) {
+    .wedding-page header {
+        padding: 1rem 0;
+    }
+
+    .wedding-page header.scrolled {
+        padding: 0.8rem 0;
+    }
+
     .navbar {
         padding: 0;
     }
@@ -1334,7 +1553,7 @@ select.form-control option {
     .nav-links {
         display: none;
         position: absolute;
-        top: 70px;
+        top: 100%;
         left: 0;
         width: 100%;
         background-color: var(--white);
@@ -1342,6 +1561,10 @@ select.form-control option {
         padding: 20px;
         box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
         text-align: center;
+    }
+
+    .nav-links a {
+        color: var(--text-color);
     }
 
     .nav-links.active {
@@ -1353,15 +1576,21 @@ select.form-control option {
     }
 
     .mobile-menu {
-        display: block;
+        display: block !important;
+        position: relative;
+        z-index: 1002;
     }
 
-    .hero h1 {
+    .slide-content h1 {
         font-size: 3rem;
     }
 
-    .hero .hero-tagline {
+    .slide-content p {
         font-size: 1rem;
+    }
+
+    .date {
+        font-size: 1.2rem;
     }
 
     .section-title h2 {
@@ -1377,11 +1606,11 @@ select.form-control option {
         padding: 30px;
     }
 
-    .slider-controls {
+    .slider-arrows {
         padding: 0 15px;
     }
 
-    .slider-arrow-btn {
+    .slider-arrow {
         font-size: 1.5rem;
     }
 
@@ -1405,23 +1634,13 @@ select.form-control option {
         min-width: 100%;
     }
 
-    .event-header {
+    .location-container {
         flex-direction: column;
-        align-items: flex-start;
     }
 
-    .event-date {
-        margin-left: 0;
-        margin-top: 12px;
-    }
-
-    .event-header h3 {
-        font-size: 1.5rem;
-    }
-
-    .event-item {
-        padding: 35px 25px;
-        margin-bottom: 25px;
+    .hero {
+        padding-top: 120px;
+        min-height: 90vh;
     }
 
     .hero .slider-dots {
@@ -1444,23 +1663,129 @@ select.form-control option {
         width: 40px;
     }
 
-    section {
+    .wedding-details {
         padding: 60px 0;
+    }
+
+    .details-container {
+        padding: 0 15px;
+    }
+
+    .info-cards {
+        grid-template-columns: 1fr;
+        max-width: 500px;
+        margin: 40px auto 0;
+        padding: 0;
+        gap: 20px;
+    }
+
+    .event-card {
+        flex-direction: column;
+    }
+
+    .event-date {
+        flex-direction: row;
+        justify-content: center;
+        padding: 20px 15px;
+        min-width: 100%;
+    }
+
+    .event-date .date {
+        margin: 0 15px 0 0;
+        font-size: 2rem;
+    }
+
+    .event-details {
+        padding: 25px;
+    }
+
+    .event-card h3 {
+        text-align: center;
+        padding-right: 0;
+        margin-bottom: 20px;
+    }
+
+    .event-time,
+    .event-location {
+        justify-content: center;
+        text-align: center;
+    }
+
+    .event-icon {
+        position: relative;
+        top: 0;
+        right: 0;
+        margin: 0 auto 20px;
+    }
+
+    .map-container {
+        height: 400px;
+    }
+
+    .event-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .event-date {
+        margin-left: 0;
+        margin-top: 12px;
+    }
+
+    .event-header h3 {
+        font-size: 1.5rem;
+    }
+
+    .event-item {
+        padding: 35px 25px;
+        margin-bottom: 25px;
+    }
+
+    .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+    }
+
+    .company-brand {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .company-logo img {
+        margin: 0 0 15px 0;
+    }
+
+    .contact-section h5 {
+        text-align: center;
+        padding-left: 0;
+    }
+
+    .contact-section h5:before {
+        display: none;
+    }
+
+    .contact-details {
+        align-items: center;
     }
 }
 
 @media (max-width: 576px) {
-    .hero h1 {
+    .slide-content h1 {
         font-size: 2.5rem;
     }
 
-    .hero .hero-meta {
-        font-size: 0.9rem;
+    .date {
+        font-size: 1rem;
     }
 
     .couple-img {
         width: 180px;
         height: 180px;
+    }
+
+    .details-grid {
+        grid-template-columns: 1fr;
     }
 
     .gallery-grid {
@@ -1496,12 +1821,26 @@ select.form-control option {
         gap: 30px;
     }
 
-    .info-cards {
-        grid-template-columns: 1fr;
-        max-width: 500px;
-        margin: 40px auto 0;
-        padding: 0;
-        gap: 20px;
+    .event-date {
+        padding: 10px;
+    }
+
+    .event-date .date {
+        font-size: 1.8rem;
+    }
+
+    .event-card h3 {
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+    }
+
+    .map-overlay {
+        padding: 20px;
+    }
+
+    .map-overlay h3 {
+        font-size: 1.3rem;
+        margin-bottom: 10px;
     }
 
     #gifts-section .info-cards {
@@ -1515,9 +1854,5 @@ select.form-control option {
     #gifts-section .info-icon {
         width: 44px;
         height: 44px;
-    }
-
-    .map-container {
-        height: 400px;
     }
 }
