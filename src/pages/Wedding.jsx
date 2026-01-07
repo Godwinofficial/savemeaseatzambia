@@ -99,54 +99,55 @@ const WeddingTemplate = () => {
   };
 
   // Initial Mock Data (Fallback)
+  // Initial Mock Data (Fallback) - Cleared to prevent static flash
   const initialWeddingData = {
     couple: {
       bride: {
-        name: "Sophia",
-        image: "https://images.unsplash.com/photo-1519699047748-de8e457a634e?ixlib=rb-4.0.3&auto=format&fit=crop&w=880&q=80",
-        description: "A passionate architect with an eye for detail and a heart full of love. She loves art, traveling, and early morning coffee."
+        name: "",
+        image: "",
+        description: ""
       },
       groom: {
-        name: "Alexander",
-        image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=687&q=80",
-        description: "A successful entrepreneur with a passion for photography and adventure. He believes in love at first sight."
+        name: "",
+        image: "",
+        description: ""
       }
     },
-    date: "November 24, 2025",
-    location: "The Grand Ballroom, New York",
+    date: "",
+    location: "",
     venue: {
-      name: "The Grand Ballroom",
-      address: "123 Park Avenue, New York, NY 10001",
-      description: "A historic venue with stunning architecture and beautiful gardens."
+      name: "",
+      address: "",
+      description: ""
     },
     story: {
-      part1: "We met on a rainy afternoon in Central Park. Sophia was sketching the Bethesda Fountain, and Alexander was capturing the same scene with his camera. Our eyes met over our respective art forms, and we spent the next three hours talking about everything from architecture to adventure travel.",
-      highlight: "Love is not about how many days, months, or years you have been together. Love is about how much you love each other every single day.",
-      part2: "Three years later, Alexander proposed at that same Bethesda Fountain, recreating our first meeting with a surprise picnic and a ring hidden in his camera bag. Now we're excited to begin our forever together."
+      part1: "",
+      highlight: "",
+      part2: ""
     },
-    sliderImages: [
-      "https://picsum.photos/seed/wedding1/800/600",
-      "https://picsum.photos/seed/wedding2/800/600",
-      "https://picsum.photos/seed/wedding3/800/600"
-    ],
+    sliderImages: [],
     bridesmaids: [],
     groomsmen: [],
     ceremony: {
-      date: "November 24, 2025",
-      time: "3:00 PM",
-      venue: "St. Mary's Cathedral"
+      date: "",
+      time: "",
+      venue: ""
     },
     reception: {
-      date: "November 24, 2025",
-      time: "6:00 PM",
-      venue: "The Grand Ballroom",
-      address: "123 Park Avenue, New York, NY 10001"
+      date: "",
+      time: "",
+      venue: "",
+      address: ""
     },
-    dressCode: "Formal / Black Tie Optional",
-    dressCodeDescription: "Elegant evening wear. Gentlemen: Tuxedos or dark suits. Ladies: Evening gowns or cocktail dresses.",
+    dressCode: "",
+    dressCodeDescription: "",
     gifts: [],
     galleryImages: [],
-    mapLocation: ""
+    mapLocation: "",
+    galleryImages: [],
+    mapLocation: "",
+    coverImage: null,
+    allowedGuests: []
   };
 
   const [weddingData, setWeddingData] = useState(initialWeddingData);
@@ -226,7 +227,9 @@ const WeddingTemplate = () => {
             gifts: dbData.gifts || [],
             galleryImages: dbData.gallery_images || [],
             mapLocation: dbData.map_location,
-            rsvpDeadline: dbData.rsvp_deadline
+            rsvpDeadline: dbData.rsvp_deadline,
+            coverImage: dbData.cover_image,
+            allowedGuests: typeof dbData.allowed_guests === 'string' ? JSON.parse(dbData.allowed_guests) : dbData.allowed_guests || ["1", "2"]
           });
           setDataFetched(true);
         }
@@ -258,12 +261,42 @@ const WeddingTemplate = () => {
   const memberRefs = useRef([]);
   const galleryRefs = useRef([]);
 
-  const handleCopyAccount = (text) => {
-    navigator.clipboard.writeText(text).then(() => {
-      alert('Account number copied to clipboard!');
-    }).catch(err => {
-      console.error('Failed to copy: ', err);
-    });
+  const handleCopyAccount = async (text) => {
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        alert('Account number copied to clipboard!');
+      } else {
+        throw new Error('Clipboard API not available');
+      }
+    } catch (err) {
+      // Fallback for mobile or non-secure contexts
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+
+        // Ensure it's not visible but part of DOM
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
+        document.body.appendChild(textArea);
+
+        textArea.focus();
+        textArea.select();
+
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+
+        if (successful) {
+          alert('Account number copied to clipboard!');
+        } else {
+          prompt("Copy this account number:", text);
+        }
+      } catch (fallbackErr) {
+        console.error('Fallback copy failed:', fallbackErr);
+        prompt("Copy this account number:", text);
+      }
+    }
   };
 
   const handleNavClick = (e) => {
@@ -306,15 +339,34 @@ const WeddingTemplate = () => {
     link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
     document.head.appendChild(link);
 
-    // Hide loader
-    const timer = setTimeout(() => {
+    // Fallback: Hide loader after 3 seconds even if data logic fails
+    const fallbackTimer = setTimeout(() => {
       setLoading(false);
-    }, 1000);
+    }, 3000);
 
     return () => {
-      clearTimeout(timer);
+      clearTimeout(fallbackTimer);
     };
   }, []);
+
+  // Hide loader when data is fetched (with a small delay for smoothness)
+  useEffect(() => {
+    if (dataFetched) {
+      const timer = setTimeout(() => {
+        setLoading(false);
+      }, 1500); // 1.5s delay to show off the loader
+      return () => clearTimeout(timer);
+    }
+  }, [dataFetched]);
+
+  // Update document title dynamically
+  useEffect(() => {
+    if (weddingData.couple.bride.name && weddingData.couple.groom.name) {
+      document.title = `${weddingData.couple.bride.name} & ${weddingData.couple.groom.name} | Wedding`;
+    } else {
+      document.title = "Wedding Invitation";
+    }
+  }, [weddingData.couple.bride.name, weddingData.couple.groom.name]);
 
   useEffect(() => {
     // Scroll effect for header
@@ -399,10 +451,35 @@ const WeddingTemplate = () => {
   }, [currentSlide]);
 
   useEffect(() => {
+    // Update Meta Tags for Social Sharing
+    if (weddingData.coverImage) {
+      // Open Graph Image
+      let ogImage = document.querySelector('meta[property="og:image"]');
+      if (!ogImage) {
+        ogImage = document.createElement('meta');
+        ogImage.setAttribute('property', 'og:image');
+        document.head.appendChild(ogImage);
+      }
+      ogImage.setAttribute('content', weddingData.coverImage);
+
+      // Twitter Image
+      let twitterImage = document.querySelector('meta[name="twitter:image"]');
+      if (!twitterImage) {
+        twitterImage = document.createElement('meta');
+        twitterImage.setAttribute('name', 'twitter:image');
+        document.head.appendChild(twitterImage);
+      }
+      twitterImage.setAttribute('content', weddingData.coverImage);
+    }
+  }, [weddingData.coverImage]);
+
+  useEffect(() => {
     // Slider auto-play
     const startSlider = () => {
       slideInterval.current = setInterval(() => {
-        setCurrentSlide((prev) => (prev + 1) % weddingData.sliderImages.length);
+        if (weddingData.sliderImages && weddingData.sliderImages.length > 0) {
+          setCurrentSlide((prev) => (prev + 1) % weddingData.sliderImages.length);
+        }
       }, 6000);
     };
 
@@ -436,11 +513,18 @@ const WeddingTemplate = () => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add('visible');
+            // Optional: Unobserve after animating once
+            observer.unobserve(entry.target);
           }
         });
       },
-      { threshold: 0.1 }
+      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
     );
+
+    // Observe general fade-in sections
+    document.querySelectorAll('.fade-in-section').forEach((el) => {
+      observer.observe(el);
+    });
 
     // Observe couple elements
     coupleRefs.current.forEach((ref) => {
@@ -540,6 +624,7 @@ const WeddingTemplate = () => {
 
     /* Page Loader */
     .page-loader {
+      /* ... existing styles ... */
       position: fixed;
       top: 0;
       left: 0;
@@ -550,26 +635,99 @@ const WeddingTemplate = () => {
       justify-content: center;
       align-items: center;
       z-index: 9999;
-      transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+      transition: opacity 0.8s ease-out, visibility 0.8s ease-out;
+      overflow: hidden;
     }
 
-    .page-loader.fade-out {
+    /* General Animation Class */
+    .fade-in-section {
       opacity: 0;
-      visibility: hidden;
+      transform: translateY(40px);
+      transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
     }
 
-    .spinner {
-      width: 50px;
-      height: 50px;
-      border: 4px solid rgba(166, 138, 100, 0.2);
-      border-top: 4px solid var(--accent-color);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
+    .fade-in-section.visible {
+      opacity: 1;
+      transform: translateY(0);
     }
 
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+    .loader-content {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .loader-names {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 3rem;
+      color: var(--text-color);
+      opacity: 0;
+      animation: fadeInUp 1.2s ease forwards;
+      letter-spacing: 2px;
+    }
+
+    .loader-names span {
+      display: inline-block;
+      color: var(--accent-color);
+      margin: 0 10px;
+      font-style: italic;
+    }
+
+    .loader-bg-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(1.2);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 15vw;
+      white-space: nowrap;
+      color: var(--accent-color);
+      opacity: 0.1;
+      filter: blur(8px);
+      z-index: 1;
+      pointer-events: none;
+      animation: pulseBlur 3s infinite ease-in-out;
+    }
+
+    .spinner-minimal {
+      width: 40px;
+      height: 2px;
+      background: rgba(166, 138, 100, 0.2);
+      position: relative;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .spinner-minimal::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 0%;
+      background: var(--accent-color);
+      animation: loadingBar 1.5s ease-in-out infinite;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulseBlur {
+      0%, 100% { opacity: 0.05; filter: blur(8px); transform: translate(-50%, -50%) scale(1.2); }
+      50% { opacity: 0.12; filter: blur(4px); transform: translate(-50%, -50%) scale(1.25); }
+    }
+
+    @keyframes loadingBar {
+      0% { width: 0%; left: 0; }
+      50% { width: 50%; left: 25%; }
+      100% { width: 100%; left: 0; }
     }
 
     /* Header & Navigation */
@@ -677,6 +835,17 @@ const WeddingTemplate = () => {
       z-index: -1;
     }
 
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translate3d(0, 40px, 0);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+    }
+
     .hero-slide {
       position: absolute;
       width: 100%;
@@ -721,6 +890,9 @@ const WeddingTemplate = () => {
       font-weight: 700;
       text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
       color: var(--white);
+      opacity: 0;
+      animation: fadeInUp 1s ease-out forwards;
+      animation-delay: 1.5s;
     }
 
     .hero .hero-tagline {
@@ -730,6 +902,9 @@ const WeddingTemplate = () => {
       margin-bottom: 1rem;
       color: rgba(255, 255, 255, 0.95);
       letter-spacing: 0.04em;
+      opacity: 0;
+      animation: fadeInUp 1s ease-out forwards;
+      animation-delay: 1.7s;
     }
 
     .hero .hero-meta {
@@ -745,6 +920,9 @@ const WeddingTemplate = () => {
       color: rgba(255, 255, 255, 0.95);
       font-weight: 500;
       letter-spacing: 0.05em;
+      opacity: 0;
+      animation: fadeInUp 1s ease-out forwards;
+      animation-delay: 1.9s;
     }
 
     .hero .hero-meta > div {
@@ -757,7 +935,6 @@ const WeddingTemplate = () => {
     .hero .hero-meta a {
       color: rgba(255, 255, 255, 0.95);
       text-decoration: none;
-      border-bottom: 1px dotted rgba(255, 255, 255, 0.5);
     }
 
     .hero .hero-meta a:hover {
@@ -964,6 +1141,7 @@ const WeddingTemplate = () => {
       margin-bottom: 80px;
       position: relative;
       z-index: 2;
+      border-bottom: none !important;
     }
 
     .section-title h2 {
@@ -1257,7 +1435,6 @@ const WeddingTemplate = () => {
       justify-content: space-between;
       align-items: baseline;
       margin-bottom: 25px;
-      border-bottom: 1px solid rgba(166, 138, 100, 0.15);
       padding-bottom: 20px;
     }
 
@@ -1378,10 +1555,10 @@ const WeddingTemplate = () => {
     }
 
     #gifts-section .btn.copy-account-btn {
-      padding: 8px 12px;
-      font-size: 0.9rem;
+      padding: 8px 18px;
+      font-size: 0.8rem;
       border-radius: 6px;
-      max-width: 160px;
+      max-width: 190px;
       background: var(--accent-color);
       color: white;
       border: none;
@@ -1723,8 +1900,14 @@ const WeddingTemplate = () => {
     }
 
     /* Footer */
+    footer.elegant-footer::before {
+      content: none !important;
+      display: none !important;
+      background: none !important;
+    }
+
     .elegant-footer {
-      background-color: var(--primary-color);
+      background-color: var(--primary-color); 
       color: var(--text-color);
       position: relative;
       padding: 40px 0 20px 0;
@@ -1751,6 +1934,7 @@ const WeddingTemplate = () => {
     .footer-love {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 5px;
       color: var(--text-color);
     }
@@ -2076,7 +2260,15 @@ const WeddingTemplate = () => {
 
       {loading && (
         <div className="page-loader" id="pageLoader">
-          <div className="spinner"></div>
+          <div className="loader-bg-text">
+            {weddingData.couple.bride.name || "Wedding"} & {weddingData.couple.groom.name || "Loading"}
+          </div>
+          <div className="loader-content">
+            <div className="loader-names">
+              {weddingData.couple.bride.name || ""} <span> & </span> {weddingData.couple.groom.name || ""}
+            </div>
+            <div className="spinner-minimal"></div>
+          </div>
         </div>
       )}
 
@@ -2084,8 +2276,10 @@ const WeddingTemplate = () => {
       <header id="header" className={scrolled ? 'scrolled' : ''}>
         <div className="container">
           <nav className="navbar">
-            <a href="#" className="logonobold" id="couple-initials">S & A</a>
-            <ul className={`nav-links ${mobileMenuOpen ? 'active' : ''}`}>
+            <a href="#" className="logonobold" id="couple-initials" onClick={(e) => e.preventDefault()}>
+              {weddingData.couple.bride.name?.charAt(0)} & {weddingData.couple.groom.name?.charAt(0)}
+            </a>
+            <ul className={`nav-links ${mobileMenuOpen ? '' : ''}`}>
               <li><a href="#home" onClick={handleNavClick}>Home</a></li>
               <li><a href="#about" onClick={handleNavClick}>Our Story</a></li>
               <li><a href="#party" onClick={handleNavClick}>Wedding Party</a></li>
@@ -2114,7 +2308,9 @@ const WeddingTemplate = () => {
         </div>
         <div className="container">
           <div className="hero-content">
-            <h1 className="hero-title">Sophia & Alexander</h1>
+            <h1 className="hero-title">
+              {weddingData.couple.bride.name} & {weddingData.couple.groom.name}
+            </h1>
             <div className="hero-tagline">We are getting married</div>
             <div className="hero-meta">
               <div>
@@ -2163,7 +2359,7 @@ const WeddingTemplate = () => {
       </section>
 
       {/* Countdown Section */}
-      <section className="countdown-section">
+      <section className="countdown-section fade-in-section">
         <div className="container">
           <h2 className="countdown-title">Counting Down to Our Special Day</h2>
           <div className="countdown-container">
@@ -2190,7 +2386,7 @@ const WeddingTemplate = () => {
       </section>
 
       {/* About Section */}
-      <section className="about" id="about">
+      <section className="about fade-in-section" id="about">
         <div className="container">
           <div className="section-title">
             <h2>Our Story</h2>
@@ -2201,7 +2397,9 @@ const WeddingTemplate = () => {
               id="bride"
               ref={el => coupleRefs.current[0] = el}
             >
-              <img src={weddingData.couple.bride.image} alt="Bride" className="couple-img bride-image" />
+              {weddingData.couple.bride.image && (
+                <img src={weddingData.couple.bride.image} alt="Bride" className="couple-img bride-image" />
+              )}
               <h3 className="bride-name">{weddingData.couple.bride.name}</h3>
               <p className="bride-description">{weddingData.couple.bride.description}</p>
             </div>
@@ -2210,7 +2408,9 @@ const WeddingTemplate = () => {
               id="groom"
               ref={el => coupleRefs.current[1] = el}
             >
-              <img src={weddingData.couple.groom.image} alt="Groom" className="couple-img groom-image" />
+              {weddingData.couple.groom.image && (
+                <img src={weddingData.couple.groom.image} alt="Groom" className="couple-img groom-image" />
+              )}
               <h3 className="groom-name">{weddingData.couple.groom.name}</h3>
               <p className="groom-description">{weddingData.couple.groom.description}</p>
             </div>
@@ -2224,75 +2424,82 @@ const WeddingTemplate = () => {
       </section>
 
       {/* Wedding Party Section */}
-      <section className="party" id="party">
-        <div className="container">
-          <div className="party-container">
-            <div className="party-group">
-              <div className="party-title">
-                <h3>Bridesmaids</h3>
-              </div>
-              <div className="party-members">
-                {weddingData.bridesmaids.map((member, index) => (
-                  <div
-                    key={index}
-                    className="party-member"
-                    ref={el => memberRefs.current[index] = el}
-                  >
-                    <img
-                      src={member.photo || member.image || 'https://via.placeholder.com/150'}
-                      alt={member.name}
-                      className="member-img"
-                    />
-                    <div className="member-role">{member.role}</div>
-                    <h4>{member.name}</h4>
-                    <p>{member.description}</p>
-                    {member.instagram && (
-                      <div className="member-social">
-                        <a href={member.instagram} target="_blank" rel="noopener noreferrer">
-                          <i className="fab fa-instagram"></i>
-                        </a>
-                      </div>
-                    )}
+      {/* Wedding Party Section */}
+      {((weddingData.bridesmaids?.filter(m => m.name && m.name.trim() !== "").length > 0) || (weddingData.groomsmen?.filter(m => m.name && m.name.trim() !== "").length > 0)) && (
+        <section className="party fade-in-section" id="party">
+          <div className="container">
+            <div className="party-container">
+              {weddingData.bridesmaids?.filter(m => m.name && m.name.trim() !== "").length > 0 && (
+                <div className="party-group">
+                  <div className="party-title">
+                    <h3>Bridesmaids</h3>
                   </div>
-                ))}
-              </div>
-            </div>
-            <div className="party-group">
-              <div className="party-title">
-                <h3>Groomsmen</h3>
-              </div>
-              <div className="party-members">
-                {weddingData.groomsmen.map((member, index) => (
-                  <div
-                    key={index}
-                    className="party-member"
-                    ref={el => memberRefs.current[weddingData.bridesmaids.length + index] = el}
-                  >
-                    <img
-                      src={member.photo || member.image || 'https://via.placeholder.com/150'}
-                      alt={member.name}
-                      className="member-img"
-                    />
-                    <div className="member-role">{member.role}</div>
-                    <h4>{member.name}</h4>
-                    <p>{member.description}</p>
-                    {member.instagram && (
-                      <div className="member-social">
-                        <a href={member.instagram} target="_blank" rel="noopener noreferrer">
-                          <i className="fab fa-instagram"></i>
-                        </a>
+                  <div className="party-members">
+                    {weddingData.bridesmaids.filter(m => m.name && m.name.trim() !== "").map((member, index) => (
+                      <div
+                        key={index}
+                        className="party-member"
+                        ref={el => memberRefs.current[index] = el}
+                      >
+                        <img
+                          src={member.photo || member.image || 'https://via.placeholder.com/150'}
+                          alt={member.name}
+                          className="member-img"
+                        />
+                        <div className="member-role">{member.role}</div>
+                        <h4>{member.name}</h4>
+                        <p>{member.description}</p>
+                        {member.instagram && (
+                          <div className="member-social">
+                            <a href={member.instagram} target="_blank" rel="noopener noreferrer">
+                              <i className="fab fa-instagram"></i>
+                            </a>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+              {weddingData.groomsmen?.filter(m => m.name && m.name.trim() !== "").length > 0 && (
+                <div className="party-group">
+                  <div className="party-title">
+                    <h3>Groomsmen</h3>
+                  </div>
+                  <div className="party-members">
+                    {weddingData.groomsmen.filter(m => m.name && m.name.trim() !== "").map((member, index) => (
+                      <div
+                        key={index}
+                        className="party-member"
+                        ref={el => memberRefs.current[weddingData.bridesmaids.length + index] = el}
+                      >
+                        <img
+                          src={member.photo || member.image || 'https://via.placeholder.com/150'}
+                          alt={member.name}
+                          className="member-img"
+                        />
+                        <div className="member-role">{member.role}</div>
+                        <h4>{member.name}</h4>
+                        <p>{member.description}</p>
+                        {member.instagram && (
+                          <div className="member-social">
+                            <a href={member.instagram} target="_blank" rel="noopener noreferrer">
+                              <i className="fab fa-instagram"></i>
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Wedding Details Section */}
-      <section className="wedding-details" id="details">
+      <section className="wedding-details fade-in-section" id="details">
         <div className="container">
           <div className="section-title">
             <span className="subtitle">The Celebration</span>
@@ -2337,43 +2544,45 @@ const WeddingTemplate = () => {
       </section>
 
       {/* Gifts Section */}
-      <section className="wedding-details" id="gifts-section" style={{ padding: "60px 0", background: "linear-gradient(135deg, #ffffff 0%, #fafaf9 100%)" }}>
-        <div className="container">
-          <div className="section-title">
-            <h2>Gifts & Contributions</h2>
-            <p>We are grateful for your love — if you'd like to contribute.</p>
-          </div>
+      {weddingData.gifts?.length > 0 && (
+        <section className="wedding-details fade-in-section" id="gifts-section" style={{ padding: "60px 0", background: "linear-gradient(135deg, #ffffff 0%, #fafaf9 100%)" }}>
+          <div className="container">
+            <div className="section-title">
+              <h2>Gifts & Contributions</h2>
+              <p>We are grateful for your love — if you'd like to contribute.</p>
+            </div>
 
-          <div id="gifts-list" className="info-cards" aria-live="polite">
-            {weddingData.gifts.map((gift, index) => (
-              <div key={index} className="info-card">
-                <div className="info-icon"><i className="fas fa-gift"></i></div>
-                <h4>{gift.provider} {gift.giftType ? `(${gift.giftType})` : ''}</h4>
-                {gift.accountName && <p><strong>{gift.accountName}</strong></p>}
-                {gift.accountNumber && <p style={{ letterSpacing: "0.05em" }}>{gift.accountNumber}</p>}
-                {gift.instructions && <p className="hint">{gift.instructions}</p>}
-                {gift.url && (
-                  <p>
-                    <a href={gift.url} target="_blank" rel="noopener noreferrer" className="info-link">
-                      Open payment link <i className="fas fa-external-link-alt"></i>
-                    </a>
-                  </p>
-                )}
-                <div style={{ marginTop: "12px", display: "flex", justifyContent: "center", gap: "10px" }}>
-                  {gift.accountNumber && (
-                    <button
-                      className="btn copy-account-btn"
-                      onClick={() => handleCopyAccount(gift.accountNumber)}
-                    >
-                      Copy Account
-                    </button>
+            <div id="gifts-list" className="info-cards" aria-live="polite">
+              {weddingData.gifts.map((gift, index) => (
+                <div key={index} className="info-card">
+                  <div className="info-icon"><i className="fas fa-gift"></i></div>
+                  <h4>{gift.provider} {gift.giftType ? `(${gift.giftType})` : ''}</h4>
+                  {gift.accountName && <p><strong>{gift.accountName}</strong></p>}
+                  {gift.accountNumber && <p style={{ letterSpacing: "0.05em" }}>{gift.accountNumber}</p>}
+                  {gift.instructions && <p className="hint">{gift.instructions}</p>}
+                  {gift.url && (
+                    <p>
+                      <a href={gift.url} target="_blank" rel="noopener noreferrer" className="info-link">
+                        Open payment link <i className="fas fa-external-link-alt"></i>
+                      </a>
+                    </p>
                   )}
+                  <div style={{ marginTop: "12px", display: "flex", justifyContent: "center", gap: "10px" }}>
+                    {gift.accountNumber && (
+                      <button
+                        className="btn copy-account-btn"
+                        onClick={() => handleCopyAccount(gift.accountNumber)}
+                      >
+                        Copy Account
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Location Map Section */}
       <section className="location-map-section" id="location-map">
@@ -2388,44 +2597,37 @@ const WeddingTemplate = () => {
             loading="lazy"
             title="Wedding Location"
           ></iframe>
-          <div className="map-overlay">
-            <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(weddingData.venue.address)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="directions-btn"
-              aria-label="Get directions"
-            >
-              <i className="fas fa-directions"></i>
-            </a>
-          </div>
+
         </div>
       </section>
 
       {/* Gallery Section */}
-      <section className="gallery" id="gallery">
-        <div className="container">
-          <div className="section-title">
-            <span className="subtitle" style={{ color: "white", opacity: 0.8 }}>Moments</span>
-            <h2 style={{ color: "white" }}>Photo Gallery</h2>
+      {weddingData.galleryImages?.length > 0 && (
+        <section className="gallery fade-in-section" id="gallery">
+          <div className="container">
+            <div className="section-title">
+              <h2>Moments</h2>
+              <p>Photo Gallery</p>
+            </div>
+            <div className="gallery-grid">
+              {weddingData.galleryImages.map((image, index) => (
+                <div
+                  key={index}
+                  className="gallery-item"
+                  ref={el => galleryRefs.current[index] = el}
+                  onClick={() => openLightbox(index)}
+                >
+                  <img src={image} alt={`Gallery ${index + 1}`} />
+                  <div className="gallery-overlay"></div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="gallery-grid">
-            {weddingData.galleryImages.map((image, index) => (
-              <div
-                key={index}
-                className="gallery-item"
-                ref={el => galleryRefs.current[index] = el}
-              >
-                <img src={image} alt={`Gallery ${index + 1}`} />
-                <div className="gallery-overlay"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* RSVP Section */}
-      <section className="rsvp" id="rsvp">
+      <section className="rsvp fade-in-section" id="rsvp">
         <div className="container">
           <div className="section-title">
             <h2>RSVP</h2>
@@ -2480,11 +2682,11 @@ const WeddingTemplate = () => {
                 required
                 style={{ color: formData.guests ? '#fff' : '#757575' }}
               >
+
                 <option value="" style={{ color: '#fff' }} disabled>Select number of guests</option>
-                <option value="1" style={{ color: '#fff' }}>1</option>
-                <option value="2" style={{ color: '#fff' }}>2</option>
-                <option value="3" style={{ color: '#fff' }}>3</option>
-                <option value="4" style={{ color: '#fff' }}>4+ (Specify in message)</option>
+                {(weddingData.allowedGuests.length > 0 ? weddingData.allowedGuests : ["1", "2"]).map((opt, idx) => (
+                  <option key={idx} value={opt} style={{ color: '#fff' }}>{opt}</option>
+                ))}
               </select>
             </div>
             <div className="form-group">
@@ -2503,18 +2705,6 @@ const WeddingTemplate = () => {
                 <option value="no" style={{ color: '#fff' }}>Regretfully, no</option>
               </select>
             </div>
-            <div className="form-group">
-              <label htmlFor="message">Message (Optional)</label>
-              <textarea
-                id="message"
-                name="message"
-                className="form-control"
-                placeholder="Dietary requirements or a note for the couple..."
-                value={formData.message}
-                onChange={handleChange}
-                rows="3"
-              ></textarea>
-            </div>
             <button type="submit" className="btn" disabled={isSubmitting}>
               {isSubmitting ? 'Submitting...' : 'Submit Response'}
             </button>
@@ -2526,10 +2716,7 @@ const WeddingTemplate = () => {
       <footer className="elegant-footer">
         <div className="footer-bottom" style={{ width: "100%", textAlign: "center", padding: "20px 0" }}>
           <div className="copyright" style={{ fontSize: "1rem", color: "var(--text-color)", margin: 0, padding: "10px 0", lineHeight: "1.5" }}>
-            &copy; 2025 Sophia & Alexander. All rights reserved.
-            <div className="footer-love">
-              Made with <span className="heart-emoji">❤️</span>
-            </div>
+            &copy; {new Date().getFullYear()} {weddingData.couple.bride.name} & {weddingData.couple.groom.name}. All rights reserved.
           </div>
         </div>
       </footer>

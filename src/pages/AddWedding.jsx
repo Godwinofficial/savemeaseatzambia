@@ -14,6 +14,7 @@ const AddWedding = () => {
 
     // Initial State
     const initialFormState = {
+        cover_image: "",
         bride_name: "", bride_image: "", bride_description: "",
         groom_name: "", groom_image: "", groom_description: "",
         date: "", location: "",
@@ -23,8 +24,10 @@ const AddWedding = () => {
         reception_date: "", reception_time: "", reception_venue: "", reception_address: "",
         rsvp_deadline: "",
         dress_code: "", dress_code_desc: "",
+        dress_code: "", dress_code_desc: "",
         map_location: "", // Will be auto-generated
-        slider_images: [], bridesmaids: [], groomsmen: [], gifts: [], gallery_images: []
+        slider_images: [], bridesmaids: [], groomsmen: [], gifts: [], gallery_images: [],
+        allowed_guests: ["1", "2"] // Default
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -57,7 +60,8 @@ const AddWedding = () => {
                     bridesmaids: typeof data.bridesmaids === 'string' ? JSON.parse(data.bridesmaids) : data.bridesmaids || [],
                     groomsmen: typeof data.groomsmen === 'string' ? JSON.parse(data.groomsmen) : data.groomsmen || [],
                     gifts: typeof data.gifts === 'string' ? JSON.parse(data.gifts) : data.gifts || [],
-                    gallery_images: typeof data.gallery_images === 'string' ? JSON.parse(data.gallery_images) : data.gallery_images || []
+                    gallery_images: typeof data.gallery_images === 'string' ? JSON.parse(data.gallery_images) : data.gallery_images || [],
+                    allowed_guests: typeof data.allowed_guests === 'string' ? JSON.parse(data.allowed_guests) : data.allowed_guests || ["1", "2"]
                 });
             }
         } catch (error) {
@@ -71,10 +75,10 @@ const AddWedding = () => {
 
     // Steps Configuration
     const steps = [
-        { label: "The Couple", icon: "fa-heart" },
-        { label: "Date & Venue", icon: "fa-calendar-alt" },
-        { label: "Our Story", icon: "fa-book-open" },
-        { label: "Party & Visuals", icon: "fa-images" }
+        { label: "The Couple", icon: "fa-heart", description: "Basic details" },
+        { label: "Date & Venue", icon: "fa-calendar-alt", description: "Event information" },
+        { label: "Our Story", icon: "fa-book-open", description: "Love story" },
+        { label: "Party & Visuals", icon: "fa-images", description: "Photos & party" }
     ];
 
     const handleChange = (e) => {
@@ -95,16 +99,20 @@ const AddWedding = () => {
     };
 
     const selectAddress = (result) => {
-        // Auto-generate Google Maps Embed Link
-        const embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(result.display_name)}&t=&z=13&ie=UTF8&iwloc=&output=embed`;
+        // Auto-generate Google Maps Embed Link using Coordinates for accuracy
+        let embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(result.display_name)}&z=15&output=embed`;
+
+        if (result.lat && result.lon) {
+            embedUrl = `https://maps.google.com/maps?q=${result.lat},${result.lon}&z=15&output=embed`;
+        }
 
         setFormData(prev => ({
             ...prev,
-            venue_address: result.display_name, // Auto-fill address text
+            venue_address: result.display_name,
             map_location: embedUrl
         }));
-        setSearchResults([]); // Clear results
-        setAddressQuery(""); // Clear query
+        setSearchResults([]);
+        setAddressQuery("");
     };
 
     const uploadImage = async (file, path) => {
@@ -189,6 +197,7 @@ const AddWedding = () => {
             }
 
             const payload = { ...formData, slug };
+            console.log("Submitting Payload:", payload); // DEBUG: Log payload
 
             let error;
             if (isEditMode) {
@@ -215,15 +224,20 @@ const AddWedding = () => {
     const renderStep1 = () => (
         <div className="form-section">
             <h2 className="section-title">The Happy Couple</h2>
+
+            <div style={{ marginBottom: '30px' }}>
+                <ImageUpload label="Cover Image (Preview for shared links)" value={formData.cover_image} onUpload={(url) => setFormData(p => ({ ...p, cover_image: url }))} path="covers" />
+            </div>
+
             <div className="grid-2">
                 <div>
-                    <h3>The Bride</h3>
+                    <h3 className="section-subtitle"><i className="fas fa-female"></i> The Bride</h3>
                     <div className="form-group"><label className="form-label">Name</label><input className="form-input" name="bride_name" value={formData.bride_name} onChange={handleChange} /></div>
                     <ImageUpload label="Bride's Photo" value={formData.bride_image} onUpload={(url) => setFormData(p => ({ ...p, bride_image: url }))} path="couples" />
                     <div className="form-group"><label className="form-label">Bio</label><textarea className="form-textarea" name="bride_description" value={formData.bride_description} onChange={handleChange} /></div>
                 </div>
                 <div>
-                    <h3>The Groom</h3>
+                    <h3 className="section-subtitle"><i className="fas fa-male"></i> The Groom</h3>
                     <div className="form-group"><label className="form-label">Name</label><input className="form-input" name="groom_name" value={formData.groom_name} onChange={handleChange} /></div>
                     <ImageUpload label="Groom's Photo" value={formData.groom_image} onUpload={(url) => setFormData(p => ({ ...p, groom_image: url }))} path="couples" />
                     <div className="form-group"><label className="form-label">Bio</label><textarea className="form-textarea" name="groom_description" value={formData.groom_description} onChange={handleChange} /></div>
@@ -254,6 +268,16 @@ const AddWedding = () => {
                 </div>
             </div>
 
+            <div className="form-group">
+                <label className="form-label">Guest Count Options (Comma separated)</label>
+                <input
+                    className="form-input"
+                    value={Array.isArray(formData.allowed_guests) ? formData.allowed_guests.join(", ") : formData.allowed_guests}
+                    onChange={(e) => setFormData({ ...formData, allowed_guests: e.target.value.split(',').map(s => s.trim()) })}
+                    placeholder="e.g. 1, 2 (Couple), 3, 4+"
+                />
+            </div>
+
             <div className="form-group" style={{ background: '#f0fdf4', padding: '20px', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
                 <label className="form-label" style={{ color: '#166534' }}>Find Venue & Generate Map</label>
                 <div style={{ display: 'flex', gap: '10px' }}>
@@ -269,11 +293,22 @@ const AddWedding = () => {
                         ))}
                     </ul>
                 )}
-                {formData.map_location && (
-                    <div style={{ marginTop: '15px' }}>
-                        <p style={{ fontSize: '0.8rem', color: 'green' }}>✓ Map Linked: <a href={formData.map_location} target="_blank">{formData.venue_address}</a></p>
-                    </div>
-                )}
+
+                <div style={{ marginTop: '15px' }}>
+                    <label className="form-label" style={{ fontSize: '0.9rem' }}>Map Embed URL (Auto-generated)</label>
+                    <input
+                        className="form-input"
+                        name="map_location"
+                        value={formData.map_location}
+                        onChange={handleChange}
+                        placeholder="Map link will appear here..."
+                    />
+                    {formData.map_location && (
+                        <p style={{ fontSize: '0.8rem', color: 'green', marginTop: '5px' }}>
+                            ✓ <a href={formData.map_location} target="_blank" rel="noopener noreferrer">Test Link</a>
+                        </p>
+                    )}
+                </div>
             </div>
 
             <h3>Ceremony</h3>
@@ -325,6 +360,59 @@ const AddWedding = () => {
             ))}
             <button className="add-item-btn" onClick={() => addItem('groomsmen', { name: "", role: "", photo: "" })} type="button">+ Add Groomsman</button>
 
+            <h3 style={{ marginTop: '30px' }}>Gifts & Contributions</h3>
+            <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '15px' }}>Add payment identifiers for cash gifts or links to registries.</p>
+            {formData.gifts.map((item, idx) => (
+                <div key={idx} className="array-item" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <h4 style={{ margin: 0 }}>Option #{idx + 1}</h4>
+                        <button className="remove-item-btn" onClick={() => removeItem('gifts', idx)} type="button" style={{ position: 'static' }}><i className="fas fa-trash"></i> Remove</button>
+                    </div>
+
+                    <div className="grid-2">
+                        <div className="form-group">
+                            <label className="form-label">Type</label>
+                            <select className="form-input" value={item.giftType} onChange={(e) => updateItem('gifts', idx, 'giftType', e.target.value)}>
+                                <option value="Mobile Money">Mobile Money</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Cash at Event">Cash at Event</option>
+                                <option value="Gift Registry">Gift Registry / URL</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">Provider / Bank Name</label>
+                            <input className="form-input" placeholder="e.g. MTN, FNB, Amazon" value={item.provider} onChange={(e) => updateItem('gifts', idx, 'provider', e.target.value)} />
+                        </div>
+                    </div>
+
+                    {(item.giftType === 'Mobile Money' || item.giftType === 'Bank Transfer' || item.giftType === 'Other') && (
+                        <div className="grid-2">
+                            <div className="form-group">
+                                <label className="form-label">Account Name</label>
+                                <input className="form-input" placeholder="Account Holder Name" value={item.accountName} onChange={(e) => updateItem('gifts', idx, 'accountName', e.target.value)} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Account / Phone Number</label>
+                                <input className="form-input" placeholder="Number" value={item.accountNumber} onChange={(e) => updateItem('gifts', idx, 'accountNumber', e.target.value)} />
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="grid-2">
+                        <div className="form-group">
+                            <label className="form-label">Instructions (Optional)</label>
+                            <input className="form-input" placeholder="e.g. Please use ref: Wedding" value={item.instructions} onChange={(e) => updateItem('gifts', idx, 'instructions', e.target.value)} />
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">Link / URL (Optional)</label>
+                            <input className="form-input" placeholder="https://..." value={item.url} onChange={(e) => updateItem('gifts', idx, 'url', e.target.value)} />
+                        </div>
+                    </div>
+                </div>
+            ))}
+            <button className="add-item-btn" onClick={() => addItem('gifts', { giftType: "Mobile Money", provider: "", accountName: "", accountNumber: "", instructions: "", url: "" })} type="button">+ Add Gift Option</button>
+
             <h3 style={{ marginTop: '30px' }}>Gallery / Slider</h3>
             <div className="grid-2">
                 {formData.slider_images.map((img, idx) => (
@@ -335,38 +423,127 @@ const AddWedding = () => {
                 ))}
                 <ImageUpload label="New Slider Image" value="" onUpload={(url) => setFormData(p => ({ ...p, slider_images: [...p.slider_images, url] }))} path="hero" />
             </div>
+
+            <h3 style={{ marginTop: '30px' }}>Photo Gallery</h3>
+            <div className="grid-2">
+                {formData.gallery_images.map((img, idx) => (
+                    <div key={idx} className="image-upload-wrapper">
+                        <img src={img} style={{ width: '100%', height: 150, objectFit: 'cover' }} />
+                        <button className="remove-image" onClick={() => { const n = [...formData.gallery_images]; n.splice(idx, 1); setFormData(p => ({ ...p, gallery_images: n })); }} type="button"><i className="fas fa-trash"></i></button>
+                    </div>
+                ))}
+                <ImageUpload label="New Gallery Photo" value="" onUpload={(url) => setFormData(p => ({ ...p, gallery_images: [...p.gallery_images, url] }))} path="gallery" />
+            </div>
         </div>
     );
 
     return (
-        <div className="add-wedding-container">
-            <div className="add-wedding-header">
-                <h1>{isEditMode ? 'Edit Wedding Details' : 'Create Your Wedding Site'}</h1>
-                <p>Manage your wedding details below.</p>
-            </div>
-            <div className="form-steps">
-                {steps.map((step, idx) => (
-                    <div key={idx} className={`step ${currentStep === idx ? 'active' : ''} ${currentStep > idx ? 'completed' : ''}`} onClick={() => setCurrentStep(idx)}>
-                        <div className="step-number">{currentStep > idx ? <i className="fas fa-check"></i> : idx + 1}</div>
-                        <span className="step-label">{step.label}</span>
+        <>
+            {/* Admin Header */}
+            <header className="admin-header">
+                <div className="admin-header-content">
+                    <div className="admin-logo">
+                        <div className="admin-logo-icon">
+                            <i className="fas fa-heart"></i>
+                        </div>
+                        <div className="admin-logo-text">
+                            <h1>SaveMeASeat</h1>
+                            <p>Wedding Admin Panel</p>
+                        </div>
                     </div>
-                ))}
+                    <nav className="admin-nav">
+                        <button className="admin-nav-btn secondary" onClick={() => navigate('/admin')}>
+                            <i className="fas fa-th-large"></i> Dashboard
+                        </button>
+                        <button className="admin-nav-btn primary" onClick={() => window.open('/w/' + formData.slug, '_blank')}>
+                            <i className="fas fa-eye"></i> Preview
+                        </button>
+                    </nav>
+                </div>
+            </header>
+
+            <div className="add-wedding-container">
+                {/* Page Title Card */}
+                <div className="page-title-card">
+                    <div className="page-title-content">
+                        <h1>
+                            <i className={isEditMode ? "fas fa-edit" : "fas fa-plus-circle"}></i>
+                            {isEditMode ? 'Edit Wedding Details' : 'Create Wedding Website'}
+                        </h1>
+                        <p>
+                            {isEditMode
+                                ? 'Update your wedding information and manage all the details for your special day.'
+                                : 'Set up your beautiful wedding website in just a few steps. Add your story, photos, and all the details your guests need.'}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Progress Steps */}
+                <div className="progress-section">
+                    <div className="form-steps">
+                        {steps.map((step, idx) => (
+                            <div
+                                key={idx}
+                                className={`step ${currentStep === idx ? 'active' : ''} ${currentStep > idx ? 'completed' : ''}`}
+                                onClick={() => setCurrentStep(idx)}
+                            >
+                                <div className="step-number">
+                                    {currentStep > idx ? <i className="fas fa-check"></i> : <i className={`fas ${step.icon}`}></i>}
+                                </div>
+                                <div className="step-info">
+                                    <span className="step-label">{step.label}</span>
+                                    <span className="step-description">{step.description}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Form Content */}
+                <div className="form-content-card">
+                    <div className="form-content">
+                        {currentStep === 0 && renderStep1()}
+                        {currentStep === 1 && renderStep2()}
+                        {currentStep === 2 && renderStep3()}
+                        {currentStep === 3 && renderStep4()}
+                    </div>
+                </div>
+
+                {/* Form Actions */}
+                <div className="form-actions">
+                    <button
+                        className="btn btn-secondary"
+                        disabled={currentStep === 0}
+                        onClick={() => setCurrentStep(p => p - 1)}
+                        type="button"
+                    >
+                        <i className="fas fa-arrow-left"></i> Previous Step
+                    </button>
+                    {currentStep < steps.length - 1 ? (
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => setCurrentStep(p => p + 1)}
+                            type="button"
+                        >
+                            Next Step <i className="fas fa-arrow-right"></i>
+                        </button>
+                    ) : (
+                        <button
+                            className="btn btn-primary"
+                            onClick={handleSubmit}
+                            disabled={loading}
+                            type="button"
+                        >
+                            {loading ? (
+                                <><i className="fas fa-spinner fa-spin"></i> Saving...</>
+                            ) : (
+                                <><i className="fas fa-rocket"></i> {isEditMode ? "Update Wedding" : "Launch Website"}</>
+                            )}
+                        </button>
+                    )}
+                </div>
             </div>
-            <div className="form-content">
-                {currentStep === 0 && renderStep1()}
-                {currentStep === 1 && renderStep2()}
-                {currentStep === 2 && renderStep3()}
-                {currentStep === 3 && renderStep4()}
-            </div>
-            <div className="form-actions">
-                <button className="btn btn-secondary" disabled={currentStep === 0} onClick={() => setCurrentStep(p => p - 1)} type="button">Previous</button>
-                {currentStep < steps.length - 1 ? (
-                    <button className="btn btn-primary" onClick={() => setCurrentStep(p => p + 1)} type="button">Next Step</button>
-                ) : (
-                    <button className="btn btn-primary" onClick={handleSubmit} disabled={loading} type="button">{loading ? <i className="fas fa-spinner fa-spin"></i> : (isEditMode ? "Update Wedding" : "Launch Site")}</button>
-                )}
-            </div>
-        </div>
+        </>
     );
 };
 
