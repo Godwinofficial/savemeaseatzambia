@@ -86,34 +86,126 @@ const AddWedding = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // --- MAP & ADDRESS SEARCH ---
-    const handleAddressSearch = async () => {
-        if (!addressQuery) return;
-        try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressQuery)}`);
-            const data = await response.json();
-            setSearchResults(data);
-        } catch (error) {
-            alert("Error searching address");
+    const [leafletLoaded, setLeafletLoaded] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
+    const [mapInstance, setMapInstance] = useState(null);
+    const [markerInstance, setMarkerInstance] = useState(null);
+
+    // --- LEAFLET & SEARCH LOGIC ---
+
+    // 1. Load Leaflet Resources
+    useEffect(() => {
+        if (!document.getElementById('leaflet-css')) {
+            const link = document.createElement('link');
+            link.id = 'leaflet-css';
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            document.head.appendChild(link);
         }
+
+        if (!window.L) {
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+            script.async = true;
+            script.onload = () => setLeafletLoaded(true);
+            document.body.appendChild(script);
+        } else {
+            setLeafletLoaded(true);
+        }
+    }, []);
+
+    // 2. Initialize Map when ready
+    useEffect(() => {
+        if (leafletLoaded && !mapInstance && document.getElementById('leaflet-map-container')) {
+            const L = window.L;
+            // Default center: Lusaka
+            const initialLat = -15.3875;
+            const initialLng = 28.3228;
+
+            const map = L.map('leaflet-map-container').setView([initialLat, initialLng], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Add draggable marker
+            const marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(map);
+
+            marker.on('dragend', function (e) {
+                const { lat, lng } = marker.getLatLng();
+                updateLocationFromLatLng(lat, lng);
+            });
+
+            // Map click to move marker
+            map.on('click', function (e) {
+                marker.setLatLng(e.latlng);
+                updateLocationFromLatLng(e.latlng.lat, e.latlng.lng);
+            });
+
+            setMapInstance(map);
+            setMarkerInstance(marker);
+
+            // Fix map size invalidation after render
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 100);
+        }
+    }, [leafletLoaded, currentStep]);
+
+    // 3. Debounced Search Effect
+    useEffect(() => {
+        const timer = setTimeout(async () => {
+            if (addressQuery.length > 2) {
+                setIsSearching(true);
+                try {
+                    // Using 'addressdetails=1' to get more info
+                    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressQuery)}&countrycodes=zm&addressdetails=1&limit=5`);
+                    const data = await response.json();
+                    setSearchResults(data);
+                } catch (error) {
+                    console.error("Search error", error);
+                } finally {
+                    setIsSearching(false);
+                }
+            } else {
+                setSearchResults([]);
+            }
+        }, 500); // 500ms debounce
+
+        return () => clearTimeout(timer);
+    }, [addressQuery]);
+
+    const updateLocationFromLatLng = (lat, lng) => {
+        // Construct standard generic embed URL or Google Maps link
+        const embedUrl = `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
+        setFormData(prev => ({
+            ...prev,
+            map_location: embedUrl
+        }));
     };
 
     const selectAddress = (result) => {
-        // Auto-generate Google Maps Embed Link using Coordinates for accuracy
-        let embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(result.display_name)}&z=15&output=embed`;
+        const lat = parseFloat(result.lat);
+        const lon = parseFloat(result.lon);
 
-        if (result.lat && result.lon) {
-            embedUrl = `https://maps.google.com/maps?q=${result.lat},${result.lon}&z=15&output=embed`;
+        if (mapInstance && markerInstance) {
+            mapInstance.setView([lat, lon], 16);
+            markerInstance.setLatLng([lat, lon]);
         }
+
+        updateLocationFromLatLng(lat, lon);
 
         setFormData(prev => ({
             ...prev,
-            venue_address: result.display_name,
-            map_location: embedUrl
+            venue_address: result.display_name
         }));
+
         setSearchResults([]);
-        setAddressQuery("");
+        setAddressQuery(result.display_name.split(',')[0]); // Set concise name to input
     };
+
+    // Kept for backward compatibility if any button calls it directly (though UI removed it)
+    const handleAddressSearch = () => { /* no-op in new live search */ };
 
     const uploadImage = async (file, path) => {
         if (!file) return null;
@@ -144,7 +236,9 @@ const AddWedding = () => {
         }
     };
 
-    const ImageUpload = ({ label, value, onUpload, path = "misc" }) => {
+    const ImageUpload = ({ label, value, onUpload, path = "misc", id }) => {
+        const inputId = id || `file-${label.replace(/\s+/g, '_')}`;
+
         const handleFileChange = async (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -156,8 +250,8 @@ const AddWedding = () => {
         return (
             <div className="form-group">
                 <label className="form-label">{label}</label>
-                <div className="image-upload-wrapper" onClick={() => document.getElementById(`file-${label}`).click()}>
-                    <input type="file" id={`file-${label}`} onChange={handleFileChange} accept="image/*" />
+                <div className="image-upload-wrapper" onClick={() => document.getElementById(inputId).click()}>
+                    <input type="file" id={inputId} onChange={handleFileChange} accept="image/*" />
                     {value ? (
                         <div className="image-preview">
                             <img src={value} alt="Preview" />
@@ -279,33 +373,78 @@ const AddWedding = () => {
             </div>
 
             <div className="form-group" style={{ background: '#f0fdf4', padding: '20px', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
-                <label className="form-label" style={{ color: '#166534' }}>Find Venue & Generate Map</label>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <input className="form-input" value={addressQuery} onChange={(e) => setAddressQuery(e.target.value)} placeholder="Search Venue Address (e.g. The Plaza Hotel, NY)..." />
-                    <button className="btn btn-primary" onClick={handleAddressSearch} type="button">Search</button>
+                <label className="form-label" style={{ color: '#166534', fontWeight: 'bold' }}>Find Venue & Select Location</label>
+                <p style={{ fontSize: '0.9rem', color: '#166534', marginBottom: '15px' }}>
+                    Type to search specific venues (e.g. "Twangale Park"). Select from the list or drag the pin on the map.
+                </p>
+
+                <div style={{ position: 'relative' }}>
+                    <input
+                        className="form-input"
+                        value={addressQuery}
+                        onChange={(e) => setAddressQuery(e.target.value)}
+                        placeholder="Start typing venue name..."
+                        style={{ marginBottom: '10px' }}
+                    />
+                    {isSearching && <div style={{ position: 'absolute', right: '10px', top: '10px', color: '#888' }}><i className="fas fa-spinner fa-spin"></i></div>}
+
+                    {searchResults.length > 0 && (
+                        <ul style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: 0,
+                            width: '100%',
+                            background: 'white',
+                            border: '1px solid #ddd',
+                            borderRadius: '0 0 8px 8px',
+                            listStyle: 'none',
+                            padding: 0,
+                            margin: '-10px 0 0 0',
+                            maxHeight: '250px',
+                            overflowY: 'auto',
+                            zIndex: 1000,
+                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                        }}>
+                            {searchResults.map((result, idx) => (
+                                <li
+                                    key={idx}
+                                    onClick={() => selectAddress(result)}
+                                    style={{
+                                        padding: '12px 15px',
+                                        cursor: 'pointer',
+                                        borderBottom: '1px solid #eee',
+                                        fontSize: '0.9rem',
+                                        transition: 'background 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.background = '#f9fafb'}
+                                    onMouseLeave={(e) => e.target.style.background = 'white'}
+                                >
+                                    <strong>{result.name ? result.name : result.display_name.split(',')[0]}</strong>
+                                    <br />
+                                    <span style={{ fontSize: '0.8rem', color: '#666' }}>{result.display_name}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </div>
-                {searchResults.length > 0 && (
-                    <ul style={{ background: 'white', border: '1px solid #ddd', marginTop: '10px', padding: '0', listStyle: 'none', maxHeight: '200px', overflowY: 'auto' }}>
-                        {searchResults.map((result, idx) => (
-                            <li key={idx} onClick={() => selectAddress(result)} style={{ padding: '10px', cursor: 'pointer', borderBottom: '1px solid #eee' }}>
-                                {result.display_name}
-                            </li>
-                        ))}
-                    </ul>
-                )}
+
+                <div
+                    id="leaflet-map-container"
+                    style={{ width: '100%', height: '400px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #ddd', zIndex: 1 }}
+                ></div>
 
                 <div style={{ marginTop: '15px' }}>
-                    <label className="form-label" style={{ fontSize: '0.9rem' }}>Map Embed URL (Auto-generated)</label>
+                    <label className="form-label" style={{ fontSize: '0.9rem' }}>Generated Location URL</label>
                     <input
                         className="form-input"
                         name="map_location"
                         value={formData.map_location}
                         onChange={handleChange}
-                        placeholder="Map link will appear here..."
+                        placeholder="Google Maps Embed URL will appear here..."
                     />
                     {formData.map_location && (
                         <p style={{ fontSize: '0.8rem', color: 'green', marginTop: '5px' }}>
-                            ✓ <a href={formData.map_location} target="_blank" rel="noopener noreferrer">Test Link</a>
+                            ✓ Location set! <a href={formData.map_location} target="_blank" rel="noopener noreferrer">Test Link</a>
                         </p>
                     )}
                 </div>
@@ -345,7 +484,7 @@ const AddWedding = () => {
                 <div key={idx} className="array-item grid-2">
                     <button className="remove-item-btn" onClick={() => removeItem('bridesmaids', idx)} type="button"><i className="fas fa-trash"></i></button>
                     <div><input className="form-input" placeholder="Name" value={item.name} onChange={(e) => updateItem('bridesmaids', idx, 'name', e.target.value)} /><input className="form-input" placeholder="Role" value={item.role} onChange={(e) => updateItem('bridesmaids', idx, 'role', e.target.value)} style={{ marginTop: 5 }} /></div>
-                    <div><ImageUpload label="Photo" value={item.photo} onUpload={(url) => updateItem('bridesmaids', idx, 'photo', url)} path="party" /></div>
+                    <div><ImageUpload label="Photo" id={`bridesmaid-photo-${idx}`} value={item.photo} onUpload={(url) => updateItem('bridesmaids', idx, 'photo', url)} path="party" /></div>
                 </div>
             ))}
             <button className="add-item-btn" onClick={() => addItem('bridesmaids', { name: "", role: "", photo: "" })} type="button">+ Add Bridesmaid</button>
@@ -355,7 +494,7 @@ const AddWedding = () => {
                 <div key={idx} className="array-item grid-2">
                     <button className="remove-item-btn" onClick={() => removeItem('groomsmen', idx)} type="button"><i className="fas fa-trash"></i></button>
                     <div><input className="form-input" placeholder="Name" value={item.name} onChange={(e) => updateItem('groomsmen', idx, 'name', e.target.value)} /><input className="form-input" placeholder="Role" value={item.role} onChange={(e) => updateItem('groomsmen', idx, 'role', e.target.value)} style={{ marginTop: 5 }} /></div>
-                    <div><ImageUpload label="Photo" value={item.photo} onUpload={(url) => updateItem('groomsmen', idx, 'photo', url)} path="party" /></div>
+                    <div><ImageUpload label="Photo" id={`groomsman-photo-${idx}`} value={item.photo} onUpload={(url) => updateItem('groomsmen', idx, 'photo', url)} path="party" /></div>
                 </div>
             ))}
             <button className="add-item-btn" onClick={() => addItem('groomsmen', { name: "", role: "", photo: "" })} type="button">+ Add Groomsman</button>

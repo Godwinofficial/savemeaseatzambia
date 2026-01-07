@@ -144,7 +144,8 @@ const WeddingTemplate = () => {
     gifts: [],
     galleryImages: [],
     mapLocation: "",
-
+    galleryImages: [],
+    mapLocation: "",
     coverImage: null,
     allowedGuests: []
   };
@@ -1136,41 +1137,43 @@ const WeddingTemplate = () => {
     }
 
     .section-title {
-      width: 100%;
-      text-align: center !important;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      text-align: center;
+      width: 100%;
       margin-bottom: 80px;
       position: relative;
       z-index: 2;
       border-bottom: none !important;
-      text-decoration: none !important;
     }
 
-    .section-title::after,
-    .section-title::before {
-      display: none !important;
+    .section-title::after {
       content: none !important;
+      display: none !important;
     }
 
     .section-title h2 {
       font-family: 'Cormorant Garamond', serif;
-      font-size: 3.5rem;
+      font-size: 4rem; /* Increased size for better visual hierarchy */
       color: var(--text-color);
-      display: inline-block;
+      display: block;
+      width: 100%;
+      text-align: center !important;
       font-weight: 300;
-      margin-bottom: 1rem;
+      margin-bottom: 0.5rem;
       line-height: 1.1;
       text-decoration: none !important;
       border-bottom: none !important;
     }
 
-    .section-title h2::after,
-    .section-title h2::before {
-      display: none !important;
+    .section-title h2::after {
       content: none !important;
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      background: none !important;
     }
 
     .section-title p {
@@ -1180,6 +1183,9 @@ const WeddingTemplate = () => {
       text-transform: uppercase;
       letter-spacing: 0.2rem;
       font-weight: 500;
+      text-align: center !important;
+      display: block;
+      width: 100%;
     }
 
     .couple-container {
@@ -1297,12 +1303,7 @@ const WeddingTemplate = () => {
     }
 
     .party-title {
-      width: 100%;
-      text-align: center !important;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      text-align: center;
       margin-bottom: 50px;
     }
 
@@ -1405,12 +1406,14 @@ const WeddingTemplate = () => {
     .wedding-details .subtitle {
       font-family: 'Montserrat', sans-serif;
       color: var(--accent-color);
-      font-size: 0.85rem;
+      font-size: 0.9rem;
       text-transform: uppercase;
-      letter-spacing: 0.2rem;
+      letter-spacing: 0.3rem; /* Increased letter spacing */
       display: block;
-      margin-bottom: 15px;
-      font-weight: 500;
+      width: 100%;
+      text-align: center !important;
+      margin-bottom: 10px;
+      font-weight: 600;
     }
 
     .details-container {
@@ -2285,11 +2288,11 @@ const WeddingTemplate = () => {
       {loading && (
         <div className="page-loader" id="pageLoader">
           <div className="loader-bg-text">
-            {weddingData.couple.bride.name || "Wedding"} & {weddingData.couple.groom.name || "Loading"}
+            {weddingData.couple.bride.name?.split(' ')[0] || "Wedding"} & {weddingData.couple.groom.name?.split(' ')[0] || "Loading"}
           </div>
           <div className="loader-content">
             <div className="loader-names">
-              {weddingData.couple.bride.name || ""} <span> & </span> {weddingData.couple.groom.name || ""}
+              {weddingData.couple.bride.name?.split(' ')[0] || ""} <span> & </span> {weddingData.couple.groom.name?.split(' ')[0] || ""}
             </div>
             <div className="spinner-minimal"></div>
           </div>
