@@ -359,43 +359,14 @@ const WeddingTemplate = () => {
     }
   }, [dataFetched]);
 
-  // Update document title and meta tags dynamically
+  // Update document title dynamically
   useEffect(() => {
     if (weddingData.couple.bride.name && weddingData.couple.groom.name) {
-      const title = `${weddingData.couple.bride.name} & ${weddingData.couple.groom.name} | Wedding`;
-      const description = `You're invited to celebrate the wedding of ${weddingData.couple.bride.name} and ${weddingData.couple.groom.name}${weddingData.date ? ' on ' + weddingData.date : ''}. Join us for this special day!`;
-      const ogImage = weddingData.coverImage || weddingData.sliderImages[0] || '/imgs/logo1.png';
-
-      // Update title
-      document.title = title;
-
-      // Update or create meta tags
-      const updateMetaTag = (property, content, isProperty = true) => {
-        const attribute = isProperty ? 'property' : 'name';
-        let element = document.querySelector(`meta[${attribute}="${property}"]`);
-        if (!element) {
-          element = document.createElement('meta');
-          element.setAttribute(attribute, property);
-          document.head.appendChild(element);
-        }
-        element.setAttribute('content', content);
-      };
-
-      // Update meta tags
-      updateMetaTag('og:title', title);
-      updateMetaTag('og:description', description);
-      updateMetaTag('og:image', ogImage);
-      updateMetaTag('og:type', 'website');
-      updateMetaTag('og:url', window.location.href);
-      updateMetaTag('description', description, false);
-      updateMetaTag('twitter:card', 'summary_large_image', false);
-      updateMetaTag('twitter:title', title, false);
-      updateMetaTag('twitter:description', description, false);
-      updateMetaTag('twitter:image', ogImage, false);
+      document.title = `${weddingData.couple.bride.name} & ${weddingData.couple.groom.name} | Wedding`;
     } else {
       document.title = "Wedding Invitation";
     }
-  }, [weddingData.couple.bride.name, weddingData.couple.groom.name, weddingData.date, weddingData.coverImage, weddingData.sliderImages]);
+  }, [weddingData.couple.bride.name, weddingData.couple.groom.name]);
 
   useEffect(() => {
     // Scroll effect for header
