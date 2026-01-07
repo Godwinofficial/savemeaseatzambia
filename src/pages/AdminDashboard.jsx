@@ -60,6 +60,13 @@ const AdminDashboard = () => {
         });
     };
 
+    const copyPreviewLink = (slug) => {
+        const url = `${window.location.origin}/api/preview?slug=${slug}`;
+        navigator.clipboard.writeText(url).then(() => {
+            alert("Preview Link copied! Share this link on WhatsApp for the dynamic preview.");
+        });
+    };
+
     const downloadRSVPs = async (weddingId, weddingName) => {
         try {
             const { data, error } = await supabase
@@ -129,6 +136,7 @@ const AdminDashboard = () => {
                                     <div className="links">
                                         <a href={`/w/${wedding.slug}`} target="_blank" rel="noopener noreferrer">View Site</a>
                                         <button onClick={() => copyLink(wedding.slug)} className="btn-copy">Copy Site URL</button>
+                                        <button onClick={() => copyPreviewLink(wedding.slug)} className="btn-copy" style={{ backgroundColor: '#25D366', color: 'white' }}>Copy Preview URL</button>
                                         <Link to={`/editWedding/${wedding.id}`} className="btn-edit">Edit</Link>
                                     </div>
                                     <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>

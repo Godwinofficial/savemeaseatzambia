@@ -24,7 +24,7 @@ const AddWedding = () => {
         reception_date: "", reception_time: "", reception_venue: "", reception_address: "",
         rsvp_deadline: "",
         dress_code: "", dress_code_desc: "",
-        dress_code: "", dress_code_desc: "",
+
         map_location: "", // Will be auto-generated
         slider_images: [], bridesmaids: [], groomsmen: [], gifts: [], gallery_images: [],
         allowed_guests: ["1", "2"] // Default

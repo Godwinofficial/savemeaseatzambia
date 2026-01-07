@@ -144,8 +144,7 @@ const WeddingTemplate = () => {
     gifts: [],
     galleryImages: [],
     mapLocation: "",
-    galleryImages: [],
-    mapLocation: "",
+
     coverImage: null,
     allowedGuests: []
   };
@@ -1137,11 +1136,23 @@ const WeddingTemplate = () => {
     }
 
     .section-title {
-      text-align: center;
+      width: 100%;
+      text-align: center !important;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       margin-bottom: 80px;
       position: relative;
       z-index: 2;
       border-bottom: none !important;
+      text-decoration: none !important;
+    }
+
+    .section-title::after,
+    .section-title::before {
+      display: none !important;
+      content: none !important;
     }
 
     .section-title h2 {
@@ -1152,6 +1163,14 @@ const WeddingTemplate = () => {
       font-weight: 300;
       margin-bottom: 1rem;
       line-height: 1.1;
+      text-decoration: none !important;
+      border-bottom: none !important;
+    }
+
+    .section-title h2::after,
+    .section-title h2::before {
+      display: none !important;
+      content: none !important;
     }
 
     .section-title p {
@@ -1278,7 +1297,12 @@ const WeddingTemplate = () => {
     }
 
     .party-title {
-      text-align: center;
+      width: 100%;
+      text-align: center !important;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       margin-bottom: 50px;
     }
 
