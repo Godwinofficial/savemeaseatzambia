@@ -2336,12 +2336,19 @@ const WeddingTemplate = () => {
         <div className="container">
           <div className="hero-content">
             <h1 className="hero-title">
-              {weddingData.couple.bride.name} & {weddingData.couple.groom.name}
+              {weddingData.couple.bride.name?.split(' ')[0]} & {weddingData.couple.groom.name?.split(' ')[0]}
             </h1>
             <div className="hero-tagline">We are getting married</div>
             <div className="hero-meta">
               <div>
-                <span className="hero-date">{weddingData.date}</span>
+                <span className="hero-date">{
+                  weddingData.rawDate ? new Date(weddingData.rawDate).toLocaleDateString('en-GB', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                  }) : weddingData.date
+                }</span>
               </div>
               <div>
                 <span className="hero-location">{weddingData.location}</span>
