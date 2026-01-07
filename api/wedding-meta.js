@@ -2,18 +2,16 @@ export default async function handler(req, res) {
     const { slug } = req.query;
 
     if (!slug) {
-        // Redirect to home if no slug
         return res.redirect(307, '/');
     }
 
     try {
-        // Fetch wedding data from Supabase
         const supabaseUrl = process.env.VITE_SUPABASE_URL;
         const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
 
         if (!supabaseUrl || !supabaseKey) {
             console.error('Missing Supabase credentials');
-            return res.redirect(307, `/w/${slug}`);
+            return res.redirect(307, '/');
         }
 
         const response = await fetch(
@@ -44,6 +42,8 @@ export default async function handler(req, res) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <!-- Primary Meta Tags -->
   <title>${title}</title>
   <meta name="title" content="${title}" />
   <meta name="description" content="${description}" />
@@ -51,44 +51,44 @@ export default async function handler(req, res) {
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://savemeaseatzambia.vercel.app/w/${slug}" />
+  <meta property="og:site_name" content="SaveMeASeat Zambia" />
   <meta property="og:title" content="${title}" />
   <meta property="og:description" content="${description}" />
   <meta property="og:image" content="${coverImage}" />
+  <meta property="og:image:secure_url" content="${coverImage}" />
+  <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="${title}" />
   
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://savemeaseatzambia.vercel.app/w/${slug}" />
   <meta name="twitter:title" content="${title}" />
   <meta name="twitter:description" content="${description}" />
   <meta name="twitter:image" content="${coverImage}" />
   
+  <!-- WhatsApp specific -->
+  <meta property="og:locale" content="en_US" />
+  
   <link rel="icon" type="image/png" href="/imgs/logo1.png" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  
-  <meta http-equiv="refresh" content="0;url=/#/w/${slug}" />
 </head>
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
-  <script>
-    // Immediate redirect for browsers
-    window.location.href = '/#/w/${slug}';
-  </script>
 </body>
 </html>`;
 
             res.setHeader('Content-Type', 'text/html; charset=utf-8');
-            res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+            res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate, s-maxage=3600');
             return res.status(200).send(html);
         } else {
-            // Wedding not found, redirect to home
             return res.redirect(307, '/');
         }
     } catch (error) {
         console.error('Error fetching wedding:', error);
-        // On error, redirect to the React app
-        return res.redirect(307, `/w/${slug}`);
+        return res.redirect(307, '/');
     }
 }
