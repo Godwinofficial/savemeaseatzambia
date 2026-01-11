@@ -135,10 +135,10 @@ const Hero = () => {
                         key={index}
                         className={`hero-slide ${index === currentSlide ? 'active' : ''}`}
                         style={{
-                            backgroundImage: `linear-gradient(135deg,
-                ${index === 0 ? 'rgba(67, 97, 238, 0.4)' : index === 1 ? 'rgba(76, 201, 240, 0.4)' : 'rgba(247, 37, 133, 0.4)'},
-                ${index === 0 ? 'rgba(247, 37, 133, 0.4)' : index === 1 ? 'rgba(67, 97, 238, 0.4)' : 'rgba(76, 201, 240, 0.4)'}),
-                url(${img})`
+                            backgroundImage: `linear-gradient(135deg, ${index === 0 ? 'rgba(67, 97, 238, 0.4)' : index === 1 ? 'rgba(76, 201, 240, 0.4)' : 'rgba(247, 37, 133, 0.4)'}, ${index === 0 ? 'rgba(247, 37, 133, 0.4)' : index === 1 ? 'rgba(67, 97, 238, 0.4)' : 'rgba(76, 201, 240, 0.4)'}), url("${img}")`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            backgroundRepeat: 'no-repeat'
                         }}
                     ></div>
                 ))}
@@ -163,7 +163,14 @@ const Hero = () => {
                         </span>
                     </div>
 
-                    <p className="hero-description">
+                    <p
+                        className="hero-description"
+                        style={{
+                            color: "rgba(255, 255, 255, 0.95)",
+
+                        }}
+                    >
+
                         Create stunning digital invitations that impress your guests. Beautiful designs, seamless RSVP management,
                         and unforgettable first impressions for your special events.
                     </p>

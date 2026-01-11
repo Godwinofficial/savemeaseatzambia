@@ -35,7 +35,7 @@ export default async function handler(request, response) {
         // defaults
         let title = "Wedding Invitation";
         let description = "You are invited against a wedding celebration.";
-        let image = "https://savemeseatzambia.com/imgs/logo1.png"; // Default fallback
+        let image = "https://savemeaseatzambia.com/imgs/logo1.png"; // Fixed typo: savemeaseat
         let redirectUrl = `/w/${slug}`;
 
         // Fetch wedding data
@@ -47,17 +47,19 @@ export default async function handler(request, response) {
 
         if (error) {
             console.error('Supabase error:', error);
-            // We still return a page that redirects, but maybe with generic metadata
         } else if (wedding) {
             title = `${wedding.bride_name} & ${wedding.groom_name} | Wedding Invitation`;
             description = `Join us on ${new Date(wedding.date).toLocaleDateString()} at ${wedding.venue_name || wedding.location}.`;
             if (wedding.cover_image) {
+                // Use the cover image
                 image = wedding.cover_image;
             }
         }
 
+        // Append a timestamp to the image URL to prevent aggressive caching by WhatsApp
+        const imageWithCacheBust = image.includes('?') ? `${image}&t=${Date.now()}` : `${image}?t=${Date.now()}`;
+
         // HTML Template with Dynamic Meta Tags and Redirect
-        // key: using minimal responsive meta tags for best preview
         const html = `
       <!DOCTYPE html>
       <html lang="en">
@@ -68,37 +70,36 @@ export default async function handler(request, response) {
         
         <!-- Open Graph / Facebook -->
         <meta property="og:type" content="website">
+        <meta property="og:url" content="${request.url}">
         <meta property="og:title" content="${title}">
         <meta property="og:description" content="${description}">
-        <meta property="og:image" content="${image}">
+        <meta property="og:site_name" content="SaveMeASeat">
+        
+        <meta property="og:image" content="${imageWithCacheBust}">
+        <meta property="og:image:secure_url" content="${imageWithCacheBust}">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="630">
+        <meta property="og:image:alt" content="Wedding Invitation">
+        <meta property="og:image:type" content="image/jpeg">
         
         <!-- Twitter -->
         <meta name="twitter:card" content="summary_large_image">
         <meta name="twitter:title" content="${title}">
         <meta name="twitter:description" content="${description}">
-        <meta name="twitter:image" content="${image}">
+        <meta name="twitter:image" content="${imageWithCacheBust}">
 
-        <!-- WhatsApp usually uses OG tags, but ensure image size is reasonable (handled by user upload usually) -->
+        <!-- WhatsApp / Schema.org -->
+        <meta itemprop="name" content="${title}">
+        <meta itemprop="description" content="${description}">
+        <meta itemprop="image" content="${imageWithCacheBust}">
 
-        <style>
-          body { font-family: sans-serif; text-align: center; padding: 50px; background: #fafaf9; color: #57534E; }
-          .loader { margin: 20px auto; border: 4px solid #f3f3f3; border-top: 4px solid #A68A64; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        </style>
-        
         <script>
-           // Redirect immediately
-           setTimeout(function() {
-             window.location.href = "${redirectUrl}";
-           }, 500); // Small delay to let crawlers see tags? usually not needed but 100-500ms is safe
+           window.location.href = "${redirectUrl}";
         </script>
       </head>
       <body>
-        <h1>${wedding && wedding.bride_name ? "Save Me A Seat" : "Loading..."}</h1>
-        <p>Redirecting to invitation...</p>
-        <div class="loader"></div>
         <noscript>
-            <p>If you are not redirected, <a href="${redirectUrl}">click here</a>.</p>
+            <p><a href="${redirectUrl}">Click here</a></p>
         </noscript>
       </body>
       </html>

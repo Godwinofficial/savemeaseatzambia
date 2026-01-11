@@ -475,11 +475,15 @@ const WeddingTemplate = () => {
 
   useEffect(() => {
     // Slider auto-play
+    // Only start if we have images
+    if (!weddingData.sliderImages || weddingData.sliderImages.length === 0) return;
+
     const startSlider = () => {
+      // Clear existing to avoid duplicates
+      if (slideInterval.current) clearInterval(slideInterval.current);
+
       slideInterval.current = setInterval(() => {
-        if (weddingData.sliderImages && weddingData.sliderImages.length > 0) {
-          setCurrentSlide((prev) => (prev + 1) % weddingData.sliderImages.length);
-        }
+        setCurrentSlide((prev) => (prev + 1) % weddingData.sliderImages.length);
       }, 6000);
     };
 
@@ -504,7 +508,7 @@ const WeddingTemplate = () => {
         sliderElement.removeEventListener('mouseleave', startSlider);
       }
     };
-  }, []);
+  }, [weddingData.sliderImages.length]); // Re-run when images are loaded
 
   useEffect(() => {
     // Intersection Observer for animations
@@ -2150,8 +2154,13 @@ const WeddingTemplate = () => {
       }
 
       .hero .slider-dots {
-        display: flex;
-        bottom: 100px;
+        display: flex !important;
+        bottom: 90px;
+        z-index: 20;
+        justify-content: center;
+        width: 100%;
+        left: 0;
+        transform: none;
       }
 
       .hero .slider-controls {
