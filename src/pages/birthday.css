@@ -1,0 +1,242 @@
+/* ============================================================
+   Birthday Invitation – Katy Theme
+   Fonts: Sacramento (script) + Nunito (sans-serif)
+   Palette: Pink · Sky Blue · Orange-Peach · Cream · Gold · Green
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Sacramento&family=Nunito:wght@400;600;700;800&display=swap');
+
+/* ---------- CSS Custom Properties ---------- */
+:root {
+  --background: hsl(30, 33%, 96%);
+  /* #F7F0E8 cream */
+  --foreground: hsl(20, 20%, 20%);
+
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(20, 20%, 20%);
+
+  --primary: hsl(340, 65%, 60%);
+  /* #D45279 pink */
+  --primary-foreground: hsl(0, 0%, 100%);
+
+  --secondary: hsl(200, 60%, 72%);
+  /* #A7C7D8 sky blue */
+  --secondary-foreground: hsl(200, 60%, 15%);
+
+  --muted: hsl(30, 20%, 90%);
+  --muted-foreground: hsl(20, 10%, 50%);
+
+  --accent: hsl(20, 80%, 62%);
+  /* #F0A37A orange-peach */
+  --accent-foreground: hsl(0, 0%, 100%);
+
+  --border: hsl(30, 20%, 88%);
+
+  --katy-gold: hsl(40, 70%, 55%);
+  /* #DFB075 */
+  --katy-green: hsl(150, 40%, 55%);
+  /* #9CCBA4 */
+
+  --radius: 0.5rem;
+}
+
+/* ---------- Base Reset for Birthday Page ---------- */
+.bd-page {
+  font-family: 'Nunito', sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* ---------- Typography ---------- */
+.font-script,
+.bd-page .font-script {
+  font-family: 'Sacramento', cursive !important;
+}
+
+/* ---------- Confetti Animations ---------- */
+.confetti-dot {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.6;
+  animation: bd-float 6s ease-in-out infinite;
+}
+
+.confetti-rect {
+  position: absolute;
+  opacity: 0.5;
+  animation: bd-spin-float 8s linear infinite;
+}
+
+/* ---------- Blob Shape ---------- */
+.blob-shape {
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+}
+
+/* ---------- Keyframes ---------- */
+@keyframes bd-float {
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-20px) rotate(10deg);
+  }
+}
+
+@keyframes bd-spin-float {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-15px) rotate(180deg);
+  }
+
+  100% {
+    transform: translateY(0) rotate(360deg);
+  }
+}
+
+@keyframes bd-countdown-pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* ---------- Tailwind Colour Token Overrides ---------- */
+/* These override the in-page Tailwind config so colours match exactly */
+.bd-page .text-primary {
+  color: var(--primary) !important;
+}
+
+.bd-page .bg-primary {
+  background-color: var(--primary) !important;
+}
+
+.bd-page .text-primary-foreground {
+  color: var(--primary-foreground) !important;
+}
+
+.bd-page .text-secondary {
+  color: var(--secondary) !important;
+}
+
+.bd-page .bg-secondary {
+  background-color: var(--secondary) !important;
+}
+
+.bd-page .text-accent {
+  color: var(--accent) !important;
+}
+
+.bd-page .bg-accent {
+  background-color: var(--accent) !important;
+}
+
+.bd-page .text-accent-foreground {
+  color: var(--accent-foreground) !important;
+}
+
+.bd-page .bg-background {
+  background-color: var(--background) !important;
+}
+
+.bd-page .text-foreground {
+  color: var(--foreground) !important;
+}
+
+.bd-page .bg-card {
+  background-color: var(--card) !important;
+}
+
+.bd-page .text-card-foreground {
+  color: var(--card-foreground) !important;
+}
+
+.bd-page .text-muted-foreground {
+  color: var(--muted-foreground) !important;
+}
+
+.bd-page .text-katy-gold {
+  color: var(--katy-gold) !important;
+}
+
+.bd-page .bg-katy-gold {
+  background-color: var(--katy-gold) !important;
+}
+
+.bd-page .text-katy-green {
+  color: var(--katy-green) !important;
+}
+
+.bd-page .bg-katy-green {
+  background-color: var(--katy-green) !important;
+}
+
+.bd-page .border-border {
+  border-color: var(--border) !important;
+}
+
+.bd-page .border-primary {
+  border-color: var(--primary) !important;
+}
+
+.bd-page .border-accent {
+  border-color: var(--accent) !important;
+}
+
+/* background-color shorthands used by components */
+.bd-page .bg-primary\/10 {
+  background-color: hsl(340, 65%, 60%, 0.1) !important;
+}
+
+.bd-page .bg-primary\/40 {
+  background-color: hsl(340, 65%, 60%, 0.4) !important;
+}
+
+.bd-page .bg-primary\/0 {
+  background-color: hsl(340, 65%, 60%, 0) !important;
+}
+
+.bd-page .text-primary\/20 {
+  color: hsl(340, 65%, 60%, 0.2) !important;
+}
+
+/* ring / focus */
+.bd-page *:focus-visible {
+  outline-color: var(--primary);
+}
+
+/* ---------- Navbar logo script fix ---------- */
+.bd-page nav .font-script {
+  font-family: 'Sacramento', cursive !important;
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+/* ---------- Hero gradient background ---------- */
+.bd-page section:first-of-type,
+.bd-hero-gradient {
+  background: linear-gradient(135deg, #FFEBF2 0%, hsl(30, 33%, 96%) 100%);
+}
+
+/* ---------- Countdown box pulse ---------- */
+.bd-page .countdown-box {
+  animation: bd-countdown-pulse 2s ease-in-out infinite;
+}
+
+/* ---------- Smooth font rendering ---------- */
+.bd-page * {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

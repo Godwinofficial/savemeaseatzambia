@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
 import * as XLSX from 'xlsx';
+import { sendEmail } from '../utils/emailService';
+import ReminderModal from '../components/ReminderModal';
+import EmailMarketing from '../components/EmailMarketing';
 
 const AdminDashboard = () => {
     const [weddings, setWeddings] = useState([]);
@@ -11,12 +14,42 @@ const AdminDashboard = () => {
     const [copiedLink, setCopiedLink] = useState(null);
     const [showMobileMenu, setShowMobileMenu] = useState(false);
     const [stats, setStats] = useState({ totalRSVPs: 0, totalViews: 0 });
+    // Reminder States
+    const [showReminderModal, setShowReminderModal] = useState(false);
+    const [selectedWeddingForReminder, setSelectedWeddingForReminder] = useState(null);
+    const [dueReminders, setDueReminders] = useState([]);
+    const [processingReminders, setProcessingReminders] = useState(false);
+    const [activeTab, setActiveTab] = useState('weddings'); // 'weddings' | 'birthdays' | 'marketing'
+
+    // Birthday states
+    const [birthdays, setBirthdays] = useState([]);
+    const [birthdayLoading, setBirthdayLoading] = useState(false);
+
     const navigate = useNavigate();
 
     useEffect(() => {
         window.scrollTo(0, 0);
         fetchWeddings();
+        fetchBirthdays();
     }, []);
+
+    useEffect(() => {
+        if (weddings.length > 0) {
+            checkDueReminders();
+        }
+    }, [weddings]);
+
+    // NOTE: Auto-send is now handled by Supabase Edge Function + Cron
+    // The browser no longer auto-sends reminders
+    // This check is kept only to show the alert banner
+    // Users can manually click "Send Reminders Now" if needed
+
+    // Removed auto-send effect - Supabase cron handles this now
+    // useEffect(() => {
+    //     if (dueReminders.length > 0 && !processingReminders) {
+    //         sendDueReminders();
+    //     }
+    // }, [dueReminders, processingReminders]);
 
     useEffect(() => {
         const filtered = weddings.filter(wedding =>
@@ -35,20 +68,91 @@ const AdminDashboard = () => {
 
     const fetchWeddings = async () => {
         try {
-            const { data, error } = await supabase
+            const { data: weddingsData, error: weddingsError } = await supabase
                 .from('weddings')
                 .select('*')
                 .order('created_at', { ascending: false });
 
-            if (error) throw error;
-            setWeddings(data);
-            setFilteredWeddings(data);
+            if (weddingsError) throw weddingsError;
+
+            // Fetch RSVP counts for all weddings
+            const { data: rsvpsData, error: rsvpsError } = await supabase
+                .from('rsvps')
+                .select('wedding_id');
+
+            if (rsvpsError) console.error("Error fetching RSVPs for counts:", rsvpsError);
+
+            // Compute counts
+            const weddingsWithCounts = weddingsData.map(wedding => {
+                const count = rsvpsData ? rsvpsData.filter(r => r.wedding_id === wedding.id).length : 0;
+                return { ...wedding, rsvp_count: count };
+            });
+
+            setWeddings(weddingsWithCounts);
+            setFilteredWeddings(weddingsWithCounts);
         } catch (error) {
             console.error('Error fetching weddings:', error);
         } finally {
             setLoading(false);
         }
     };
+
+    const fetchBirthdays = async () => {
+        setBirthdayLoading(true);
+        try {
+            const { data: events, error } = await supabase
+                .from('birthday_events')
+                .select('*')
+                .order('date', { ascending: false });
+            if (error) throw error;
+
+            const { data: rsvps } = await supabase.from('birthday_rsvps').select('event_id');
+            const withCounts = (events || []).map(e => ({
+                ...e,
+                rsvp_count: rsvps ? rsvps.filter(r => r.event_id === e.id).length : 0,
+            }));
+            setBirthdays(withCounts);
+        } catch (err) {
+            console.error('Error fetching birthdays:', err);
+        } finally {
+            setBirthdayLoading(false);
+        }
+    };
+
+    const handleDeleteBirthday = async (id, name) => {
+        if (!window.confirm(`Delete birthday event "${name}"? This cannot be undone.`)) return;
+        try {
+            const { error } = await supabase.from('birthday_events').delete().eq('id', id);
+            if (error) throw error;
+            setBirthdays(birthdays.filter(b => b.id !== id));
+        } catch (err) {
+            alert('Error deleting: ' + err.message);
+        }
+    };
+
+    const downloadBirthdayRSVPs = async (eventId, childName) => {
+        try {
+            const { data, error } = await supabase
+                .from('birthday_rsvps')
+                .select('*')
+                .eq('event_id', eventId);
+            if (error) throw error;
+            if (!data || data.length === 0) { alert('No RSVPs yet for this event.'); return; }
+            const excelData = data.map(r => ({
+                'Name': r.name,
+                'Phone': r.phone,
+                'Attending': r.attending ? 'Yes' : 'No',
+                'Date Submitted': new Date(r.created_at).toLocaleDateString(),
+            }));
+            const ws = XLSX.utils.json_to_sheet(excelData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'RSVPs');
+            XLSX.writeFile(wb, `Birthday_RSVPs_${childName.replace(/\s+/g, '_')}.xlsx`);
+        } catch (err) {
+            alert('Error downloading RSVPs: ' + err.message);
+        }
+    };
+
 
     const handleDelete = async (id, name) => {
         if (!window.confirm(`Delete wedding "${name}"? This action cannot be undone.`)) return;
@@ -168,6 +272,153 @@ const AdminDashboard = () => {
         }
     };
 
+    // Reminder Logic
+    const checkDueReminders = () => {
+        const now = new Date();
+        const todayStr = now.toISOString().slice(0, 10);
+
+        console.log('🔔 Checking for due reminders...', {
+            currentTime: now.toISOString(),
+            todayStr,
+            totalWeddings: weddings.length
+        });
+
+        const due = weddings.filter(w => {
+            let isDue = false;
+            let reason = [];
+
+            // Check Day Of Event Reminder
+            if (w.reminder_day_of_event_enabled && !w.reminder_sent_day_of) {
+                const eventDate = new Date(w.date).toISOString().slice(0, 10);
+                if (eventDate === todayStr) {
+                    isDue = true;
+                    reason.push('Day-of-event reminder due');
+                }
+            }
+
+            // Check Custom Reminder
+            if (w.reminder_custom_date && !w.reminder_sent_custom) {
+                const customDate = new Date(w.reminder_custom_date);
+                console.log(`  Wedding: ${w.groom_name} & ${w.bride_name}`, {
+                    customReminderDate: customDate.toISOString(),
+                    customReminderLocal: customDate.toLocaleString(),
+                    currentTime: now.toISOString(),
+                    currentTimeLocal: now.toLocaleString(),
+                    isPast: customDate <= now,
+                    timeDifference: `${Math.round((now - customDate) / 1000 / 60)} minutes`,
+                    alreadySent: w.reminder_sent_custom
+                });
+
+                if (customDate <= now) {
+                    isDue = true;
+                    reason.push(`Custom reminder due (${customDate.toLocaleString()})`);
+                }
+            }
+
+            if (isDue) {
+                console.log(`  ✅ DUE: ${w.groom_name} & ${w.bride_name} - ${reason.join(', ')}`);
+            }
+
+            return isDue;
+        });
+
+        console.log(`📊 Found ${due.length} wedding(s) with due reminders`);
+        setDueReminders(due);
+    };
+
+    const sendDueReminders = async () => {
+        if (dueReminders.length === 0) return;
+
+        console.log(`📧 Auto-sending reminders for ${dueReminders.length} wedding(s)...`);
+        setProcessingReminders(true);
+
+        try {
+            let successCount = 0;
+
+            for (const wedding of dueReminders) {
+                console.log(`\n📨 Processing wedding: ${wedding.groom_name} & ${wedding.bride_name}`);
+
+                // Determine type of reminder
+                const now = new Date();
+                const todayStr = now.toISOString().slice(0, 10);
+                const eventDate = new Date(wedding.date).toISOString().slice(0, 10);
+
+                let isDayOfDue = wedding.reminder_day_of_event_enabled && !wedding.reminder_sent_day_of && eventDate === todayStr;
+                let isCustomDue = wedding.reminder_custom_date && !wedding.reminder_sent_custom && new Date(wedding.reminder_custom_date) <= now;
+
+                console.log('  Reminder types:', { isDayOfDue, isCustomDue });
+
+                // Fetch Guests (only approved)
+                const { data: guests, error } = await supabase
+                    .from('rsvps')
+                    .select('email, name')
+                    .eq('wedding_id', wedding.id)
+                    .eq('status', 'approved') // Only send to approved guests
+                    .neq('email', null);
+
+                if (error || !guests) {
+                    console.error(`  ❌ Error fetching guests for ${wedding.groom_name}`, error);
+                    continue;
+                }
+
+                console.log(`  Found ${guests.length} approved guest(s) with email`);
+
+                // Send Emails (Throttled)
+                let emailSent = false;
+                for (const guest of guests) {
+                    if (!guest.email) continue;
+
+                    const templateParams = {
+                        to_name: guest.name,
+                        wedding_name: `${wedding.groom_name} & ${wedding.bride_name}`,
+                        event_date: new Date(wedding.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' }),
+                        venue: wedding.venue_name || 'TBA',
+                        location: wedding.location || '',
+                        message: `This is a friendly reminder that the wedding of ${wedding.groom_name} & ${wedding.bride_name} is coming up! We're so excited to celebrate with you. Please be ready and we can't wait to see you there!`,
+                        link: `${window.location.origin}/w/${wedding.slug}`,
+                        title: `${wedding.groom_name} & ${wedding.bride_name} Wedding`,
+                        subtitle: "Wedding Reminder",
+                        action_text: "View Invitation & Details",
+                    };
+
+                    try {
+                        await sendEmail({
+                            to: guest.email,
+                            subject: `Reminder: ${wedding.groom_name} & ${wedding.bride_name} Wedding`,
+                            templateParams: templateParams
+                        });
+                        console.log(`    ✅ Sent to ${guest.email}`);
+                        emailSent = true;
+                        // Small delay to avoid rate limits
+                        await new Promise(r => setTimeout(r, 500));
+                    } catch (e) {
+                        console.error(`    ❌ Failed to email ${guest.email}`, e);
+                    }
+                }
+
+                // Update DB
+                const updates = {};
+                if (isDayOfDue) updates.reminder_sent_day_of = true;
+                if (isCustomDue) updates.reminder_sent_custom = true;
+
+                if (Object.keys(updates).length > 0) {
+                    await supabase.from('weddings').update(updates).eq('id', wedding.id);
+                    console.log(`  ✅ Updated database:`, updates);
+                    successCount++;
+                }
+            }
+
+            console.log(`\n🎉 Processed reminders for ${successCount} wedding(s).`);
+            alert(`Successfully sent reminders for ${successCount} wedding(s)!`);
+            fetchWeddings(); // Refresh list
+        } catch (error) {
+            console.error("Batch processing failed:", error);
+            alert("Error processing reminders: " + error.message);
+        } finally {
+            setProcessingReminders(false);
+        }
+    };
+
     const formatDate = (dateString) => {
         const options = { year: 'numeric', month: 'short', day: 'numeric' };
         return new Date(dateString).toLocaleDateString('en-US', options);
@@ -283,235 +534,453 @@ const AdminDashboard = () => {
 
             {/* Stats Cards */}
             <section className="stats-section">
-                <div className="stats-container">
-                    <div className="stat-card">
-                        <div className="stat-icon-wrapper gradient-1">
-                            <i className="fas fa-glass-cheers"></i>
+                {dueReminders.length > 0 && (
+                    <div className="alert-banner">
+                        <div className="alert-content">
+                            <i className="fas fa-bell"></i>
+                            <span>{dueReminders.length} weddings have reminders due today or pending.</span>
                         </div>
-                        <div className="stat-content">
-                            <h3 className="stat-number">{weddings.length}</h3>
-                            <p className="stat-label">Active Weddings</p>
-                        </div>
+                        <button
+                            className="alert-btn"
+                            onClick={sendDueReminders}
+                            disabled={processingReminders}
+                        >
+                            {processingReminders ? 'Sending...' : 'Send Reminders Now'}
+                        </button>
                     </div>
+                )}
 
-                    <div className="stat-card">
-                        <div className="stat-icon-wrapper gradient-2">
-                            <i className="fas fa-user-friends"></i>
-                        </div>
-                        <div className="stat-content">
-                            <h3 className="stat-number">{stats.totalRSVPs}</h3>
-                            <p className="stat-label">Total RSVPs</p>
-                        </div>
-                    </div>
-
-                    <div className="stat-card">
-                        <div className="stat-icon-wrapper gradient-3">
-                            <i className="fas fa-eye"></i>
-                        </div>
-                        <div className="stat-content">
-                            <h3 className="stat-number">{stats.totalViews.toLocaleString()}</h3>
-                            <p className="stat-label">Total Views</p>
-                        </div>
-                    </div>
-
-                    <div className="stat-card highlight">
-                        <div className="stat-icon-wrapper gradient-4">
-                            <i className="fas fa-star"></i>
-                        </div>
-                        <div className="stat-content">
-                            <h3 className="stat-number">
-                                {weddings.length > 0
-                                    ? Math.round((stats.totalRSVPs / weddings.length) * 10) / 10
-                                    : 0
-                                }
-                            </h3>
-                            <p className="stat-label">Avg RSVPs per Wedding</p>
-                        </div>
-                    </div>
+                {/* Tab Navigation */}
+                <div className="tab-navigation">
+                    <button
+                        className={`tab-btn ${activeTab === 'weddings' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('weddings')}
+                    >
+                        <i className="fas fa-glass-cheers"></i>
+                        Weddings
+                    </button>
+                    <button
+                        className={`tab-btn ${activeTab === 'birthdays' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('birthdays')}
+                        style={activeTab === 'birthdays' ? { borderBottomColor: '#c44569', color: '#c44569' } : {}}
+                    >
+                        <i className="fas fa-birthday-cake"></i>
+                        Birthdays
+                    </button>
+                    <button
+                        className={`tab-btn ${activeTab === 'marketing' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('marketing')}
+                    >
+                        <i className="fas fa-envelope"></i>
+                        Email Marketing
+                    </button>
                 </div>
             </section>
 
-            {/* Main Content */}
-            <main className="main-content">
-                <div className="content-container">
-                    <div className="content-header">
-                        <div className="header-left">
-                            <h2 className="section-title">Wedding Websites</h2>
-                            <p className="section-subtitle">Manage all your wedding sites in one place</p>
-                        </div>
-                        <div className="header-right">
-                            <div className="results-info">
-                                <span className="results-count">{filteredWeddings.length}</span>
-                                <span className="results-text">of {weddings.length} weddings</span>
+            {/* Weddings Tab Content */}
+            {activeTab === 'weddings' && (
+                <>
+                    <div className="stats-container">
+                        <div className="stat-card">
+                            <div className="stat-icon-wrapper gradient-1">
+                                <i className="fas fa-glass-cheers"></i>
                             </div>
-                            <div className="sort-options">
-                                <select className="sort-select">
-                                    <option>Newest First</option>
-                                    <option>Oldest First</option>
-                                    <option>Name A-Z</option>
-                                    <option>Most RSVPs</option>
-                                </select>
+                            <div className="stat-content">
+                                <h3 className="stat-number">{weddings.length}</h3>
+                                <p className="stat-label">Active Weddings</p>
+                            </div>
+                        </div>
+
+                        <div className="stat-card">
+                            <div className="stat-icon-wrapper gradient-2">
+                                <i className="fas fa-user-friends"></i>
+                            </div>
+                            <div className="stat-content">
+                                <h3 className="stat-number">{stats.totalRSVPs}</h3>
+                                <p className="stat-label">Total RSVPs</p>
+                            </div>
+                        </div>
+
+                        <div className="stat-card">
+                            <div className="stat-icon-wrapper gradient-3">
+                                <i className="fas fa-eye"></i>
+                            </div>
+                            <div className="stat-content">
+                                <h3 className="stat-number">{stats.totalViews.toLocaleString()}</h3>
+                                <p className="stat-label">Total Views</p>
+                            </div>
+                        </div>
+
+                        <div className="stat-card highlight">
+                            <div className="stat-icon-wrapper gradient-4">
+                                <i className="fas fa-star"></i>
+                            </div>
+                            <div className="stat-content">
+                                <h3 className="stat-number">
+                                    {weddings.length > 0
+                                        ? Math.round((stats.totalRSVPs / weddings.length) * 10) / 10
+                                        : 0
+                                    }
+                                </h3>
+                                <p className="stat-label">Avg RSVPs per Wedding</p>
                             </div>
                         </div>
                     </div>
 
-                    {loading ? (
-                        <div className="loading-container">
-                            <div className="loading-spinner">
-                                <div className="spinner-ring"></div>
-                                <div className="spinner-ring"></div>
-                                <div className="spinner-ring"></div>
-                                <div className="spinner-ring"></div>
-                            </div>
-                            <p className="loading-text">Loading your weddings...</p>
-                        </div>
-                    ) : filteredWeddings.length === 0 ? (
-                        <div className="empty-state">
-                            <div className="empty-icon">
-                                <i className="fas fa-heart"></i>
-                            </div>
-                            <h3 className="empty-title">
-                                {searchTerm ? 'No weddings found' : 'No weddings yet'}
-                            </h3>
-                            <p className="empty-description">
-                                {searchTerm
-                                    ? 'Try adjusting your search terms'
-                                    : 'Create your first beautiful wedding website'
-                                }
-                            </p>
-                            {!searchTerm && (
-                                <Link to="/addWedding" className="empty-action">
-                                    <i className="fas fa-plus"></i>
-                                    Create First Wedding
-                                </Link>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="weddings-grid">
-                            {filteredWeddings.map((wedding) => (
-                                <div key={wedding.id} className="wedding-card">
-                                    <div className="card-gradient"></div>
-
-                                    <div className="card-header">
-                                        <div className="wedding-info">
-                                            <div className="couple-names">
-                                                <h3 className="groom-name">{wedding.groom_name}</h3>
-                                                <div className="and-symbol">
-                                                    <i className="fas fa-heart"></i>
-                                                </div>
-                                                <h3 className="bride-name">{wedding.bride_name}</h3>
-                                            </div>
-                                            <div className="wedding-meta">
-                                                <span className="wedding-date">
-                                                    <i className="far fa-calendar"></i>
-                                                    {formatDate(wedding.date)}
-                                                </span>
-                                                <StatusBadge date={wedding.date} />
-                                            </div>
-                                        </div>
+                    {/* Main Content */}
+                    <main className="main-content">
+                        <div className="content-container">
+                            <div className="content-header">
+                                <div className="header-left">
+                                    <h2 className="section-title">Wedding Websites</h2>
+                                    <p className="section-subtitle">Manage all your wedding sites in one place</p>
+                                </div>
+                                <div className="header-right">
+                                    <div className="results-info">
+                                        <span className="results-count">{filteredWeddings.length}</span>
+                                        <span className="results-text">of {weddings.length} weddings</span>
                                     </div>
-
-                                    <div className="card-body">
-                                        <div className="venue-info">
-                                            <i className="fas fa-map-marker-alt"></i>
-                                            <span>{wedding.venue_name || 'Venue to be announced'}</span>
-                                        </div>
-
-                                        <div className="stats-row">
-                                            <div className="stat-item">
-                                                <div className="stat-icon-small">
-                                                    <i className="fas fa-users"></i>
-                                                </div>
-                                                <div className="stat-details">
-                                                    <span className="stat-value">{wedding.rsvp_count || 0}</span>
-                                                    <span className="stat-label">RSVPs</span>
-                                                </div>
-                                            </div>
-                                            <div className="stat-item">
-                                                <div className="stat-icon-small">
-                                                    <i className="fas fa-eye"></i>
-                                                </div>
-                                                <div className="stat-details">
-                                                    <span className="stat-value">{wedding.views?.toLocaleString() || 0}</span>
-                                                    <span className="stat-label">Views</span>
-                                                </div>
-                                            </div>
-                                            <div className="stat-item">
-                                                <div className="stat-icon-small">
-                                                    <i className="fas fa-link"></i>
-                                                </div>
-                                                <div className="stat-details">
-                                                    <span className="stat-value">/{wedding.slug}</span>
-                                                    <span className="stat-label">URL</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="quick-actions">
-                                            <button
-                                                className={`action-btn view ${copiedLink === `${wedding.slug}-website` ? 'copied' : ''}`}
-                                                onClick={() => copyLink(wedding.slug, 'website')}
-                                            >
-                                                <i className="fas fa-external-link-alt"></i>
-                                                {copiedLink === `${wedding.slug}-website` ? 'Copied!' : 'View Site'}
-                                            </button>
-                                            <button
-                                                className={`action-btn preview ${copiedLink === `${wedding.slug}-preview` ? 'copied' : ''}`}
-                                                onClick={() => copyLink(wedding.slug, 'preview')}
-                                            >
-                                                <i className="fab fa-whatsapp"></i>
-                                                {copiedLink === `${wedding.slug}-preview` ? 'Copied!' : 'Preview'}
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="card-footer">
-                                        <div className="footer-actions">
-                                            <div className="download-group" style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <button
-                                                    className="footer-btn download"
-                                                    onClick={() => downloadRSVPs(wedding.id, `${wedding.groom_name}_${wedding.bride_name}`)}
-                                                >
-                                                    <i className="fas fa-file-excel"></i>
-                                                    Download Excel
-                                                </button>
-                                                <button
-                                                    className="footer-btn download"
-                                                    onClick={() => copyLink(wedding.slug, 'report')}
-                                                    title="Copy Report Link"
-                                                >
-                                                    <i className="fas fa-link"></i>
-                                                    Copy Report Link
-                                                </button>
-                                            </div>
-
-                                            <div className="action-group">
-                                                <Link
-                                                    to={`/editWedding/${wedding.id}`}
-                                                    className="footer-btn edit"
-                                                >
-                                                    <i className="fas fa-edit"></i>
-                                                </Link>
-                                                <button
-                                                    onClick={() => handleDelete(wedding.id, `${wedding.groom_name} & ${wedding.bride_name}`)}
-                                                    className="footer-btn delete"
-                                                >
-                                                    <i className="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </div>
+                                    <div className="sort-options">
+                                        <select className="sort-select">
+                                            <option>Newest First</option>
+                                            <option>Oldest First</option>
+                                            <option>Name A-Z</option>
+                                            <option>Most RSVPs</option>
+                                        </select>
                                     </div>
                                 </div>
-                            ))}
+                            </div>
+
+                            {loading ? (
+                                <div className="loading-container">
+                                    <div className="loading-spinner">
+                                        <div className="spinner-ring"></div>
+                                        <div className="spinner-ring"></div>
+                                        <div className="spinner-ring"></div>
+                                        <div className="spinner-ring"></div>
+                                    </div>
+                                    <p className="loading-text">Loading your weddings...</p>
+                                </div>
+                            ) : filteredWeddings.length === 0 ? (
+                                <div className="empty-state">
+                                    <div className="empty-icon">
+                                        <i className="fas fa-heart"></i>
+                                    </div>
+                                    <h3 className="empty-title">
+                                        {searchTerm ? 'No weddings found' : 'No weddings yet'}
+                                    </h3>
+                                    <p className="empty-description">
+                                        {searchTerm
+                                            ? 'Try adjusting your search terms'
+                                            : 'Create your first beautiful wedding website'
+                                        }
+                                    </p>
+                                    {!searchTerm && (
+                                        <Link to="/addWedding" className="empty-action">
+                                            <i className="fas fa-plus"></i>
+                                            Create First Wedding
+                                        </Link>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="weddings-grid">
+                                    {filteredWeddings.map((wedding) => (
+                                        <div key={wedding.id} className="wedding-card">
+                                            <div className="card-gradient"></div>
+
+                                            <div className="card-header">
+                                                <div className="wedding-info">
+                                                    <div className="couple-names">
+                                                        <h3 className="groom-name">{wedding.groom_name}</h3>
+                                                        <div className="and-symbol">
+                                                            <i className="fas fa-heart"></i>
+                                                        </div>
+                                                        <h3 className="bride-name">{wedding.bride_name}</h3>
+                                                    </div>
+                                                    <div className="wedding-meta">
+                                                        <span className="wedding-date">
+                                                            <i className="far fa-calendar"></i>
+                                                            {formatDate(wedding.date)}
+                                                        </span>
+                                                        <StatusBadge date={wedding.date} />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="card-body">
+                                                <div className="venue-info">
+                                                    <i className="fas fa-map-marker-alt"></i>
+                                                    <span>{wedding.venue_name || 'Venue to be announced'}</span>
+                                                </div>
+
+                                                <div className="stats-row">
+                                                    <div className="stat-item">
+                                                        <div className="stat-icon-small">
+                                                            <i className="fas fa-users"></i>
+                                                        </div>
+                                                        <div className="stat-details">
+                                                            <span className="stat-value">{wedding.rsvp_count || 0}</span>
+                                                            <span className="stat-label">RSVPs</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="stat-item">
+                                                        <div className="stat-icon-small">
+                                                            <i className="fas fa-eye"></i>
+                                                        </div>
+                                                        <div className="stat-details">
+                                                            <span className="stat-value">{wedding.views?.toLocaleString() || 0}</span>
+                                                            <span className="stat-label">Views</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="stat-item">
+                                                        <div className="stat-icon-small">
+                                                            <i className="fas fa-link"></i>
+                                                        </div>
+                                                        <div className="stat-details">
+                                                            <span className="stat-value">/{wedding.slug}</span>
+                                                            <span className="stat-label">URL</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="quick-actions">
+                                                    <a
+                                                        href={`/w/${wedding.slug}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="action-btn view"
+                                                        style={{ textDecoration: 'none' }}
+                                                    >
+                                                        <i className="fas fa-external-link-alt"></i>
+                                                        View Site
+                                                    </a>
+                                                    <button
+                                                        className={`action-btn preview ${copiedLink === `${wedding.slug}-preview` ? 'copied' : ''}`}
+                                                        onClick={() => copyLink(wedding.slug, 'preview')}
+                                                    >
+                                                        <i className="fab fa-whatsapp"></i>
+                                                        {copiedLink === `${wedding.slug}-preview` ? 'Copied!' : 'Preview'}
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="card-footer">
+                                                <div className="footer-actions">
+                                                    <div className="download-group" style={{ display: 'flex', gap: '0.5rem' }}>
+                                                        <button
+                                                            className="footer-btn download"
+                                                            onClick={() => downloadRSVPs(wedding.id, `${wedding.groom_name}_${wedding.bride_name}`)}
+                                                        >
+                                                            <i className="fas fa-file-excel"></i>
+                                                            Download Excel
+                                                        </button>
+                                                        <Link
+                                                            to={`/report/${wedding.slug}`}
+                                                            className="footer-btn download"
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            title="View RSVP Report"
+                                                        >
+                                                            <i className="fas fa-chart-bar"></i>
+                                                            View Report
+                                                        </Link>
+                                                    </div>
+
+                                                    <div className="action-group">
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedWeddingForReminder(wedding);
+                                                                setShowReminderModal(true);
+                                                            }}
+                                                            className="footer-btn edit"
+                                                            title="Reminders"
+                                                            style={{ color: '#6366f1' }}
+                                                        >
+                                                            <i className="fas fa-bell"></i>
+                                                        </button>
+                                                        <Link
+                                                            to={`/editWedding/${wedding.id}`}
+                                                            className="footer-btn edit"
+                                                        >
+                                                            <i className="fas fa-edit"></i>
+                                                        </Link>
+                                                        <button
+                                                            onClick={() => handleDelete(wedding.id, `${wedding.groom_name} & ${wedding.bride_name}`)}
+                                                            className="footer-btn delete"
+                                                        >
+                                                            <i className="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                    )}
-                </div>
-            </main>
+                    </main>
+                </>
+            )}
+
+            {/* Email Marketing Tab Content */}
+            {activeTab === 'marketing' && (
+                <main className="main-content">
+                    <EmailMarketing />
+                </main>
+            )}
+
+            {/* Birthday Events Tab */}
+            {activeTab === 'birthdays' && (
+                <main className="main-content">
+                    <div className="content-container">
+                        <div className="content-header">
+                            <div className="header-left">
+                                <h2 className="section-title">Birthday Websites</h2>
+                                <p className="section-subtitle">Manage all birthday invitation sites</p>
+                            </div>
+                            <div className="header-right">
+                                <Link to="/addBirthday" className="nav-btn primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg,#ff6b9d,#c44569)', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, color: '#1a1a1a', fontWeight: 700, fontSize: '0.85rem' }}>
+                                    <i className="fas fa-plus" />
+                                    New Birthday
+                                </Link>
+                            </div>
+                        </div>
+
+                        {birthdayLoading ? (
+                            <div className="loading-container">
+                                <div className="loading-spinner"><div className="spinner-ring" /><div className="spinner-ring" /><div className="spinner-ring" /><div className="spinner-ring" /></div>
+                                <p className="loading-text">Loading birthday events…</p>
+                            </div>
+                        ) : birthdays.length === 0 ? (
+                            <div className="empty-state">
+                                <div className="empty-icon"><i className="fas fa-birthday-cake" /></div>
+                                <h3 className="empty-title">No birthday events yet</h3>
+                                <p className="empty-description">Create your first birthday invitation website</p>
+                                <Link to="/addBirthday" className="empty-action" style={{ textDecoration: 'none' }}>
+                                    <i className="fas fa-plus" /> Create First Birthday
+                                </Link>
+                            </div>
+                        ) : (
+                            <div className="weddings-grid">
+                                {birthdays.map((bdEvent) => (
+                                    <div key={bdEvent.id} className="wedding-card" style={{ '--card-accent': '#c44569' }}>
+                                        <div className="card-gradient" style={{ background: 'linear-gradient(135deg,#ff6b9d22,#c4456911)' }} />
+
+                                        <div className="card-header">
+                                            <div className="wedding-info">
+                                                <div className="couple-names">
+                                                    <h3 className="groom-name" style={{ color: '#c44569' }}>
+                                                        <i className="fas fa-birthday-cake" style={{ marginRight: 6, fontSize: '0.9rem' }} />
+                                                        {bdEvent.child_name}'s Birthday
+                                                    </h3>
+                                                </div>
+                                                <div className="wedding-meta">
+                                                    <span className="wedding-date">
+                                                        <i className="far fa-calendar" />
+                                                        {bdEvent.date ? new Date(bdEvent.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Date TBD'}
+                                                    </span>
+                                                    {bdEvent.age && <span className="status-badge" style={{ backgroundColor: '#c44569' }}>Age {bdEvent.age}</span>}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="card-body">
+                                            <div className="venue-info">
+                                                <i className="fas fa-map-marker-alt" />
+                                                <span>{bdEvent.venue_name || 'Venue TBD'}</span>
+                                            </div>
+
+                                            <div className="stats-row">
+                                                <div className="stat-item">
+                                                    <div className="stat-icon-small"><i className="fas fa-users" /></div>
+                                                    <div className="stat-details">
+                                                        <span className="stat-value">{bdEvent.rsvp_count || 0}</span>
+                                                        <span className="stat-label">RSVPs</span>
+                                                    </div>
+                                                </div>
+                                                <div className="stat-item">
+                                                    <div className="stat-icon-small"><i className="fas fa-link" /></div>
+                                                    <div className="stat-details">
+                                                        <span className="stat-value" style={{ fontSize: '0.75rem' }}>/{bdEvent.slug}</span>
+                                                        <span className="stat-label">URL</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="quick-actions">
+                                                <a
+                                                    href={`/b/${bdEvent.slug}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="action-btn view"
+                                                    style={{ textDecoration: 'none' }}
+                                                >
+                                                    <i className="fas fa-external-link-alt" /> View Site
+                                                </a>
+                                                <button
+                                                    className={`action-btn preview ${copiedLink === `${bdEvent.slug}-bd-preview` ? 'copied' : ''}`}
+                                                    onClick={async () => {
+                                                        const url = `${window.location.origin}/b/${bdEvent.slug}`;
+                                                        try { await navigator.clipboard.writeText(url); } catch { prompt('Copy this link:', url); }
+                                                        setCopiedLink(`${bdEvent.slug}-bd-preview`);
+                                                        setTimeout(() => setCopiedLink(null), 2000);
+                                                    }}
+                                                >
+                                                    <i className="fas fa-copy" />
+                                                    {copiedLink === `${bdEvent.slug}-bd-preview` ? 'Copied!' : 'Copy Link'}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="card-footer">
+                                            <div className="footer-actions">
+                                                <div className="download-group" style={{ display: 'flex', gap: '0.5rem' }}>
+                                                    <button
+                                                        className="footer-btn download"
+                                                        onClick={() => downloadBirthdayRSVPs(bdEvent.id, bdEvent.child_name)}
+                                                    >
+                                                        <i className="fas fa-file-excel" /> Download RSVPs
+                                                    </button>
+                                                </div>
+                                                <div className="action-group">
+                                                    <Link
+                                                        to={`/editBirthday/${bdEvent.id}`}
+                                                        className="footer-btn edit"
+                                                    >
+                                                        <i className="fas fa-edit" />
+                                                    </Link>
+                                                    <button
+                                                        onClick={() => handleDeleteBirthday(bdEvent.id, `${bdEvent.child_name}'s Birthday`)}
+                                                        className="footer-btn delete"
+                                                    >
+                                                        <i className="fas fa-trash" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </main>
+            )}
 
             {/* Floating Action Button for Mobile */}
-            <Link to="/addWedding" className="fab">
+            <Link to={activeTab === 'birthdays' ? '/addBirthday' : '/addWedding'} className="fab">
                 <i className="fas fa-plus"></i>
             </Link>
+
+            {showReminderModal && selectedWeddingForReminder && (
+                <ReminderModal
+                    wedding={selectedWeddingForReminder}
+                    onClose={() => setShowReminderModal(false)}
+                    onSave={() => {
+                        fetchWeddings();
+                        setShowReminderModal(false);
+                    }}
+                />
+            )}
 
             <style jsx>{`
                 :root {
@@ -529,7 +998,7 @@ const AdminDashboard = () => {
                     --lighter: #f3f4f6;
                     --gray: #6b7280;
                     --gray-light: #9ca3af;
-                    --white: #ffffff;
+                    --white: #1a1a1afff;
                     --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
                     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
                     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
@@ -578,6 +1047,103 @@ const AdminDashboard = () => {
                     background: rgba(31, 41, 55, 0.98);
                     border: none;
                     border-radius: 0;
+                }
+                
+                .alert-banner {
+                    background-color: #fef2f2;
+                    border-bottom: 1px solid #fee2e2;
+                    color: #991b1b;
+                    padding: 1rem;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 1rem;
+                    border-radius: var(--radius-md);
+                    margin: 1rem auto;
+                    max-width: 1440px;
+                    width: 95%;
+                }
+                
+                .alert-content {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    font-weight: 500;
+                }
+                
+                .alert-btn {
+                    background-color: #ef4444;
+                    color: white;
+                    border: none;
+                    padding: 0.5rem 1rem;
+                    border-radius: 0.375rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: background-color 0.2s;
+                }
+                
+                .alert-btn:hover {
+                    background-color: #dc2626;
+                }
+                
+                .alert-btn:disabled {
+                    background-color: #fca5a5;
+                    cursor: not-allowed;
+                }
+
+                /* Tab Navigation */
+                .tab-navigation {
+                    display: flex;
+                    gap: 1rem;
+                    max-width: 1440px;
+                    margin: 1.5rem auto 2rem;
+                    padding: 0 1.5rem;
+                    border-bottom: 2px solid #e5e7eb;
+                }
+
+                .tab-btn {
+                    padding: 1rem 2rem;
+                    background: transparent;
+                    border: none;
+                    border-bottom: 3px solid transparent;
+                    color: #6b7280;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    margin-bottom: -2px;
+                }
+
+                .tab-btn:hover {
+                    color: #6366f1;
+                    background: rgba(99, 102, 241, 0.05);
+                }
+
+                .tab-btn.active {
+                    color: #6366f1;
+                    border-bottom-color: #6366f1;
+                }
+
+                .tab-btn i {
+                    font-size: 18px;
+                }
+
+                @media (max-width: 768px) {
+                    .tab-navigation {
+                        padding: 0 1rem;
+                    }
+
+                    .tab-btn {
+                        padding: 0.75rem 1rem;
+                        font-size: 14px;
+                    }
+
+                    .tab-btn i {
+                        font-size: 16px;
+                    }
                 }
 
                 .header-container {

@@ -1,0 +1,857 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
+
+const GoogleFontsCSS = () => (
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+);
+
+const FontAwesomeCSS = () => (
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  />
+);
+
+const mockData = {
+  title: "Katy is turning 5!",
+  subtitle: "You're Invited to a Magical Birthday Party!",
+  host: "Katy",
+  date: "Saturday, Nov 15th, 2026",
+  time: "2:00 PM - 5:00 PM",
+  location: "Wonderland Play Park",
+  address: "123 Sunshine Boulevard, Happy Town",
+  theme: "Unicorns & Rainbows",
+  heroImage: "https://images.unsplash.com/photo-1545696563-af8f6ec08819?q=80&w=2000&auto=format&fit=crop", // playful kids theme
+  profileImage: "https://images.unsplash.com/photo-1519689680058-324335c77eba?q=80&w=1000&auto=format&fit=crop", // kid photo
+  gallery: [
+    "https://images.unsplash.com/photo-1530103862676-de88924076e0?q=80&w=1000&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1562423306-69ebfce91404?q=80&w=1000&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?q=80&w=1000&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1000&auto=format&fit=crop"
+  ],
+  description: "Get ready for an afternoon full of magic, laughter, and lots of cake! We'll have a bouncy castle, face painting, and a special magic show you won't want to miss."
+};
+
+const BirthdayTemplate = () => {
+  const [loading, setLoading] = useState(true);
+  const [formData, setFormData] = useState({ name: '', email: '', guests: '1', message: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rsvpSuccess, setRsvpSuccess] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const elementsRef = useRef([]);
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev === mockData.gallery.length - 1 ? 0 : prev + 1));
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev === 0 ? mockData.gallery.length - 1 : prev - 1));
+  };
+
+  useEffect(() => {
+    const slideInterval = setInterval(nextSlide, 4000);
+    return () => clearInterval(slideInterval);
+  }, []);
+
+  useEffect(() => {
+    // Simulate loading
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    elementsRef.current.forEach((el) => {
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [loading]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleRSVP = (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setTimeout(() => {
+      setIsSubmitting(false);
+      setRsvpSuccess(true);
+    }, 1500);
+  };
+
+  const addToRefs = (el) => {
+    if (el && !elementsRef.current.includes(el)) {
+      elementsRef.current.push(el);
+    }
+  };
+
+  const styles = `
+    :root {
+      --primary: #FF70A6;      /* Bubblegum Pink */
+      --primary-hover: #FF478D;
+      --secondary: #70D6FF;    /* Sky Blue */
+      --accent: #FF9770;       /* Orange-Peach */
+      --accent-alt: #FFD670;   /* Sunny Yellow */
+      --bg-light: #FFFBFB;     /* Soft White-Pink */
+      --bg-card: #FFFFFF;
+      --text-main: #3F3250;    /* Dark Purple-Grey for softer contrast */
+      --text-muted: #8E839B;
+      --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-light);
+      color: var(--text-main);
+      font-family: 'Quicksand', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Typography */
+    h1, h2, h3, .bubbly-font {
+      font-family: 'Fredoka One', cursive;
+      font-weight: 400;
+      letter-spacing: 1px;
+    }
+
+    p {
+      line-height: 1.7;
+    }
+
+    /* Animations */
+    .animate-on-scroll {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .animate-on-scroll.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .delay-1 { transition-delay: 0.1s; }
+    .delay-2 { transition-delay: 0.2s; }
+    .delay-3 { transition-delay: 0.3s; }
+
+    /* Floating Shapes */
+    .shape {
+      position: absolute;
+      z-index: 0;
+      opacity: 0.6;
+      border-radius: 50%;
+      animation: float 6s ease-in-out infinite alternate;
+    }
+    
+    .shape-1 { background: var(--secondary); width: 80px; height: 80px; top: 15%; left: 5%; animation-delay: 0s; }
+    .shape-2 { background: var(--accent-alt); width: 120px; height: 120px; top: 60%; right: 10%; animation-delay: 1s; }
+    .shape-3 { background: var(--primary); width: 60px; height: 60px; bottom: 10%; left: 20%; animation-delay: 2s; }
+    .shape-4 { background: var(--accent); width: 90px; height: 90px; top: 25%; right: 15%; animation-delay: 1.5s; }
+
+    @keyframes float {
+      from { transform: translateY(0) rotate(0deg); }
+      to { transform: translateY(-30px) rotate(15deg); }
+    }
+
+    /* Loader */
+    .loader {
+      position: fixed;
+      inset: 0;
+      background-color: var(--primary);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      transition: opacity 0.5s ease-out;
+    }
+
+    .loader.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 6px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+      margin-bottom: 20px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Structure */
+    .template-wrapper {
+      width: 100%;
+      position: relative;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 20px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .section {
+      padding: 100px 0;
+      position: relative;
+    }
+
+    .section-title {
+      font-size: 3.5rem;
+      margin-bottom: 25px;
+      color: var(--primary);
+      text-align: center;
+      text-shadow: 2px 2px 0px rgba(255,112,166,0.1);
+    }
+
+    /* Buttons */
+    .btn-kid {
+      display: inline-block;
+      background: var(--accent);
+      color: white;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.3rem;
+      padding: 18px 45px;
+      border-radius: 50px;
+      text-decoration: none;
+      border: 4px solid white;
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: 0 10px 20px rgba(255, 151, 112, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .btn-kid:hover {
+      transform: translateY(-5px) scale(1.05);
+      background: var(--primary);
+      box-shadow: 0 15px 25px rgba(255, 112, 166, 0.4);
+    }
+
+    /* Wave Separators */
+    .wave-bottom {
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100%;
+      overflow: hidden;
+      line-height: 0;
+      z-index: 10;
+    }
+
+    .wave-bottom svg {
+      position: relative;
+      display: block;
+      width: calc(100% + 1.3px);
+      height: 90px;
+    }
+
+    /* Hero Section */
+    .hero {
+      position: relative;
+      min-height: 90vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: linear-gradient(135deg, #FFEBF2 0%, #E6F8FF 100%);
+      padding: 120px 20px;
+      overflow: hidden;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 800px;
+      animation: popIn 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    @keyframes popIn {
+      0% { opacity: 0; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--accent-alt);
+      color: var(--text-main);
+      font-family: 'Fredoka One', cursive;
+      padding: 12px 25px;
+      border-radius: 30px;
+      font-size: 1.2rem;
+      margin-bottom: 25px;
+      transform: rotate(-3deg);
+      border: 3px solid white;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+
+    .hero-title {
+      font-size: 5.5rem;
+      color: var(--primary);
+      line-height: 1.1;
+      margin-bottom: 20px;
+      text-shadow: 4px 4px 0px white, 6px 6px 15px rgba(255,112,166,0.3);
+    }
+
+    .hero-image-wrapper {
+      width: 250px;
+      height: 250px;
+      margin: 0 auto 30px;
+      border-radius: 50%;
+      padding: 10px;
+      background: white;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    
+    .hero-image-wrapper::after {
+      content: '';
+      position: absolute;
+      inset: -15px;
+      border: 4px dashed var(--secondary);
+      border-radius: 50%;
+      animation: spin-slow 20s linear infinite;
+    }
+
+    @keyframes spin-slow {
+      100% { transform: rotate(360deg); }
+    }
+
+    .hero-image {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    /* Info Grid */
+    .info-section {
+      background: var(--bg-card);
+      padding-top: 100px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px;
+      margin-top: 50px;
+    }
+
+    .info-card {
+      background: #FFF;
+      padding: 40px 30px;
+      border-radius: 30px;
+      text-align: center;
+      transition: var(--transition);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.04);
+      border: 3px solid transparent;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .info-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 8px;
+      background: var(--primary);
+    }
+    
+    .info-card:nth-child(2)::before { background: var(--secondary); }
+    .info-card:nth-child(3)::before { background: var(--accent); }
+
+    .info-card:hover {
+      transform: translateY(-15px);
+      border-color: rgba(0,0,0,0.02);
+      box-shadow: 0 25px 50px rgba(0,0,0,0.08);
+    }
+
+    .info-icon {
+      font-size: 3rem;
+      margin-bottom: 25px;
+      color: white;
+      width: 90px;
+      height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 25px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 10px 20px rgba(255,112,166,0.3);
+    }
+
+    .info-card:nth-child(2) .info-icon { background: var(--secondary); box-shadow: 0 10px 20px rgba(112,214,255,0.3); }
+    .info-card:nth-child(3) .info-icon { background: var(--accent); box-shadow: 0 10px 20px rgba(255,151,112,0.3); }
+
+    .info-title {
+      font-size: 1.8rem;
+      margin-bottom: 10px;
+      color: var(--text-main);
+    }
+
+    .info-text {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+
+    /* Slider Section */
+    .slider-section {
+      background: linear-gradient(to bottom, var(--bg-card), var(--bg-light));
+      position: relative;
+    }
+    
+    .slider-container {
+      position: relative;
+      max-width: 900px;
+      margin: 0 auto;
+      overflow: hidden;
+      border-radius: 30px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.1);
+      border: 10px solid white;
+    }
+    
+    .slider-track {
+      display: flex;
+      transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+    
+    .slider-slide {
+      min-width: 100%;
+      height: 500px;
+    }
+    
+    .slider-slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .slider-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      width: 55px;
+      height: 55px;
+      border-radius: 50%;
+      font-size: 1.4rem;
+      color: var(--primary);
+      cursor: pointer;
+      z-index: 10;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .slider-btn:hover {
+      background: var(--primary);
+      color: white;
+      transform: translateY(-50%) scale(1.1);
+    }
+    
+    .slider-btn.prev { left: 20px; }
+    .slider-btn.next { right: 20px; }
+    
+    .slider-dots {
+      position: absolute;
+      bottom: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      z-index: 10;
+    }
+    
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      transition: var(--transition);
+      border: 2px solid transparent;
+    }
+    
+    .dot.active {
+      background: white;
+      transform: scale(1.4);
+    }
+
+    /* RSVP Section */
+    .rsvp-section {
+      background: var(--bg-light);
+      position: relative;
+    }
+
+    .rsvp-background-shape {
+      background: var(--secondary);
+      border-radius: 40px;
+      padding: 60px;
+      max-width: 800px;
+      margin: 0 auto;
+      box-shadow: 0 30px 60px rgba(112, 214, 255, 0.2);
+    }
+
+    .rsvp-container {
+      background: white;
+      padding: 50px;
+      border-radius: 24px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+    }
+
+    .form-group { margin-bottom: 25px; }
+
+    .form-label {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 18px 20px;
+      background: #F7F9FC;
+      border: 2px solid transparent;
+      border-radius: 16px;
+      color: var(--text-main);
+      font-family: 'Quicksand', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 500;
+      transition: var(--transition);
+    }
+
+    .form-control:focus {
+      outline: none;
+      background: white;
+      border-color: var(--secondary);
+      box-shadow: 0 0 0 5px rgba(112,214,255,0.2);
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 20px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 16px;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.4rem;
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: 0 10px 20px rgba(255, 151, 112, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      background: var(--primary);
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px rgba(255, 112, 166, 0.4);
+    }
+
+    .success-message { text-align: center; padding: 30px 0; }
+    .success-icon {
+      font-size: 5rem;
+      color: var(--secondary);
+      margin-bottom: 25px;
+      animation: bounceIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes bounceIn {
+      0% { transform: scale(0); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+
+    /* Footer */
+    .footer {
+      background: var(--primary);
+      color: white;
+      padding: 60px 20px 40px;
+      text-align: center;
+      position: relative;
+    }
+
+    .footer-logo {
+      font-family: 'Fredoka One', cursive;
+      font-size: 2.2rem;
+      margin-bottom: 15px;
+    }
+
+    @media (max-width: 900px) {
+      .info-grid { grid-template-columns: 1fr; }
+      .hero-title { font-size: 3.5rem; }
+      .rsvp-background-shape { padding: 30px 20px; border-radius: 30px; }
+      .rsvp-container { padding: 30px 20px; }
+      .shape { display: none; }
+    }
+  `;
+
+  return (
+    <>
+      <GoogleFontsCSS />
+      <FontAwesomeCSS />
+      <style>{styles}</style>
+
+      {/* Loader */}
+      <div className={`loader ${!loading ? 'hidden' : ''}`}>
+        <div className="spinner"></div>
+        <h2 className="bubbly-font" style={{ color: 'white', fontSize: '2.5rem' }}>Blowing Balloons...</h2>
+      </div>
+
+      {!loading && (
+        <div className="template-wrapper">
+
+          {/* Hero Section */}
+          <section className="hero">
+            <div className="shape shape-1"></div>
+            <div className="shape shape-2"></div>
+            <div className="shape shape-3"></div>
+            <div className="shape shape-4"></div>
+
+            <div className="hero-content">
+              <div className="hero-image-wrapper">
+                <img className="hero-image" src={mockData.profileImage} alt={mockData.host} />
+              </div>
+              <div className="hero-badge">{mockData.subtitle}</div>
+              <h1 className="hero-title">{mockData.title}</h1>
+              <p style={{ fontSize: '1.25rem', color: 'var(--text-muted)', marginBottom: '40px', fontWeight: '600' }}>
+                {mockData.description}
+              </p>
+              <a href="#rsvp" className="btn-kid">RSVP NOW <i className="fas fa-arrow-right" style={{ marginLeft: '10px' }}></i></a>
+            </div>
+
+            <div className="wave-bottom">
+              <svg viewBox="0 0 1200 120" preserveAspectRatio="none">
+                <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C59.71,118.08,130.83,113.4,192.27,98.3,237.9,86.66,281.38,72.63,321.39,56.44Z" fill="#FFFFFF"></path>
+              </svg>
+            </div>
+          </section>
+
+          {/* Info Section */}
+          <section className="section info-section" id="info">
+            <div className="container">
+              <div className="animate-on-scroll" ref={addToRefs} style={{ textAlign: 'center' }}>
+                <h2 className="section-title">Party Details!</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '1.2rem', fontWeight: '600' }}>Everything you need to know.</p>
+              </div>
+
+              <div className="info-grid">
+                <div className="info-card animate-on-scroll delay-1" ref={addToRefs}>
+                  <div className="info-icon"><i className="fas fa-calendar-alt"></i></div>
+                  <h3 className="info-title bubbly-font">When?</h3>
+                  <p className="info-text">{mockData.date}</p>
+                  <p className="info-text" style={{ color: 'var(--primary)', marginTop: '5px' }}>{mockData.time}</p>
+                </div>
+
+                <div className="info-card animate-on-scroll delay-2" ref={addToRefs}>
+                  <div className="info-icon"><i className="fas fa-map-marker-alt"></i></div>
+                  <h3 className="info-title bubbly-font">Where?</h3>
+                  <p className="info-text">{mockData.location}</p>
+                  <p className="info-text" style={{ marginTop: '5px' }}>{mockData.address}</p>
+                </div>
+
+                <div className="info-card animate-on-scroll delay-3" ref={addToRefs}>
+                  <div className="info-icon"><i className="fas fa-magic"></i></div>
+                  <h3 className="info-title bubbly-font">Theme</h3>
+                  <p className="info-text">{mockData.theme}</p>
+                  <p className="info-text" style={{ marginTop: '5px' }}>Don't forget to wear bright colors!</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Slider Section */}
+          <section className="section slider-section" id="gallery">
+            <div className="container">
+              <div className="animate-on-scroll" ref={addToRefs} style={{ textAlign: 'center', marginBottom: '50px' }}>
+                <h2 className="section-title">Fun Highlights</h2>
+              </div>
+
+              <div className="slider-container animate-on-scroll delay-1" ref={addToRefs}>
+                <div className="slider-track" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
+                  {mockData.gallery.map((img, idx) => (
+                    <div className="slider-slide" key={idx}>
+                      <img src={img} alt={`Gallery ${idx + 1}`} loading="lazy" />
+                    </div>
+                  ))}
+                </div>
+
+                <button type="button" className="slider-btn prev" onClick={prevSlide}>
+                  <i className="fas fa-chevron-left"></i>
+                </button>
+                <button type="button" className="slider-btn next" onClick={nextSlide}>
+                  <i className="fas fa-chevron-right"></i>
+                </button>
+
+                <div className="slider-dots">
+                  {mockData.gallery.map((_, idx) => (
+                    <div
+                      key={idx}
+                      className={`dot ${currentSlide === idx ? 'active' : ''}`}
+                      onClick={() => setCurrentSlide(idx)}
+                    ></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* RSVP Section */}
+          <section className="section rsvp-section" id="rsvp">
+            <div className="wave-bottom" style={{ top: '-1px', bottom: 'auto', transform: 'rotate(180deg)', zIndex: 0 }}>
+              <svg viewBox="0 0 1200 120" preserveAspectRatio="none">
+                <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C59.71,118.08,130.83,113.4,192.27,98.3,237.9,86.66,281.38,72.63,321.39,56.44Z" fill="#FFFFFF"></path>
+              </svg>
+            </div>
+
+            <div className="container" style={{ position: 'relative', zIndex: 2, paddingTop: '80px' }}>
+              <div className="rsvp-background-shape animate-on-scroll" ref={addToRefs}>
+                <div className="rsvp-container">
+                  {!rsvpSuccess ? (
+                    <>
+                      <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+                        <h2 className="section-title" style={{ fontSize: '3rem', margin: 0 }}>Are You Joining?</h2>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginTop: '10px', fontWeight: '600' }}>Please RSVP to save your spot!</p>
+                      </div>
+
+                      <form onSubmit={handleRSVP}>
+                        <div className="form-group">
+                          <label className="form-label">Parent & Child's Name</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            required
+                            placeholder="e.g. Sarah & Timmy"
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label className="form-label">Email Address</label>
+                          <input
+                            type="email"
+                            className="form-control"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            required
+                            placeholder="Enter your email"
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label className="form-label">Total Guests (Adults + Kids)</label>
+                          <select
+                            className="form-control"
+                            name="guests"
+                            value={formData.guests}
+                            onChange={handleChange}
+                          >
+                            <option value="1">1 Person</option>
+                            <option value="2">2 People</option>
+                            <option value="3">3 People</option>
+                            <option value="4">4 People</option>
+                          </select>
+                        </div>
+
+                        <div className="form-group" style={{ marginBottom: '40px' }}>
+                          <label className="form-label">Any allergies / messages?</label>
+                          <textarea
+                            className="form-control"
+                            name="message"
+                            value={formData.message}
+                            onChange={handleChange}
+                            rows="3"
+                          ></textarea>
+                        </div>
+
+                        <button type="submit" className="submit-btn" disabled={isSubmitting}>
+                          {isSubmitting ? 'Sending...' : 'Confirm RSVP'}
+                        </button>
+                      </form>
+                    </>
+                  ) : (
+                    <div className="success-message">
+                      <i className="fas fa-star success-icon"></i>
+                      <h2 className="bubbly-font" style={{ color: 'var(--primary)', fontSize: '3rem', marginBottom: '15px' }}>Yay! You're in!</h2>
+                      <p style={{ fontSize: '1.2rem', color: 'var(--text-muted)', fontWeight: '600' }}>
+                        Thank you for RSVPing. We can't wait to party with you!
+                      </p>
+                      <button
+                        onClick={() => setRsvpSuccess(false)}
+                        className="btn-kid"
+                        style={{ marginTop: '30px', padding: '15px 30px', fontSize: '1.1rem' }}
+                      >
+                        Update RSVP
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Footer */}
+          <footer className="footer">
+            <div className="wave-bottom" style={{ top: '-1px', bottom: 'auto', transform: 'rotate(180deg)' }}>
+              <svg viewBox="0 0 1200 120" preserveAspectRatio="none">
+                <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C59.71,118.08,130.83,113.4,192.27,98.3,237.9,86.66,281.38,72.63,321.39,56.44Z" fill="#FFFBFB"></path>
+              </svg>
+            </div>
+
+            <div style={{ position: 'relative', zIndex: 2, marginTop: '80px' }}>
+              <div className="footer-logo">Save Me A Seat Zambia</div>
+              <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '1.1rem', fontWeight: '500' }}>Making kids' parties magical ✨</p>
+              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem', marginTop: '40px' }}>
+                &copy; 2026 SaveMeASeatZambia. All rights reserved.
+              </p>
+            </div>
+          </footer>
+        </div>
+      )}
+    </>
+  );
+};
+
+export default BirthdayTemplate;

@@ -718,7 +718,8 @@ const AddWedding = () => {
         rsvp_deadline: "",
         dress_code: "", dress_code_desc: "",
         map_location: "",
-        slider_images: [], bridesmaids: [], groomsmen: [], gifts: [], gallery_images: [],
+        tagline: "We are getting married",
+        slider_images: [], bridesmaids: [], groomsmen: [], gifts: [], gallery_images: [], other_events: [],
         allowed_guests: ["1", "2"]
     };
 
@@ -752,11 +753,13 @@ const AddWedding = () => {
                 setFormData({
                     ...data,
                     rsvp_deadline: data.rsvp_deadline || "",
+                    tagline: data.tagline || "We are getting married",
                     slider_images: typeof data.slider_images === 'string' ? JSON.parse(data.slider_images) : data.slider_images || [],
                     bridesmaids: typeof data.bridesmaids === 'string' ? JSON.parse(data.bridesmaids) : data.bridesmaids || [],
                     groomsmen: typeof data.groomsmen === 'string' ? JSON.parse(data.groomsmen) : data.groomsmen || [],
                     gifts: typeof data.gifts === 'string' ? JSON.parse(data.gifts) : data.gifts || [],
                     gallery_images: typeof data.gallery_images === 'string' ? JSON.parse(data.gallery_images) : data.gallery_images || [],
+                    other_events: typeof data.other_events === 'string' ? JSON.parse(data.other_events) : data.other_events || [],
                     allowed_guests: typeof data.allowed_guests === 'string' ? JSON.parse(data.allowed_guests) : data.allowed_guests || ["1", "2"]
                 });
             }
@@ -1032,6 +1035,19 @@ const AddWedding = () => {
 
             const payload = { ...formData, slug };
 
+            // Sanitize empty dates/times to NULL to prevent SQL errors
+            const nullableFields = [
+                'date', 'rsvp_deadline',
+                'ceremony_date', 'ceremony_time',
+                'reception_date', 'reception_time'
+            ];
+
+            nullableFields.forEach(field => {
+                if (payload[field] === "") {
+                    payload[field] = null;
+                }
+            });
+
             let error;
             if (isEditMode) {
                 const { error: updateError } = await supabase.from('weddings').update(payload).eq('id', id);
@@ -1134,6 +1150,27 @@ const AddWedding = () => {
                     </div>
                 </div>
             </div>
+
+            <div className="section-header" style={{ marginTop: '30px' }}>
+                <h3 className="section-subtitle">
+                    <i className="fas fa-heading"></i>
+                    Page Tagline
+                </h3>
+            </div>
+
+            <div className="form-group">
+                <label className="form-label">
+                    <i className="fas fa-tag"></i> Headline Text
+                </label>
+                <input
+                    className="form-input"
+                    name="tagline"
+                    value={formData.tagline}
+                    onChange={handleChange}
+                    placeholder="e.g. We are getting married, Kitchen Party, etc."
+                />
+                <small style={{ color: 'var(--gray)', fontSize: '0.85rem' }}>Text shown below names on the main page (Default: "We are getting married")</small>
+            </div>
         </div>
     );
 
@@ -1158,7 +1195,12 @@ const AddWedding = () => {
                             <label className="form-label">
                                 <i className="fas fa-calendar-day"></i> Wedding Date
                             </label>
-                            <input type="date" className="form-input" name="date" value={formData.date} onChange={handleChange} />
+                            <div className="input-group-with-reset">
+                                <input type="date" className="form-input" name="date" value={formData.date || ''} onChange={handleChange} />
+                                <button type="button" className="btn-reset-input" onClick={() => setFormData({ ...formData, date: '' })} title="Clear Date">
+                                    <i className="fas fa-times"></i>
+                                </button>
+                            </div>
                         </div>
                         <div className="form-group">
                             <label className="form-label">
@@ -1170,13 +1212,38 @@ const AddWedding = () => {
                             <label className="form-label">
                                 <i className="fas fa-clock"></i> RSVP Deadline
                             </label>
-                            <input type="date" className="form-input" name="rsvp_deadline" value={formData.rsvp_deadline} onChange={handleChange} />
+                            <div className="input-group-with-reset">
+                                <input type="date" className="form-input" name="rsvp_deadline" value={formData.rsvp_deadline || ''} onChange={handleChange} />
+                                <button type="button" className="btn-reset-input" onClick={() => setFormData({ ...formData, rsvp_deadline: '' })} title="Clear Date">
+                                    <i className="fas fa-times"></i>
+                                </button>
+                            </div>
                         </div>
                         <div className="form-group">
                             <label className="form-label">
                                 <i className="fas fa-tshirt"></i> Dress Code
                             </label>
                             <input type="text" className="form-input" name="dress_code" value={formData.dress_code} onChange={handleChange} placeholder="e.g., Formal, Cocktail Attire" />
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">
+                                <i className="fas fa-users"></i> Maximum Guests Per RSVP
+                            </label>
+                            <select
+                                className="form-input"
+                                value={formData.allowed_guests && formData.allowed_guests.includes("2") ? "2" : "1"}
+                                onChange={(e) => {
+                                    const max = e.target.value;
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        allowed_guests: max === "2" ? ["1", "2"] : ["1"]
+                                    }));
+                                }}
+                            >
+                                <option value="1">Strictly 1 Guest</option>
+                                <option value="2">Allow Plus One (Up to 2 Guests)</option>
+                            </select>
+                            <small style={{ color: 'var(--gray)', fontSize: '0.85rem', marginTop: '4px', display: 'block' }}>Controls if guests can bring a plus one</small>
                         </div>
                     </div>
                 </div>
@@ -1280,11 +1347,21 @@ const AddWedding = () => {
                         </div>
                         <div className="form-group">
                             <label className="form-label">Date</label>
-                            <input type="date" className="form-input" name="ceremony_date" value={formData.ceremony_date} onChange={handleChange} />
+                            <div className="input-group-with-reset">
+                                <input type="date" className="form-input" name="ceremony_date" value={formData.ceremony_date || ''} onChange={handleChange} />
+                                <button type="button" className="btn-reset-input" onClick={() => setFormData({ ...formData, ceremony_date: '' })} title="Clear Date">
+                                    <i className="fas fa-times"></i>
+                                </button>
+                            </div>
                         </div>
                         <div className="form-group">
                             <label className="form-label">Time</label>
-                            <input type="time" className="form-input" name="ceremony_time" value={formData.ceremony_time} onChange={handleChange} />
+                            <div className="input-group-with-reset">
+                                <input type="time" className="form-input" name="ceremony_time" value={formData.ceremony_time || ''} onChange={handleChange} />
+                                <button type="button" className="btn-reset-input" onClick={() => setFormData({ ...formData, ceremony_time: '' })} title="Clear Time">
+                                    <i className="fas fa-times"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1301,11 +1378,21 @@ const AddWedding = () => {
                         </div>
                         <div className="form-group">
                             <label className="form-label">Date</label>
-                            <input type="date" className="form-input" name="reception_date" value={formData.reception_date} onChange={handleChange} />
+                            <div className="input-group-with-reset">
+                                <input type="date" className="form-input" name="reception_date" value={formData.reception_date || ''} onChange={handleChange} />
+                                <button type="button" className="btn-reset-input" onClick={() => setFormData({ ...formData, reception_date: '' })} title="Clear Date">
+                                    <i className="fas fa-times"></i>
+                                </button>
+                            </div>
                         </div>
                         <div className="form-group">
                             <label className="form-label">Time</label>
-                            <input type="time" className="form-input" name="reception_time" value={formData.reception_time} onChange={handleChange} />
+                            <div className="input-group-with-reset">
+                                <input type="time" className="form-input" name="reception_time" value={formData.reception_time || ''} onChange={handleChange} />
+                                <button type="button" className="btn-reset-input" onClick={() => setFormData({ ...formData, reception_time: '' })} title="Clear Time">
+                                    <i className="fas fa-times"></i>
+                                </button>
+                            </div>
                         </div>
                         <div className="form-group">
                             <label className="form-label">Address</label>
@@ -1313,6 +1400,105 @@ const AddWedding = () => {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div className="section-header" style={{ marginTop: '50px' }}>
+                <h2 className="section-title">
+                    <i className="fas fa-calendar-check"></i>
+                    Other Events
+                </h2>
+                <p className="section-description">For events like Kitchen Parties, Chilanga Mulilo, or Birthday Parties.</p>
+            </div>
+
+            <div className="other-events-section">
+                {formData.other_events.map((event, idx) => (
+                    <div key={idx} className="event-card" style={{ marginBottom: '20px' }}>
+                        <div className="event-card-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <i className="fas fa-glass-cheers"></i>
+                                <h3>{event.name || `Event #${idx + 1}`}</h3>
+                            </div>
+                            <button className="btn-remove-member" onClick={() => removeItem('other_events', idx)} type="button">
+                                <i className="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div className="grid-2">
+                            <div className="form-group">
+                                <label className="form-label">Event Name</label>
+                                <input
+                                    className="form-input"
+                                    placeholder="e.g. Kitchen Party"
+                                    value={event.name}
+                                    onChange={(e) => updateItem('other_events', idx, 'name', e.target.value)}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Date</label>
+                                <div className="input-group-with-reset">
+                                    <input
+                                        type="date"
+                                        className="form-input"
+                                        value={event.date || ''}
+                                        onChange={(e) => updateItem('other_events', idx, 'date', e.target.value)}
+                                    />
+                                    <button type="button" className="btn-reset-input" onClick={() => updateItem('other_events', idx, 'date', '')} title="Clear Date">
+                                        <i className="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Time</label>
+                                <div className="input-group-with-reset">
+                                    <input
+                                        type="time"
+                                        className="form-input"
+                                        value={event.time || ''}
+                                        onChange={(e) => updateItem('other_events', idx, 'time', e.target.value)}
+                                    />
+                                    <button type="button" className="btn-reset-input" onClick={() => updateItem('other_events', idx, 'time', '')} title="Clear Time">
+                                        <i className="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Venue Name</label>
+                                <input
+                                    className="form-input"
+                                    placeholder="Venue Name"
+                                    value={event.venue}
+                                    onChange={(e) => updateItem('other_events', idx, 'venue', e.target.value)}
+                                />
+                            </div>
+                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label className="form-label">Address</label>
+                                <input
+                                    className="form-input"
+                                    placeholder="Full Address"
+                                    value={event.address}
+                                    onChange={(e) => updateItem('other_events', idx, 'address', e.target.value)}
+                                />
+                            </div>
+                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label className="form-label">Dress Code</label>
+                                <input
+                                    className="form-input"
+                                    placeholder="e.g. Traditional, Casual"
+                                    value={event.dress_code}
+                                    onChange={(e) => updateItem('other_events', idx, 'dress_code', e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                ))}
+                <button
+                    className="btn-add-member"
+                    onClick={() => addItem('other_events', { name: "", date: "", time: "", venue: "", address: "", dress_code: "" })}
+                    type="button"
+                    style={{ marginTop: '10px' }}
+                >
+                    <i className="fas fa-plus"></i>
+                    Add Event
+                </button>
             </div>
         </div>
     );
@@ -1871,7 +2057,7 @@ const AddWedding = () => {
                     --lighter: #f3f4f6;
                     --gray: #6b7280;
                     --gray-light: #9ca3af;
-                    --white: #ffffff;
+                    --white: #1a1a1afff;
                     --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
                     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
                     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #ffffff;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #0a0a0a;
+        }
+
+        .email-container {
+            background-color: #151515;
+            border-radius: 12px;
+            border: 1px solid #333;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #111 0%, #000 100%);
+            color: #D4AF37;
+            padding: 40px 20px;
+            text-align: center;
+            border-bottom: 2px solid #D4AF37;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 32px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            font-family: 'Times New Roman', Times, serif;
+            font-style: italic;
+        }
+
+        .header-sub {
+            margin: 10px 0 0 0;
+            font-size: 14px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: #f3e5ab;
+        }
+
+        .content {
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #fcfcfc;
+        }
+
+        .message {
+            font-size: 16px;
+            color: #a0a0a0;
+            margin-bottom: 30px;
+            line-height: 1.8;
+        }
+
+        .event-details {
+            background-color: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 30px 0;
+            text-align: left;
+        }
+
+        .detail-item {
+            margin-bottom: 15px;
+        }
+
+        .detail-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-label {
+            color: #D4AF37;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        .detail-value {
+            color: #ffffff;
+            font-size: 16px;
+        }
+
+        .button {
+            display: inline-block;
+            background-color: #D4AF37;
+            color: #0a0a0a;
+            text-decoration: none;
+            padding: 16px 40px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 20px 0;
+        }
+
+        .footer {
+            background-color: #000;
+            padding: 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #333;
+        }
+
+        .footer a {
+            color: #D4AF37;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-sub">You're Invited</div>
+            <h1>{{title}}</h1>
+        </div>
+
+        <!-- Main content -->
+        <div class="content">
+            <div class="greeting">
+                Dear {{to_name}},
+            </div>
+
+            <div class="message">
+                {{message}}
+            </div>
+
+            <!-- Event details box -->
+            <div class="event-details">
+                <div class="detail-item">
+                    <div class="detail-label">When</div>
+                    <div class="detail-value">{{event_date}} at {{event_time}}</div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Where</div>
+                    <div class="detail-value">{{location}}</div>
+                    <div class="detail-value" style="font-size: 14px; color: #a0a0a0; margin-top: 4px;">{{address}}
+                    </div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Theme / Dress Code</div>
+                    <div class="detail-value">{{theme}}</div>
+                </div>
+            </div>
+
+            <!-- CTA Button -->
+            <a href="{{link}}" class="button">
+                {{action_text}}
+            </a>
+
+            <p style="font-size: 13px; color: #666; margin-top: 15px;">
+                Unable to click the button? Copy and paste this link:<br>
+                <a href="{{link}}" style="color: #D4AF37; word-break: break-all;">{{link}}</a>
+            </p>
+        </div>
+
+        <!-- Professional footer -->
+        <div class="footer">
+            <p
+                style="color: #D4AF37; font-size: 14px; font-style: italic; font-family: 'Times New Roman', Times, serif;">
+                Save Me A Seat Zambia</p>
+            <p>Making moments unforgettable</p>
+            <p style="margin-top: 15px;">
+                <a href="{{link}}">RSVP Online</a> | <a href="mailto:support@savemeaseatzambia.com">Contact Us</a>
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

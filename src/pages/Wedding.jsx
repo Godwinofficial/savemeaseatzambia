@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
+import AdmissionCard from '../components/AdmissionCard';
 
 // Import Font Awesome CSS
 const FontAwesomeCSS = () => (
@@ -65,6 +66,8 @@ const WeddingTemplate = () => {
     attendance: '',
     message: ''
   });
+  const [showAdmissionCard, setShowAdmissionCard] = useState(false);
+  const [submittedRSVP, setSubmittedRSVP] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -79,16 +82,24 @@ const WeddingTemplate = () => {
     }
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from('rsvps').insert([{
+      const { data, error } = await supabase.from('rsvps').insert([{
         wedding_id: weddingData.id,
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
         attending: formData.attendance,
-        guests_count: parseInt(formData.guests) || 1
-      }]);
+        guests_count: parseInt(formData.guests) || 1,
+        status: 'pending' // New field: RSVPs start as pending until approved
+      }]).select(); // Add .select() to return the created record
+
       if (error) throw error;
-      alert("Thank you! Your RSVP has been sent.");
+
+      // Store the created RSVP and show admission card
+      if (data && data.length > 0) {
+        setSubmittedRSVP(data[0]);
+        setShowAdmissionCard(true);
+      }
+
       setFormData({ name: '', email: '', phone: '', guests: '', attendance: '', message: '' });
     } catch (err) {
       console.error("Full RSVP Error:", err);
@@ -144,10 +155,10 @@ const WeddingTemplate = () => {
     gifts: [],
     galleryImages: [],
     mapLocation: "",
-    galleryImages: [],
-    mapLocation: "",
     coverImage: null,
-    allowedGuests: []
+    allowedGuests: [],
+    otherEvents: [],
+    tagline: "We are getting married"
   };
 
   const [weddingData, setWeddingData] = useState(initialWeddingData);
@@ -178,6 +189,19 @@ const WeddingTemplate = () => {
         if (data && data.length > 0) {
           const dbData = data[0];
           console.log("2. Selected Wedding Row:", dbData); // Log the specific row used
+
+          // Increment view count
+          // Using RPC is safer than update for counters to avoid race conditions
+          // If RPC doesn't exist yet, we can try a direct update but RPC is preferred
+          try {
+            await supabase.rpc('increment_views', { row_id: dbData.id });
+          } catch (viewErr) {
+            console.error("Error incrementing views:", viewErr);
+            // Fallback: direct update (less safe for concurrency but works)
+            const currentViews = dbData.views || 0;
+            await supabase.from('weddings').update({ views: currentViews + 1 }).eq('id', dbData.id);
+          }
+
           // Map DB structure to state structure
           setWeddingData({
             id: dbData.id,
@@ -229,7 +253,9 @@ const WeddingTemplate = () => {
             mapLocation: dbData.map_location,
             rsvpDeadline: dbData.rsvp_deadline,
             coverImage: dbData.cover_image,
-            allowedGuests: typeof dbData.allowed_guests === 'string' ? JSON.parse(dbData.allowed_guests) : dbData.allowed_guests || ["1", "2"]
+            tagline: dbData.tagline || "We are getting married",
+            allowedGuests: typeof dbData.allowed_guests === 'string' ? JSON.parse(dbData.allowed_guests) : dbData.allowed_guests || ["1", "2"],
+            otherEvents: typeof dbData.other_events === 'string' ? JSON.parse(dbData.other_events) : dbData.other_events || []
           });
           setDataFetched(true);
         }
@@ -574,7 +600,7 @@ const WeddingTemplate = () => {
       --accent-color: #A68A64;
       --text-color: #292524;
       --light-text: #57534E;
-      --white: #ffffff;
+      --white: #1a1a1afff;
       --glass-bg: rgba(255, 255, 255, 0.8);
       --glass-border: rgba(255, 255, 255, 0.4);
       --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
@@ -942,8 +968,8 @@ const WeddingTemplate = () => {
     }
 
     .hero .hero-meta a:hover {
-      color: #fff;
-      border-bottom-color: #fff;
+      color: #1a1a1a;
+      border-bottom-color: #1a1a1a;
     }
 
     .hero .slider-dots {
@@ -1829,7 +1855,7 @@ const WeddingTemplate = () => {
       transition: var(--transition);
       width: 100%;
       border-radius: 10px;
-      color: #ffffff;
+      color: #1a1a1afff;
     }
 
     .form-control:focus {
@@ -1844,7 +1870,7 @@ const WeddingTemplate = () => {
 
     select.form-control option {
       background-color: #333;
-      color: #fff;
+      color: #1a1a1a;
     }
 
     .btn {
@@ -2037,7 +2063,7 @@ const WeddingTemplate = () => {
         left: 0 !important;
         width: 100% !important;
         z-index: 9999 !important;
-        background-color: #ffffff !important;
+        background-color: #1a1a1afff !important;
         padding: 0 !important;
         height: 85px !important;
         box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
@@ -2098,7 +2124,7 @@ const WeddingTemplate = () => {
         top: 65px; /* Adjust for header height */
         left: 0;
         width: 100%;
-        background-color: #ffffff;
+        background-color: #1a1a1afff;
         flex-direction: column;
         padding: 30px 0;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -2347,7 +2373,7 @@ const WeddingTemplate = () => {
             <h1 className="hero-title">
               {weddingData.couple.bride.name?.split(' ')[0]} & {weddingData.couple.groom.name?.split(' ')[0]}
             </h1>
-            <div className="hero-tagline">We are getting married</div>
+            <div className="hero-tagline">{weddingData.tagline}</div>
             <div className="hero-meta">
               <div>
                 <span className="hero-date">{
@@ -2542,53 +2568,88 @@ const WeddingTemplate = () => {
       )}
 
       {/* Wedding Details Section */}
-      <section className="wedding-details fade-in-section" id="details">
-        <div className="container">
-          <div className="section-title">
-            <span className="subtitle">The Celebration</span>
-            <h2>Wedding Details</h2>
+      {/* Wedding Details Section - Conditionally Rendered */}
+      {(weddingData.ceremony.date || weddingData.reception.date) && (
+        <section className="wedding-details fade-in-section" id="details">
+          <div className="container">
+            <div className="section-title">
+              <span className="subtitle">The Celebration</span>
+              <h2>Wedding Details</h2>
+            </div>
+
+            <div className="details-container" id="wedding-details-container">
+              {weddingData.ceremony.date && (
+                <div className="event-item" id="ceremony-item">
+                  <div className="event-header">
+                    <h3>Marriage Blessings</h3>
+                    <span className="event-date" id="ceremony-date">{formatDate(weddingData.ceremony.date)}</span>
+                  </div>
+                  <div className="event-info" id="ceremony-details">
+                    <p className="time"><strong>Time:</strong> <span id="ceremony-time">{weddingData.ceremony.time}</span></p>
+                    <p className="venue"><strong>Venue:</strong> <span id="ceremony-venue">{weddingData.ceremony.venue}</span></p>
+                  </div>
+                </div>
+              )}
+
+              {weddingData.reception.date && (
+                <div className="event-item" id="reception-item">
+                  <div className="event-header">
+                    <h3>Reception</h3>
+                    <span className="event-date" id="reception-date">{formatDate(weddingData.reception.date)}</span>
+                  </div>
+                  <div className="event-info" id="reception-details">
+                    <p className="time"><strong>Time:</strong> <span id="reception-time">{weddingData.reception.time}</span></p>
+                    <p className="venue"><strong>Venue:</strong> <span id="reception-venue">{weddingData.reception.venue}</span></p>
+                    <p className="address" id="reception-address">{weddingData.reception.address}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="event-item" id="dress-code-item">
+                <div className="event-header">
+                  <h3>Dress Code</h3>
+                </div>
+                <div className="event-info" id="dress-code-details">
+                  <p id="dress-code-text">{weddingData.dressCode}</p>
+                  {weddingData.dressCodeDescription && <p>{weddingData.dressCodeDescription}</p>}
+                </div>
+              </div>
+            </div>
           </div>
+        </section>
+      )}
 
-          <div className="details-container" id="wedding-details-container">
-            <div className="event-item" id="ceremony-item">
-              <div className="event-header">
-                <h3>Marriage Blessings</h3>
-                <span className="event-date" id="ceremony-date">{formatDate(weddingData.ceremony.date)}</span>
-              </div>
-              <div className="event-info" id="ceremony-details">
-                <p className="time"><strong>Time:</strong> <span id="ceremony-time">{weddingData.ceremony.time}</span></p>
-                <p className="venue"><strong>Venue:</strong> <span id="ceremony-venue">{weddingData.ceremony.venue}</span></p>
-              </div>
+      {/* Other Events Section */}
+      {weddingData.otherEvents && weddingData.otherEvents.length > 0 && (
+        <section className="wedding-details fade-in-section" id="other-events">
+          <div className="container">
+            <div className="section-title">
+              <span className="subtitle">The Celebration</span>
+              <h2>Event Details</h2>
             </div>
-
-            <div className="event-item" id="reception-item">
-              <div className="event-header">
-                <h3>Reception</h3>
-                <span className="event-date" id="reception-date">{formatDate(weddingData.reception.date)}</span>
-              </div>
-              <div className="event-info" id="reception-details">
-                <p className="time"><strong>Time:</strong> <span id="reception-time">{weddingData.reception.time}</span></p>
-                <p className="venue"><strong>Venue:</strong> <span id="reception-venue">{weddingData.reception.venue}</span></p>
-                <p className="address" id="reception-address">{weddingData.reception.address}</p>
-              </div>
-            </div>
-
-            <div className="event-item" id="dress-code-item">
-              <div className="event-header">
-                <h3>Dress Code</h3>
-              </div>
-              <div className="event-info" id="dress-code-details">
-                <p id="dress-code-text">{weddingData.dressCode}</p>
-                {weddingData.dressCodeDescription && <p>{weddingData.dressCodeDescription}</p>}
-              </div>
+            <div className="details-container">
+              {weddingData.otherEvents.map((event, index) => (
+                <div className="event-item" key={index}>
+                  <div className="event-header">
+                    <h3>{event.name}</h3>
+                    <span className="event-date">{formatDate(event.date)}</span>
+                  </div>
+                  <div className="event-info">
+                    <p className="time"><strong>Time:</strong> <span>{formatTime(event.time)}</span></p>
+                    <p className="venue"><strong>Venue:</strong> <span>{event.venue}</span></p>
+                    {event.address && <p className="address"><strong>Address:</strong> {event.address}</p>}
+                    {event.dress_code && <p className="address"><strong>Dress Code:</strong> {event.dress_code}</p>}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Gifts Section */}
       {weddingData.gifts?.length > 0 && (
-        <section className="wedding-details fade-in-section" id="gifts-section" style={{ padding: "60px 0", background: "linear-gradient(135deg, #ffffff 0%, #fafaf9 100%)" }}>
+        <section className="wedding-details fade-in-section" id="gifts-section" style={{ padding: "60px 0", background: "linear-gradient(135deg, #1a1a1afff 0%, #fafaf9 100%)" }}>
           <div className="container">
             <div className="section-title">
               <h2>Gifts & Contributions</h2>
@@ -2723,12 +2784,12 @@ const WeddingTemplate = () => {
                 value={formData.guests}
                 onChange={handleChange}
                 required
-                style={{ color: formData.guests ? '#fff' : '#757575' }}
+                style={{ color: formData.guests ? '#1a1a1a' : '#757575' }}
               >
 
-                <option value="" style={{ color: '#fff' }} disabled>Select number of guests</option>
+                <option value="" style={{ color: '#1a1a1a' }} disabled>Select number of guests</option>
                 {(weddingData.allowedGuests.length > 0 ? weddingData.allowedGuests : ["1", "2"]).map((opt, idx) => (
-                  <option key={idx} value={opt} style={{ color: '#fff' }}>{opt}</option>
+                  <option key={idx} value={opt} style={{ color: '#1a1a1a' }}>{opt}</option>
                 ))}
               </select>
             </div>
@@ -2741,11 +2802,11 @@ const WeddingTemplate = () => {
                 value={formData.attendance}
                 onChange={handleChange}
                 required
-                style={{ color: formData.attendance ? '#fff' : '#757575' }}
+                style={{ color: formData.attendance ? '#1a1a1a' : '#757575' }}
               >
-                <option value="" style={{ color: '#fff' }} disabled>Select your response</option>
-                <option value="yes" style={{ color: '#fff' }}>Yes, with pleasure</option>
-                <option value="no" style={{ color: '#fff' }}>Regretfully, no</option>
+                <option value="" style={{ color: '#1a1a1a' }} disabled>Select your response</option>
+                <option value="yes" style={{ color: '#1a1a1a' }}>Yes, with pleasure</option>
+                <option value="no" style={{ color: '#1a1a1a' }}>Regretfully, no</option>
               </select>
             </div>
             <button type="submit" className="btn" disabled={isSubmitting}>
@@ -2763,6 +2824,81 @@ const WeddingTemplate = () => {
           </div>
         </div>
       </footer>
+
+      {/* Admission Card Modal */}
+      {showAdmissionCard && submittedRSVP && (
+        <div className="admission-modal-overlay">
+          <div className="admission-modal-content">
+            <button
+              className="close-modal-btn"
+              onClick={() => setShowAdmissionCard(false)}
+            >
+              <i className="fas fa-times"></i>
+            </button>
+            <AdmissionCard rsvp={submittedRSVP} wedding={weddingData} />
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .admission-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.8);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 10000;
+          padding: 20px;
+          backdrop-filter: blur(5px);
+        }
+
+        .admission-modal-content {
+          position: relative;
+          background: transparent;
+          border-radius: 20px;
+          max-width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
+          animation: modalFadeIn 0.3s ease-out;
+        }
+
+        .close-modal-btn {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          background: white;
+          border: none;
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          z-index: 10;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+          transition: transform 0.2s;
+        }
+
+        .close-modal-btn:hover {
+          transform: scale(1.1);
+        }
+
+        @keyframes modalFadeIn {
+          from {
+            opacity: 0;
+            transform: scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+      `}</style>
     </>
   );
 };

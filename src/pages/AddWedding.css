@@ -786,3 +786,39 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--primary-dark);
 }
+
+/* Input group with reset button */
+.input-group-with-reset {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-group-with-reset .form-input {
+    padding-right: 40px;
+    /* Make space for the button */
+}
+
+.btn-reset-input {
+    position: absolute;
+    right: 10px;
+    background: transparent;
+    border: none;
+    color: var(--gray);
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    border-radius: 50%;
+}
+
+.btn-reset-input:hover {
+    color: var(--error);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.btn-reset-input i {
+    font-size: 0.9rem;
+}
