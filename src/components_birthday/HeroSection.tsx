@@ -37,7 +37,7 @@ const HeroSection = ({ event }: { event: Event | null }) => {
           paddingTop: "clamp(70px, 12vw, 120px)",
           paddingBottom: "80px",
           overflowX: "hidden",
-          background: "linear-gradient(135deg, #FFEBF2 0%, hsl(30,33%,96%) 100%)",
+          background: "linear-gradient(135deg, hsl(222, 47%, 16%) 0%, hsl(222, 47%, 11%) 100%)",
         }}
       >
         <ConfettiDecorations />
@@ -51,7 +51,7 @@ const HeroSection = ({ event }: { event: Event | null }) => {
                 fontWeight: 700,
                 letterSpacing: "0.18em",
                 textTransform: "uppercase",
-                color: "hsl(20, 10%, 50%)",
+                color: "var(--muted-foreground, hsl(215, 20%, 65%))",
                 marginBottom: "12px",
               }}
             >
@@ -64,7 +64,7 @@ const HeroSection = ({ event }: { event: Event | null }) => {
                   fontFamily: "'Sacramento', cursive",
                   fontSize: "clamp(4rem, 8vw, 6rem)",
                   lineHeight: 1,
-                  color: "hsl(340, 65%, 60%)",
+                  color: "var(--primary, hsl(43, 74%, 49%))",
                   display: "block",
                 }}
               >
@@ -74,7 +74,7 @@ const HeroSection = ({ event }: { event: Event | null }) => {
                 style={{
                   fontSize: "clamp(2.8rem, 6vw, 4.5rem)",
                   fontWeight: 800,
-                  color: "hsl(20, 20%, 20%)",
+                  color: "var(--foreground, hsl(210, 40%, 98%))",
                   lineHeight: 1.1,
                   margin: 0,
                 }}
@@ -88,15 +88,15 @@ const HeroSection = ({ event }: { event: Event | null }) => {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "8px",
-                backgroundColor: "hsl(340, 65%, 60%)",
-                color: "#fff",
+                backgroundColor: "var(--primary, hsl(43, 74%, 49%))",
+                color: "var(--primary-foreground, hsl(222, 47%, 11%))",
                 border: "none",
                 borderRadius: "9999px",
                 padding: "12px 28px",
                 fontSize: "1rem",
                 fontWeight: 700,
                 cursor: "pointer",
-                boxShadow: "0 8px 24px hsla(340, 65%, 60%, 0.35)",
+                boxShadow: "0 8px 24px hsla(43, 74%, 49%, 0.35)",
                 transition: "opacity 0.2s",
               }}
               onMouseEnter={(e) =>

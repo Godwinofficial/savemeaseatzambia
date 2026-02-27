@@ -8,34 +8,28 @@
 
 /* ---------- CSS Custom Properties ---------- */
 :root {
-  --background: hsl(30, 33%, 96%);
-  /* #F7F0E8 cream */
-  --foreground: hsl(20, 20%, 20%);
+  --background: hsl(222, 47%, 11%);
+  --foreground: hsl(210, 40%, 98%);
 
-  --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(20, 20%, 20%);
+  --card: hsl(222, 47%, 15%);
+  --card-foreground: hsl(210, 40%, 98%);
 
-  --primary: hsl(340, 65%, 60%);
-  /* #D45279 pink */
-  --primary-foreground: hsl(0, 0%, 100%);
+  --primary: hsl(43, 74%, 49%);
+  --primary-foreground: hsl(222, 47%, 11%);
 
-  --secondary: hsl(200, 60%, 72%);
-  /* #A7C7D8 sky blue */
-  --secondary-foreground: hsl(200, 60%, 15%);
+  --secondary: hsl(217, 33%, 22%);
+  --secondary-foreground: hsl(210, 40%, 98%);
 
-  --muted: hsl(30, 20%, 90%);
-  --muted-foreground: hsl(20, 10%, 50%);
+  --muted: hsl(217, 33%, 22%);
+  --muted-foreground: hsl(215, 20%, 65%);
 
-  --accent: hsl(20, 80%, 62%);
-  /* #F0A37A orange-peach */
-  --accent-foreground: hsl(0, 0%, 100%);
+  --accent: hsl(43, 74%, 49%);
+  --accent-foreground: hsl(222, 47%, 11%);
 
-  --border: hsl(30, 20%, 88%);
+  --border: hsl(217, 33%, 22%);
 
-  --katy-gold: hsl(40, 70%, 55%);
-  /* #DFB075 */
+  --katy-gold: hsl(43, 74%, 49%);
   --katy-green: hsl(150, 40%, 55%);
-  /* #9CCBA4 */
 
   --radius: 0.5rem;
 }
@@ -197,19 +191,19 @@
 
 /* background-color shorthands used by components */
 .bd-page .bg-primary\/10 {
-  background-color: hsl(340, 65%, 60%, 0.1) !important;
+  background-color: hsla(43, 74%, 49%, 0.1) !important;
 }
 
 .bd-page .bg-primary\/40 {
-  background-color: hsl(340, 65%, 60%, 0.4) !important;
+  background-color: hsla(43, 74%, 49%, 0.4) !important;
 }
 
 .bd-page .bg-primary\/0 {
-  background-color: hsl(340, 65%, 60%, 0) !important;
+  background-color: hsla(43, 74%, 49%, 0) !important;
 }
 
 .bd-page .text-primary\/20 {
-  color: hsl(340, 65%, 60%, 0.2) !important;
+  color: hsla(43, 74%, 49%, 0.2) !important;
 }
 
 /* ring / focus */
@@ -227,7 +221,7 @@
 /* ---------- Hero gradient background ---------- */
 .bd-page section:first-of-type,
 .bd-hero-gradient {
-  background: linear-gradient(135deg, #FFEBF2 0%, hsl(30, 33%, 96%) 100%);
+  background: linear-gradient(135deg, hsl(222, 47%, 16%) 0%, hsl(222, 47%, 11%) 100%);
 }
 
 /* ---------- Countdown box pulse ---------- */

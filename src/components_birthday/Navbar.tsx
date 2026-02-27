@@ -37,7 +37,7 @@ const Navbar = ({ childName }: { childName?: string }) => {
             style={{
               fontFamily: "'Sacramento', cursive",
               fontSize: "2.6rem", // Kept original size
-              color: "hsl(340, 65%, 60%)",
+              color: "var(--primary, hsl(43, 74%, 49%))",
               textDecoration: "none",
               lineHeight: 1,
               marginTop: "-5px", // Adjust vertical alignment
@@ -55,7 +55,7 @@ const Navbar = ({ childName }: { childName?: string }) => {
               background: "none",
               border: "none",
               cursor: "pointer",
-              color: "hsl(20, 20%, 20%)",
+              color: "var(--foreground, hsl(210, 40%, 98%))",
             }}
             className="bd-hamburger"
           >
@@ -82,7 +82,7 @@ const Navbar = ({ childName }: { childName?: string }) => {
                     fontWeight: 700,
                     textTransform: "uppercase",
                     letterSpacing: "0.08em",
-                    color: "hsl(20, 20%, 20%)",
+                    color: "var(--foreground, hsl(210, 40%, 98%))",
                     opacity: 0.7,
                     textDecoration: "none",
                     transition: "opacity 0.2s, color 0.2s",
@@ -90,12 +90,12 @@ const Navbar = ({ childName }: { childName?: string }) => {
                   onMouseEnter={(e) => {
                     (e.target as HTMLAnchorElement).style.opacity = "1";
                     (e.target as HTMLAnchorElement).style.color =
-                      "hsl(340, 65%, 60%)";
+                      "var(--primary, hsl(43, 74%, 49%))";
                   }}
                   onMouseLeave={(e) => {
                     (e.target as HTMLAnchorElement).style.opacity = "0.7";
                     (e.target as HTMLAnchorElement).style.color =
-                      "hsl(20, 20%, 20%)";
+                      "var(--foreground, hsl(210, 40%, 98%))";
                   }}
                 >
                   {link}
@@ -113,11 +113,11 @@ const Navbar = ({ childName }: { childName?: string }) => {
               top: "100%",
               left: 0,
               right: 0,
-              backgroundColor: "#ffffff",
-              borderTop: "1px solid #f0f0f0",
-              borderBottom: "1px solid #f0f0f0",
+              backgroundColor: "var(--card, hsl(222, 47%, 15%))",
+              borderTop: "1px solid var(--border, hsl(217, 33%, 22%))",
+              borderBottom: "1px solid var(--border, hsl(217, 33%, 22%))",
               padding: "8px 24px 12px", // Slightly reduced padding
-              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.5)",
             }}
           >
             {navLinks.map((link) => (
@@ -132,10 +132,10 @@ const Navbar = ({ childName }: { childName?: string }) => {
                   fontWeight: 700,
                   textTransform: "uppercase",
                   letterSpacing: "0.08em",
-                  color: "hsl(20, 20%, 20%)",
+                  color: "var(--foreground, hsl(210, 40%, 98%))",
                   opacity: 0.75,
                   textDecoration: "none",
-                  borderBottom: "1px solid #f0f0f0",
+                  borderBottom: "1px solid var(--border, hsl(217, 33%, 22%))",
                 }}
               >
                 {link}
@@ -152,15 +152,15 @@ const Navbar = ({ childName }: { childName?: string }) => {
         }
         
         .bd-navbar {
-          background-color: #ffffff !important;
-          border-bottom: 1px solid #f0f0f0 !important;
+          background-color: var(--background, hsl(222, 47%, 11%)) !important;
+          border-bottom: 1px solid var(--border, hsl(217, 33%, 22%)) !important;
           backdrop-filter: none !important;
           -webkit-backdrop-filter: none !important;
         }
         
         .bd-navbar.bd-open {
-          background-color: #ffffff !important;
-          border-bottom: 1px solid #f0f0f0 !important;
+          background-color: var(--background, hsl(222, 47%, 11%)) !important;
+          border-bottom: 1px solid var(--border, hsl(217, 33%, 22%)) !important;
         }
 
         .bd-hamburger { 
@@ -174,7 +174,7 @@ const Navbar = ({ childName }: { childName?: string }) => {
         @media (max-width: 767px) {
           .bd-hamburger { 
             display: block !important; 
-            color: hsl(20, 20%, 20%) !important;
+            color: var(--foreground, hsl(210, 40%, 98%)) !important;
           }
           
           .bd-nav-links { 
@@ -185,10 +185,10 @@ const Navbar = ({ childName }: { childName?: string }) => {
           .bd-navbar {
             height: auto !important;
             min-height: 45px !important; /* Reduced from 50px to 45px */
-            background-color: #ffffff !important;
+            background-color: var(--background, hsl(222, 47%, 11%)) !important;
             backdrop-filter: none !important;
             -webkit-backdrop-filter: none !important;
-            border-bottom: 1px solid #f0f0f0 !important;
+            border-bottom: 1px solid var(--border, hsl(217, 33%, 22%)) !important;
           }
           
           /* Keep the logo and hamburger visible with reduced height */
@@ -203,7 +203,7 @@ const Navbar = ({ childName }: { childName?: string }) => {
           
           /* Mobile hamburger color */
           .bd-hamburger {
-            color: hsl(20, 20%, 20%) !important;
+            color: var(--foreground, hsl(210, 40%, 98%)) !important;
           }
         }
       `}</style>

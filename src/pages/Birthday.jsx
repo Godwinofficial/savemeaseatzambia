@@ -158,10 +158,9 @@ const Birthday = () => {
 
       {/* Loading state */}
       {!isReady && (
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'hsl(0, 0%, 7%)' }}>
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'hsl(222, 47%, 11%)' }}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '3rem', marginBottom: 16 }}>🎂</div>
-            <p style={{ fontFamily: "'Sacramento', cursive", fontSize: '2rem', color: 'hsl(45, 93%, 60%)' }}>
+            <p style={{ fontFamily: "'Sacramento', cursive", fontSize: '2rem', color: 'hsl(43, 74%, 49%)' }}>
               Loading invitation…
             </p>
           </div>

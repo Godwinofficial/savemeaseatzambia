@@ -23,7 +23,7 @@ const PartyLocation = ({ event }: { event: Event | null }) => {
         <div className="w-16 h-1 bg-accent mx-auto mb-10 rounded-full" />
 
         {/* Google Maps embed */}
-        <div style={{ maxWidth: 800, margin: "0 auto", borderRadius: 20, overflow: "hidden", boxShadow: "0 8px 40px rgba(0,0,0,0.10)", border: "1px solid hsl(30,20%,88%)" }}>
+        <div style={{ maxWidth: 800, margin: "0 auto", borderRadius: 20, overflow: "hidden", boxShadow: "0 8px 40px rgba(0,0,0,0.30)", border: "1px solid var(--border, hsl(217, 33%, 22%))" }}>
           {mapsEmbedUrl ? (
             <iframe
               src={mapsEmbedUrl}
@@ -36,7 +36,7 @@ const PartyLocation = ({ event }: { event: Event | null }) => {
               title="Party Location Map"
             />
           ) : (
-            <div style={{ height: 320, display: "flex", alignItems: "center", justifyContent: "center", background: "hsl(30,20%,95%)", color: "hsl(20,10%,60%)", fontSize: "0.95rem" }}>
+            <div style={{ height: 320, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--card, hsl(222, 47%, 15%))", color: "var(--muted-foreground, hsl(215, 20%, 65%))", fontSize: "0.95rem" }}>
               Venue details coming soon
             </div>
           )}

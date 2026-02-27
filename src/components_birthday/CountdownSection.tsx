@@ -96,7 +96,7 @@ const CountdownSection = ({ event }: { event: Event | null }) => {
             <span style={{
               fontFamily: "'Sacramento', cursive",
               fontSize: "3rem",
-              color: "hsl(45, 93%, 60%)",
+              color: "var(--primary, hsl(43, 74%, 49%))",
             }}>
               Happy Birthday, {childName}!
             </span>
