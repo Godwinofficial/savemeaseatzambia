@@ -14,7 +14,7 @@
   --card: #111111;
   --card-foreground: #ffffff;
 
-  --primary: #FFD700;
+  --primary: #f4d05c;
   --primary-foreground: #000000;
 
   --secondary: #222222;
@@ -23,12 +23,12 @@
   --muted: #222222;
   --muted-foreground: #aaaaaa;
 
-  --accent: #FFD700;
+  --accent: #f4d05c;
   --accent-foreground: #000000;
 
   --border: #333333;
 
-  --katy-gold: #FFD700;
+  --katy-gold: #f4d05c;
   --katy-green: hsl(150, 40%, 55%);
 
   --radius: 0.5rem;
@@ -191,19 +191,19 @@
 
 /* background-color shorthands used by components */
 .bd-page .bg-primary\/10 {
-  background-color: rgba(255, 215, 0, 0.1) !important;
+  background-color: rgba(244, 208, 92, 0.1) !important;
 }
 
 .bd-page .bg-primary\/40 {
-  background-color: rgba(255, 215, 0, 0.4) !important;
+  background-color: rgba(244, 208, 92, 0.4) !important;
 }
 
 .bd-page .bg-primary\/0 {
-  background-color: rgba(255, 215, 0, 0) !important;
+  background-color: rgba(244, 208, 92, 0) !important;
 }
 
 .bd-page .text-primary\/20 {
-  color: rgba(255, 215, 0, 0.2) !important;
+  color: rgba(244, 208, 92, 0.2) !important;
 }
 
 /* ring / focus */

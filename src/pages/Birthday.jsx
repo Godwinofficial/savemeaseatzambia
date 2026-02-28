@@ -65,11 +65,11 @@ const Birthday = () => {
                 foreground:  '#ffffff',
                 border:      '#333333',
                 card: { DEFAULT: '#111111', foreground: '#ffffff' },
-                primary:     { DEFAULT: '#FFD700', foreground: '#000000' },
+                primary:     { DEFAULT: '#f4d05c', foreground: '#000000' },
                 secondary:   { DEFAULT: '#222222', foreground: '#ffffff' },
-                accent:      { DEFAULT: '#FFD700',  foreground: '#000000' },
+                accent:      { DEFAULT: '#f4d05c',  foreground: '#000000' },
                 muted:       { DEFAULT: '#222222',  foreground: '#aaaaaa' },
-                'katy-gold':  '#FFD700',
+                'katy-gold':  '#f4d05c',
                 'katy-green': 'hsl(150, 40%, 55%)',
               },
               fontFamily: {
@@ -160,7 +160,7 @@ const Birthday = () => {
       {!isReady && (
         <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000000' }}>
           <div style={{ textAlign: 'center' }}>
-            <p style={{ fontFamily: "'Sacramento', cursive", fontSize: '2rem', color: '#FFD700' }}>
+            <p style={{ fontFamily: "'Sacramento', cursive", fontSize: '2rem', color: '#f4d05c' }}>
               Loading invitation…
             </p>
           </div>

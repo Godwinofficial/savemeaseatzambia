@@ -142,7 +142,7 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
                 padding: "40px 36px",
                 textAlign: "center",
                 boxShadow: "0 16px 48px rgba(0,0,0,0.4)",
-                border: "2px solid var(--primary, #FFD700)",
+                border: "2px solid var(--primary, #f4d05c)",
                 position: "relative",
                 overflow: "hidden",
                 fontFamily: "'Nunito', sans-serif",
