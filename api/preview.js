@@ -23,9 +23,10 @@ export default async function handler(request, response) {
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    // Get slug from query params
+    // Get slug and type from query params
     const { searchParams } = new URL(request.url, `http://${request.headers.host}`);
     const slug = searchParams.get('slug');
+    const type = searchParams.get('type') || 'wedding'; // default to wedding
 
     if (!slug) {
         return response.status(400).send('Missing slug parameter');
@@ -33,26 +34,40 @@ export default async function handler(request, response) {
 
     try {
         // defaults
-        let title = "Wedding Invitation";
-        let description = "You are invited against a wedding celebration.";
+        let title = "Invitation";
+        let description = "You are invited to a celebration.";
         let image = "https://savemeaseatzambia.com/imgs/logo1.png"; // Fixed typo: savemeaseat
-        let redirectUrl = `/w/${slug}`;
+        let redirectUrl = type === 'birthday' ? `/b/${slug}` : `/w/${slug}`;
 
-        // Fetch wedding data
-        const { data: wedding, error } = await supabase
-            .from('weddings')
-            .select('bride_name, groom_name, date, cover_image, location, venue_name')
-            .eq('slug', slug)
-            .single();
+        if (type === 'birthday') {
+            // Fetch birthday data
+            const { data: bday, error } = await supabase
+                .from('birthday_events')
+                .select('child_name, age, date, hero_image, venue_name')
+                .eq('slug', slug)
+                .single();
 
-        if (error) {
-            console.error('Supabase error:', error);
-        } else if (wedding) {
-            title = `${wedding.bride_name} & ${wedding.groom_name} | Wedding Invitation`;
-            description = `Join us on ${new Date(wedding.date).toLocaleDateString()} at ${wedding.venue_name || wedding.location}.`;
-            if (wedding.cover_image) {
-                // Use the cover image
-                image = wedding.cover_image;
+            if (error) {
+                console.error('Supabase birthday error:', error);
+            } else if (bday) {
+                title = `${bday.child_name}'s Birthday Invitation`;
+                description = `Join us on ${new Date(bday.date).toLocaleDateString()} at ${bday.venue_name || 'the venue'}.`;
+                if (bday.hero_image) image = bday.hero_image;
+            }
+        } else {
+            // Fetch wedding data
+            const { data: wedding, error } = await supabase
+                .from('weddings')
+                .select('bride_name, groom_name, date, cover_image, location, venue_name')
+                .eq('slug', slug)
+                .single();
+
+            if (error) {
+                console.error('Supabase wedding error:', error);
+            } else if (wedding) {
+                title = `${wedding.bride_name} & ${wedding.groom_name} | Wedding Invitation`;
+                description = `Join us on ${new Date(wedding.date).toLocaleDateString()} at ${wedding.venue_name || wedding.location}.`;
+                if (wedding.cover_image) image = wedding.cover_image;
             }
         }
 

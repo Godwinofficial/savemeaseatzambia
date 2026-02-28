@@ -8,27 +8,27 @@
 
 /* ---------- CSS Custom Properties ---------- */
 :root {
-  --background: hsl(222, 47%, 11%);
-  --foreground: hsl(210, 40%, 98%);
+  --background: #000000;
+  --foreground: #ffffff;
 
-  --card: hsl(222, 47%, 15%);
-  --card-foreground: hsl(210, 40%, 98%);
+  --card: #111111;
+  --card-foreground: #ffffff;
 
-  --primary: hsl(43, 74%, 49%);
-  --primary-foreground: hsl(222, 47%, 11%);
+  --primary: #FFD700;
+  --primary-foreground: #000000;
 
-  --secondary: hsl(217, 33%, 22%);
-  --secondary-foreground: hsl(210, 40%, 98%);
+  --secondary: #222222;
+  --secondary-foreground: #ffffff;
 
-  --muted: hsl(217, 33%, 22%);
-  --muted-foreground: hsl(215, 20%, 65%);
+  --muted: #222222;
+  --muted-foreground: #aaaaaa;
 
-  --accent: hsl(43, 74%, 49%);
-  --accent-foreground: hsl(222, 47%, 11%);
+  --accent: #FFD700;
+  --accent-foreground: #000000;
 
-  --border: hsl(217, 33%, 22%);
+  --border: #333333;
 
-  --katy-gold: hsl(43, 74%, 49%);
+  --katy-gold: #FFD700;
   --katy-green: hsl(150, 40%, 55%);
 
   --radius: 0.5rem;
@@ -191,19 +191,19 @@
 
 /* background-color shorthands used by components */
 .bd-page .bg-primary\/10 {
-  background-color: hsla(43, 74%, 49%, 0.1) !important;
+  background-color: rgba(255, 215, 0, 0.1) !important;
 }
 
 .bd-page .bg-primary\/40 {
-  background-color: hsla(43, 74%, 49%, 0.4) !important;
+  background-color: rgba(255, 215, 0, 0.4) !important;
 }
 
 .bd-page .bg-primary\/0 {
-  background-color: hsla(43, 74%, 49%, 0) !important;
+  background-color: rgba(255, 215, 0, 0) !important;
 }
 
 .bd-page .text-primary\/20 {
-  color: hsla(43, 74%, 49%, 0.2) !important;
+  color: rgba(255, 215, 0, 0.2) !important;
 }
 
 /* ring / focus */
@@ -221,7 +221,7 @@
 /* ---------- Hero gradient background ---------- */
 .bd-page section:first-of-type,
 .bd-hero-gradient {
-  background: linear-gradient(135deg, hsl(222, 47%, 16%) 0%, hsl(222, 47%, 11%) 100%);
+  background: linear-gradient(135deg, #111111 0%, #000000 100%);
 }
 
 /* ---------- Countdown box pulse ---------- */

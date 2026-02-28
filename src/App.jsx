@@ -7,6 +7,7 @@ import AddBirthday from './pages/AddBirthday';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import RSVPReport from './pages/RSVPReport';
+import BirthdayReport from './pages/BirthdayReport';
 import Birthday from './pages/Birthday';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
@@ -18,6 +19,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/w/:slug" element={<Wedding />} />
         <Route path="/report/:slug" element={<RSVPReport />} />
+        <Route path="/b-report/:slug" element={<BirthdayReport />} />
         <Route path="/login" element={<Login />} />
 
         {/* Protected Admin Routes */}

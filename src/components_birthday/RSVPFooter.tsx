@@ -131,19 +131,18 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
               <CheckCircle size={22} />
               <span style={{ fontWeight: 700, fontSize: "1rem" }}>RSVP confirmed for {submittedName}!</span>
             </div>
-
             {/* ── DOWNLOADABLE CARD ── */}
             <div
               ref={cardRef}
               style={{
                 width: "100%",
                 maxWidth: 480,
-                background: "linear-gradient(145deg, hsl(222, 47%, 16%) 0%, hsl(222, 47%, 11%) 100%)",
+                background: "linear-gradient(145deg, #111111 0%, #000000 100%)",
                 borderRadius: 20,
                 padding: "40px 36px",
                 textAlign: "center",
                 boxShadow: "0 16px 48px rgba(0,0,0,0.4)",
-                border: "2px solid var(--border, #d4af37)",
+                border: "2px solid var(--primary, #FFD700)",
                 position: "relative",
                 overflow: "hidden",
                 fontFamily: "'Nunito', sans-serif",
@@ -156,16 +155,15 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
               ].map((pos, i) => (
                 <div key={i} style={{
                   position: "absolute", width: 10, height: 10,
-                  borderRadius: "50%", background: "#d4af37", ...pos,
+                  borderRadius: "50%", background: "#FFD700", ...pos,
                 }} />
               ))}
 
-              {/* Top deco line */}
               <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 20 }}>
                 {Array.from({ length: 7 }).map((_, i) => (
                   <div key={i} style={{
                     width: 6, height: 6, borderRadius: "50%",
-                    background: i % 2 === 0 ? "#f8d88e" : "var(--muted, hsl(217, 33%, 22%))",
+                    background: i % 2 === 0 ? "#FFD700" : "var(--muted, #222222)",
                   }} />
                 ))}
               </div>
@@ -176,7 +174,7 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
               </p>
 
               {/* Child name */}
-              <p style={{ fontFamily: "'Sacramento', cursive", fontSize: "3.4rem", color: "var(--primary, #d4af37)", lineHeight: 1, margin: "0 0 4px" }}>
+              <p style={{ fontFamily: "'Sacramento', cursive", fontSize: "3.4rem", color: "var(--primary, #FFD700)", lineHeight: 1, margin: "0 0 4px" }}>
                 {event?.child_name || "Katy"}'s
               </p>
               <h2 style={{ fontSize: "1.8rem", fontWeight: 800, color: "var(--foreground, hsl(210, 40%, 98%))", margin: "0 0 24px", lineHeight: 1.1 }}>
@@ -185,9 +183,9 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
 
               {/* Divider */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-                <div style={{ flex: 1, height: 1, background: "hsl(340,65%,85%)" }} />
-                <span style={{ fontSize: "1rem", color: "#f8d88e" }}>✦</span>
-                <div style={{ flex: 1, height: 1, background: "hsl(340,65%,85%)" }} />
+                <div style={{ flex: 1, height: 1, background: "#333333" }} />
+                <span style={{ fontSize: "1rem", color: "#FFD700" }}>✦</span>
+                <div style={{ flex: 1, height: 1, background: "#333333" }} />
               </div>
 
               {/* Details */}
@@ -216,14 +214,14 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
 
               {/* Divider */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-                <div style={{ flex: 1, height: 1, background: "hsl(340,65%,85%)" }} />
-                <span style={{ fontSize: "1rem", color: "#f8d88e" }}>✦</span>
-                <div style={{ flex: 1, height: 1, background: "hsl(340,65%,85%)" }} />
+                <div style={{ flex: 1, height: 1, background: "#333333" }} />
+                <span style={{ fontSize: "1rem", color: "#FFD700" }}>✦</span>
+                <div style={{ flex: 1, height: 1, background: "#333333" }} />
               </div>
 
               {/* RSVP badge */}
               <div style={{
-                background: "var(--primary, #d4af37)", color: "var(--primary-foreground, hsl(222, 47%, 11%))",
+                background: "var(--primary, #FFD700)", color: "var(--primary-foreground, #000000)",
                 borderRadius: 9999, padding: "10px 24px",
                 display: "inline-block", fontWeight: 700, fontSize: "0.82rem",
                 letterSpacing: "0.06em", marginBottom: 12,
@@ -232,15 +230,14 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
               </div>
 
               <p style={{ fontSize: "0.85rem", color: "var(--muted-foreground, hsl(215, 20%, 65%))", margin: 0 }}>
-                See you there, <strong style={{ color: "var(--primary, #d4af37)" }}>{submittedName}</strong>!
+                See you there, <strong style={{ color: "var(--primary, #FFD700)" }}>{submittedName}</strong>!
               </p>
 
-              {/* Bottom dots */}
               <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 20 }}>
                 {Array.from({ length: 7 }).map((_, i) => (
                   <div key={i} style={{
                     width: 6, height: 6, borderRadius: "50%",
-                    background: i % 2 === 0 ? "var(--muted, hsl(217, 33%, 22%))" : "#f8d88e",
+                    background: i % 2 === 0 ? "var(--muted, #222222)" : "#FFD700",
                   }} />
                 ))}
               </div>
@@ -252,13 +249,13 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
                 onClick={handleDownload}
                 disabled={downloading}
                 style={{
-                  background: "var(--primary, #d4af37)", color: "var(--primary-foreground, hsl(222, 47%, 11%))",
+                  background: "var(--primary, #FFD700)", color: "var(--primary-foreground, #000000)",
                   border: "none", borderRadius: 9999,
                   padding: "12px 28px", fontWeight: 700, fontSize: "0.9rem",
                   cursor: downloading ? "not-allowed" : "pointer",
                   opacity: downloading ? 0.75 : 1,
                   display: "flex", alignItems: "center", gap: 8,
-                  boxShadow: "0 6px 20px hsla(340,65%,60%,0.3)",
+                  boxShadow: "0 6px 20px rgba(255,215,0,0.3)",
                 }}
               >
                 {downloading
@@ -405,7 +402,7 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
       </div>
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-    </section>
+    </section >
   );
 };
 

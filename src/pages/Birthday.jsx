@@ -61,15 +61,15 @@ const Birthday = () => {
           theme: {
             extend: {
               colors: {
-                background:  'hsl(0, 0%, 7%)',
-                foreground:  'hsl(0, 0%, 95%)',
-                border:      'hsl(0, 0%, 20%)',
-                card: { DEFAULT: 'hsl(0, 0%, 100%)', foreground: 'hsl(0, 0%, 95%)' },
-                primary:     { DEFAULT: 'hsl(45, 93%, 60%)', foreground: 'hsl(0, 0%, 100%)' },
-                secondary:   { DEFAULT: 'hsl(200, 60%, 72%)', foreground: 'hsl(200, 60%, 15%)' },
-                accent:      { DEFAULT: 'hsl(45, 100%, 70%)',  foreground: 'hsl(0, 0%, 100%)' },
-                muted:       { DEFAULT: 'hsl(30, 20%, 90%)',  foreground: 'hsl(0, 0%, 75%)' },
-                'katy-gold':  'hsl(40, 70%, 55%)',
+                background:  '#000000',
+                foreground:  '#ffffff',
+                border:      '#333333',
+                card: { DEFAULT: '#111111', foreground: '#ffffff' },
+                primary:     { DEFAULT: '#FFD700', foreground: '#000000' },
+                secondary:   { DEFAULT: '#222222', foreground: '#ffffff' },
+                accent:      { DEFAULT: '#FFD700',  foreground: '#000000' },
+                muted:       { DEFAULT: '#222222',  foreground: '#aaaaaa' },
+                'katy-gold':  '#FFD700',
                 'katy-green': 'hsl(150, 40%, 55%)',
               },
               fontFamily: {
@@ -158,9 +158,9 @@ const Birthday = () => {
 
       {/* Loading state */}
       {!isReady && (
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'hsl(222, 47%, 11%)' }}>
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000000' }}>
           <div style={{ textAlign: 'center' }}>
-            <p style={{ fontFamily: "'Sacramento', cursive", fontSize: '2rem', color: 'hsl(43, 74%, 49%)' }}>
+            <p style={{ fontFamily: "'Sacramento', cursive", fontSize: '2rem', color: '#FFD700' }}>
               Loading invitation…
             </p>
           </div>

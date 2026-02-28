@@ -188,6 +188,10 @@ const AdminDashboard = () => {
                 url = `${window.location.origin}/api/preview?slug=${slug}`;
                 message = 'Preview link copied to clipboard!';
                 break;
+            case 'preview-bd':
+                url = `${window.location.origin}/api/preview?slug=${slug}&type=birthday`;
+                message = 'Birthday Preview link copied to clipboard!';
+                break;
         }
 
         const handleSuccess = () => {
@@ -918,16 +922,11 @@ const AdminDashboard = () => {
                                                     <i className="fas fa-external-link-alt" /> View Site
                                                 </a>
                                                 <button
-                                                    className={`action-btn preview ${copiedLink === `${bdEvent.slug}-bd-preview` ? 'copied' : ''}`}
-                                                    onClick={async () => {
-                                                        const url = `${window.location.origin}/b/${bdEvent.slug}`;
-                                                        try { await navigator.clipboard.writeText(url); } catch { prompt('Copy this link:', url); }
-                                                        setCopiedLink(`${bdEvent.slug}-bd-preview`);
-                                                        setTimeout(() => setCopiedLink(null), 2000);
-                                                    }}
+                                                    className={`action-btn preview ${copiedLink === `${bdEvent.slug}-preview-bd` ? 'copied' : ''}`}
+                                                    onClick={() => copyLink(bdEvent.slug, 'preview-bd')}
                                                 >
-                                                    <i className="fas fa-copy" />
-                                                    {copiedLink === `${bdEvent.slug}-bd-preview` ? 'Copied!' : 'Copy Link'}
+                                                    <i className="fab fa-whatsapp"></i>
+                                                    {copiedLink === `${bdEvent.slug}-preview-bd` ? 'Copied!' : 'Preview'}
                                                 </button>
                                             </div>
                                         </div>
@@ -941,6 +940,15 @@ const AdminDashboard = () => {
                                                     >
                                                         <i className="fas fa-file-excel" /> Download RSVPs
                                                     </button>
+                                                    <Link
+                                                        to={`/b-report/${bdEvent.slug}`}
+                                                        className="footer-btn download"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        title="View RSVP Report"
+                                                    >
+                                                        <i className="fas fa-chart-bar"></i> View Report
+                                                    </Link>
                                                 </div>
                                                 <div className="action-group">
                                                     <Link

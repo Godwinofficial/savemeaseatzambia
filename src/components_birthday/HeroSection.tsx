@@ -37,7 +37,7 @@ const HeroSection = ({ event }: { event: Event | null }) => {
           paddingTop: "clamp(70px, 12vw, 120px)",
           paddingBottom: "80px",
           overflowX: "hidden",
-          background: "linear-gradient(135deg, hsl(222, 47%, 16%) 0%, hsl(222, 47%, 11%) 100%)",
+          background: "linear-gradient(135deg, #111111 0%, #000000 100%)",
         }}
       >
         <ConfettiDecorations />
