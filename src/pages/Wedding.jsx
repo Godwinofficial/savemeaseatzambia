@@ -265,7 +265,8 @@ const WeddingTemplate = () => {
     };
 
     fetchWeddingData();
-  }, [slug]); // Added slug dependency to ensure refetch on nav
+    window.scrollTo(0, 0);
+  }, [slug]); // Added slug dependency to ensure refetch and scroll to top on nav
 
   // Debug: Log state changes
   useEffect(() => {
@@ -380,6 +381,7 @@ const WeddingTemplate = () => {
     if (dataFetched) {
       const timer = setTimeout(() => {
         setLoading(false);
+        window.scrollTo(0, 0); // Ensure it starts at the top
       }, 1500); // 1.5s delay to show off the loader
       return () => clearTimeout(timer);
     }
@@ -600,7 +602,8 @@ const WeddingTemplate = () => {
       --accent-color: #A68A64;
       --text-color: #292524;
       --light-text: #57534E;
-      --white: #1a1a1afff;
+      --white: #ffffff;
+      --black: #000000;
       --glass-bg: rgba(255, 255, 255, 0.8);
       --glass-border: rgba(255, 255, 255, 0.4);
       --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
@@ -767,23 +770,22 @@ const WeddingTemplate = () => {
       top: 0;
       left: 0;
       z-index: 1000;
-      background-color: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      box-shadow: var(--shadow-sm);
+      background-color: var(--white);
       transition: var(--transition);
-      padding: 1.5rem 0;
-      padding-top: max(1.5rem, env(safe-area-inset-top) + 0.5rem);
+      padding: 1.2rem 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     }
 
     header.scrolled {
-      padding: 1rem 0;
+      padding: 0.8rem 0;
+      box-shadow: var(--shadow-sm);
     }
 
     .navbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 0 40px;
     }
 
     .logonobold {
@@ -845,15 +847,16 @@ const WeddingTemplate = () => {
       color: var(--text-color);
     }
 
-    /* Hero Slider */
+    /* Hero Section - Modern Editorial Luxe */
     .hero {
       display: flex;
       align-items: center;
+      justify-content: center;
       position: relative;
       overflow: hidden;
-      padding-top: 120px;
-      padding-bottom: 100px;
       min-height: 100vh;
+      width: 100%;
+      background: #080808;
     }
 
     .hero-slider {
@@ -862,18 +865,7 @@ const WeddingTemplate = () => {
       left: 0;
       width: 100%;
       height: 100%;
-      z-index: -1;
-    }
-
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translate3d(0, 40px, 0);
-      }
-      to {
-        opacity: 1;
-        transform: translate3d(0, 0, 0);
-      }
+      z-index: 0;
     }
 
     .hero-slide {
@@ -882,10 +874,9 @@ const WeddingTemplate = () => {
       height: 100%;
       opacity: 0;
       transform: scale(1.1);
-      transition: all 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+      transition: opacity 2s ease-in-out, transform 10s ease-out;
       background-size: cover;
       background-position: center;
-      background-attachment: fixed;
     }
 
     .hero-slide.active {
@@ -900,199 +891,375 @@ const WeddingTemplate = () => {
       left: 0;
       width: 100%;
       height: 100%;
-      background: linear-gradient(135deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4));
+      background: linear-gradient(
+        45deg,
+        rgba(0,0,0,0.7) 0%,
+        rgba(0,0,0,0.2) 50%,
+        rgba(0,0,0,0.5) 100%
+      );
+      z-index: 1;
+    }
+
+    /* Ambient Glow */
+    .hero::before {
+      content: '';
+      position: absolute;
+      width: 40vw;
+      height: 40vw;
+      background: radial-gradient(circle, rgba(166, 138, 100, 0.15) 0%, transparent 70%);
+      top: 10%;
+      right: 5%;
+      z-index: 2;
+      pointer-events: none;
+      filter: blur(50px);
     }
 
     .hero-content {
       position: relative;
-      z-index: 3;
-      text-align: center;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 0 20px;
-      color: var(--white);
-    }
-
-    .hero h1 {
-      font-size: clamp(2.5rem, 6vw, 6rem);
-      margin-bottom: 1rem;
-      line-height: 1.2;
-      font-weight: 700;
-      text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-      color: var(--white);
-      opacity: 0;
-      animation: fadeInUp 1s ease-out forwards;
-      animation-delay: 1.5s;
-    }
-
-    .hero .hero-tagline {
-      font-family: 'Cormorant Garamond', serif;
-      font-style: italic;
-      font-size: clamp(1.2rem, 2.2vw, 1.8rem);
-      margin-bottom: 1rem;
-      color: rgba(255, 255, 255, 0.95);
-      letter-spacing: 0.04em;
-      opacity: 0;
-      animation: fadeInUp 1s ease-out forwards;
-      animation-delay: 1.7s;
-    }
-
-    .hero .hero-meta {
+      z-index: 10;
+      width: 100%;
+      max-width: 1200px;
+      padding: 0 40px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 15px;
-      padding: 12px 18px;
-      border: 1px solid rgba(255, 255, 255, 0.35);
-      border-radius: 0;
-      background: transparent;
-      backdrop-filter: none;
-      color: rgba(255, 255, 255, 0.95);
-      font-weight: 500;
-      letter-spacing: 0.05em;
+      mix-blend-mode: normal;
+    }
+
+    .hero-subtitle {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.6em;
+      text-transform: uppercase;
+      color: var(--accent-color);
+      margin-bottom: 2rem;
       opacity: 0;
-      animation: fadeInUp 1s ease-out forwards;
-      animation-delay: 1.9s;
+      transform: translateY(20px);
+      animation: fadeInUp 1s ease-out 0.5s forwards;
+      font-weight: 600;
     }
 
-    .hero .hero-meta > div {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      justify-content: center;
+    .hero-title-container {
+      position: relative;
+      margin-bottom: 3rem;
+      text-align: center;
     }
 
-    .hero .hero-meta a {
-      color: rgba(255, 255, 255, 0.95);
-      text-decoration: none;
+    .hero-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2.8rem, 8vw, 6rem);
+      line-height: 0.8;
+      font-weight: 300;
+      color: var(--white);
+      text-transform: capitalize;
+      opacity: 0;
+      animation: heroTitleReveal 2s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards;
+      letter-spacing: -0.01em;
     }
 
-    .hero .hero-meta a:hover {
-      color: #1a1a1a;
-      border-bottom-color: #1a1a1a;
+    .hero-title .ampersand {
+      display: block;
+      font-size: 0.3em;
+      font-style: italic;
+      color: var(--accent-color);
+      margin: 20px 0;
+      position: relative;
     }
 
-    .hero .slider-dots {
+    .hero-title .ampersand::before,
+    .hero-title .ampersand::after {
+      content: '';
       position: absolute;
-      bottom: 40px;
+      top: 50%;
+      width: 60px;
+      height: 1px;
+      background: rgba(166, 138, 100, 0.3);
+    }
+
+    .hero-title .ampersand::before { right: 58%; }
+    .hero-title .ampersand::after { left: 58%; }
+
+    .hero-details-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: clamp(15px, 3vw, 30px);
+      opacity: 0;
+      animation: fadeInUp 1.2s ease-out 1.5s forwards;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 2rem;
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .hero-details-row .hero-detail-item:first-child {
+      justify-self: end;
+      text-align: right;
+    }
+
+    .hero-details-row .hero-detail-item:last-child {
+      justify-self: start;
+      text-align: left;
+    }
+
+    .hero-detail-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hero-detail-label {
+      font-size: clamp(0.5rem, 1.2vw, 0.6rem);
+      text-transform: uppercase;
+      letter-spacing: 0.3em;
+      color: rgba(255,255,255,0.5);
+      font-weight: 600;
+    }
+
+    .hero-detail-value {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1rem, 3.5vw, 1.4rem);
+      color: var(--white);
+      font-style: italic;
+      line-height: 1.2;
+    }
+
+    .hero-detail-divider {
+      width: 1px;
+      height: clamp(30px, 5vw, 40px);
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .hero-cta {
+      margin-top: 4rem;
+      opacity: 0;
+      animation: fadeIn 1s ease-out 2s forwards;
+    }
+
+    .btn-luxury {
+      padding: 18px 45px;
+      background: transparent;
+      border: 1px solid var(--white);
+      color: var(--white);
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.4em;
+      transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-luxury:hover {
+      background: var(--white);
+      color: var(--black);
+      padding-left: 55px;
+      padding-right: 35px;
+    }
+
+    .btn-luxury i {
+      margin-left: 10px;
+      font-size: 0.8rem;
+    }
+
+    /* Scroll Down Indicator */
+    .scroll-down-wrap {
+      position: absolute;
+      bottom: 50px;
       left: 50%;
       transform: translateX(-50%);
-      display: flex;
-      gap: 12px;
-      z-index: 2;
+      opacity: 0;
+      animation: fadeIn 1s ease-out 2.5s forwards;
     }
 
-    .hero .slider-dot {
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.3);
-      cursor: pointer;
-      transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-      border: 2px solid transparent;
-      outline: none;
-      padding: 0;
+    .scroll-line {
+      width: 1px;
+      height: 80px;
+      background: linear-gradient(to bottom, var(--accent-color), transparent);
       position: relative;
       overflow: hidden;
     }
 
-    .hero .slider-dot::before {
-      content: "";
+    .scroll-line::after {
+      content: '';
       position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
+      top: -100%;
+      left: 0;
+      width: 100%;
+      height: 100%;
       background: var(--white);
+      animation: scrollAnim 2.5s infinite;
+    }
+
+    @keyframes scrollAnim {
+      0% { top: -100%; }
+      50% { top: 0%; }
+      100% { top: 100%; }
+    }
+
+    @keyframes heroTitleReveal {
+      from { opacity: 0; transform: scale(1.05) translateY(30px); filter: blur(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Slider Progress Overlay */
+    .slider-pagination {
+      position: absolute;
+      right: 60px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      z-index: 10;
+    }
+
+    .pagination-item {
+      width: 4px;
+      height: 4px;
       border-radius: 50%;
-      transform: translate(-50%, -50%);
-      transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+      background: rgba(255,255,255,0.3);
+      transition: all 0.4s ease;
+      position: relative;
     }
 
-    .hero .slider-dot.active {
-      background: transparent;
-      border-color: var(--white);
-      transform: scale(1.15);
+    .pagination-item.active {
+      background: var(--accent-color);
+      transform: scale(2);
     }
 
-    .hero .slider-dot.active::before {
-      width: 8px;
-      height: 8px;
+    .pagination-item.active::after {
+      content: '';
+      position: absolute;
+      top: -6px;
+      left: -6px;
+      right: -6px;
+      bottom: -6px;
+      border: 1px solid var(--accent-color);
+      border-radius: 50%;
+      animation: pulsePagination 2s infinite;
     }
 
-    .hero .slider-controls {
+    @keyframes pulsePagination {
+      0% { transform: scale(0.6); opacity: 1; }
+      100% { transform: scale(1.5); opacity: 0; }
+    }
+
+    .hero .slider-dots {
       position: absolute;
       bottom: 50px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      align-items: center;
-      gap: 40px;
+      gap: 12px;
       z-index: 10;
     }
 
-    .hero .slider-arrows-container {
+    .hero .slider-dot {
+      width: 40px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.3);
+      cursor: pointer;
+      transition: all 0.4s ease;
+      padding: 0;
+      border: none;
+      border-radius: 0;
+    }
+
+    .hero .slider-dot.active {
+      background: var(--white);
+      width: 60px;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+    }
+
+    .hero .slider-controls {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
       display: flex;
-      gap: 15px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      z-index: 5;
+      transform: translateY(-50%);
+      pointer-events: none;
     }
 
     .hero .slider-arrow-btn {
-      width: 48px;
-      height: 48px;
+      width: 60px;
+      height: 60px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.15);
-      border: 2px solid rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       color: var(--white);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-      backdrop-filter: blur(10px);
-      font-size: 1.2rem;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      font-size: 0.8rem;
+      pointer-events: auto;
+      backdrop-filter: blur(4px);
     }
 
     .hero .slider-arrow-btn:hover {
-      background: rgba(255, 255, 255, 0.25);
-      border-color: rgba(255, 255, 255, 0.7);
-      transform: scale(1.1);
-      box-shadow: 0 8px 32px rgba(255, 255, 255, 0.1);
-    }
-
-    .hero .slider-arrow-btn:active {
-      transform: scale(0.95);
+      background: var(--white);
+      color: var(--black);
+      border-color: var(--white);
     }
 
     .hero .slider-progress {
+      position: absolute;
+      bottom: 40px;
+      right: 40px;
       display: flex;
       align-items: center;
-      gap: 8px;
-    }
-
-    .hero .progress-bar {
-      width: 60px;
-      height: 3px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-
-    .hero .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.4));
-      width: 0%;
-      transition: width 0.3s ease;
-      border-radius: 2px;
+      gap: 15px;
+      z-index: 10;
     }
 
     .hero .progress-text {
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      font-weight: 600;
-      min-width: 30px;
+      color: var(--white);
+      font-size: 0.8rem;
+      font-family: 'Montserrat', sans-serif;
+      letter-spacing: 0.2em;
+      font-weight: 500;
     }
+
+    .hero .progress-line {
+      width: 100px;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.2);
+      position: relative;
+    }
+
+    .hero .progress-line::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: var(--progress, 0%);
+      background: var(--white);
+      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Countdown Section */
 
     /* Countdown Section */
     .countdown-section {
@@ -1186,7 +1353,7 @@ const WeddingTemplate = () => {
 
     .section-title h2 {
       font-family: 'Cormorant Garamond', serif;
-      font-size: 4rem; /* Increased size for better visual hierarchy */
+      font-size: 3.5rem;
       color: var(--text-color);
       display: block;
       width: 100%;
@@ -1194,8 +1361,7 @@ const WeddingTemplate = () => {
       font-weight: 300;
       margin-bottom: 0.5rem;
       line-height: 1.1;
-      text-decoration: none !important;
-      border-bottom: none !important;
+      font-style: italic;
     }
 
     .section-title h2::after {
@@ -2063,9 +2229,9 @@ const WeddingTemplate = () => {
         left: 0 !important;
         width: 100% !important;
         z-index: 9999 !important;
-        background-color: #1a1a1afff !important;
+        background-color: var(--white) !important;
         padding: 0 !important;
-        height: 85px !important;
+        height: 70px !important;
         box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
         display: flex !important;
         align-items: center !important;
@@ -2088,7 +2254,7 @@ const WeddingTemplate = () => {
         height: 100% !important;
         padding: 0 !important;
         margin: 0 !important;
-        position: static !important; /* Let container handle positioning context if needed, or relative */
+        position: static !important;
       }
 
       .logonobold, #couple-initials {
@@ -2097,8 +2263,7 @@ const WeddingTemplate = () => {
         opacity: 1 !important;
         font-family: 'Cormorant Garamond', serif !important;
         font-size: 1.8rem !important;
-        // font-weight: 600 !important;
-        color: #000000 !important;
+        color: var(--black) !important;
         z-index: 10001 !important;
         position: relative !important;
         text-decoration: none !important;
@@ -2111,7 +2276,7 @@ const WeddingTemplate = () => {
         visibility: visible !important;
         opacity: 1 !important;
         font-size: 1.5rem !important;
-        color: #000000 !important;
+        color: var(--black) !important;
         z-index: 10001 !important;
         cursor: pointer !important;
         position: relative !important;
@@ -2121,10 +2286,10 @@ const WeddingTemplate = () => {
       .nav-links {
         display: none;
         position: absolute;
-        top: 65px; /* Adjust for header height */
+        top: 70px;
         left: 0;
         width: 100%;
-        background-color: #1a1a1afff;
+        background-color: var(--white);
         flex-direction: column;
         padding: 30px 0;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -2175,33 +2340,52 @@ const WeddingTemplate = () => {
       }
 
       .hero {
-        padding-top: 120px;
-        min-height: 90vh;
+        padding-top: 0;
+      }
+
+      .hero-content {
+        padding: 40px 20px;
+        width: 100%;
+      }
+
+      .hero-title {
+        font-size: 3rem !important;
+        line-height: 0.9 !important;
+      }
+
+      .hero-title span {
+        margin: 5px 0;
+      }
+
+      .hero-tagline {
+        letter-spacing: 0.4em !important;
+        font-size: 0.65rem !important;
+      }
+
+      .hero-tagline::before,
+      .hero-tagline::after {
+        width: 15px;
+      }
+
+      .hero-meta {
+        padding-top: 2rem;
+        gap: 1.2rem;
+      }
+
+      .hero-location {
+        font-size: 2rem !important;
       }
 
       .hero .slider-dots {
-        display: flex !important;
-        bottom: 90px;
-        z-index: 20;
-        justify-content: center;
-        width: 100%;
-        left: 0;
-        transform: none;
+        bottom: 30px;
       }
 
       .hero .slider-controls {
-        bottom: 30px;
-        gap: 20px;
+        display: none;
       }
 
-      .hero .slider-arrow-btn {
-        width: 40px;
-        height: 40px;
-        font-size: 1rem;
-      }
-
-      .hero .progress-bar {
-        width: 40px;
+      .hero .slider-progress {
+        display: none;
       }
 
       .wedding-details {
@@ -2261,6 +2445,40 @@ const WeddingTemplate = () => {
 
       .map-container {
         height: 400px;
+      }
+
+      /* Hero Mobile Adjustments */
+      .hero-content {
+        padding: 0 15px !important;
+      }
+
+      .hero-title {
+        font-size: clamp(2.2rem, 11vw, 3.8rem) !important;
+        line-height: 1.1 !important;
+        margin-bottom: 2rem !important;
+      }
+
+      .hero-title .ampersand {
+        margin: 8px 0 !important;
+      }
+
+      .hero-title .ampersand::before,
+      .hero-title .ampersand::after {
+        width: 35px !important;
+      }
+
+      .hero-details-row {
+        gap: 12px !important;
+        padding-top: 1.2rem !important;
+        max-width: 100% !important;
+      }
+
+      .hero-detail-value {
+        font-size: clamp(0.9rem, 4vw, 1.1rem) !important;
+      }
+
+      .hero-detail-divider {
+        height: 30px !important;
       }
     }
 
@@ -2343,9 +2561,8 @@ const WeddingTemplate = () => {
             </a>
             <ul className={`nav-links ${mobileMenuOpen ? '' : ''}`}>
               <li><a href="#home" onClick={handleNavClick}>Home</a></li>
-              <li><a href="#about" onClick={handleNavClick}>Our Story</a></li>
-              <li><a href="#party" onClick={handleNavClick}>Wedding Party</a></li>
-              <li><a href="#location" onClick={handleNavClick}>Location</a></li>
+              <li><a href="#about" onClick={handleNavClick}>Story</a></li>
+              <li><a href="#party" onClick={handleNavClick}>Party</a></li>
               <li><a href="#details" onClick={handleNavClick}>Details</a></li>
               <li><a href="#gallery" onClick={handleNavClick}>Gallery</a></li>
               <li><a href="#rsvp" onClick={handleNavClick}>RSVP</a></li>
@@ -2360,71 +2577,65 @@ const WeddingTemplate = () => {
       {/* Hero Slider */}
       <section className="hero" id="home">
         <div className="hero-slider">
-          {weddingData.sliderImages.map((image, index) => (
-            <div
-              key={index}
-              className={`hero-slide ${index === currentSlide ? 'active' : ''}`}
-              style={{ backgroundImage: `url('${image}')` }}
-            ></div>
-          ))}
-        </div>
-        <div className="container">
-          <div className="hero-content">
-            <h1 className="hero-title">
-              {weddingData.couple.bride.name?.split(' ')[0]} & {weddingData.couple.groom.name?.split(' ')[0]}
-            </h1>
-            <div className="hero-tagline">{weddingData.tagline}</div>
-            <div className="hero-meta">
-              <div>
-                <span className="hero-date">{
-                  weddingData.rawDate ? new Date(weddingData.rawDate).toLocaleDateString('en-GB', {
-                    weekday: 'long',
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  }) : weddingData.date
-                }</span>
-              </div>
-              <div>
-                <span className="hero-location">{weddingData.location}</span>
-              </div>
-              <div>
-                <a className="hero-view" href="#location-map" rel="noopener">View Map</a>
-              </div>
-            </div>
-          </div>
+          {weddingData.sliderImages && weddingData.sliderImages.length > 0 ? (
+            weddingData.sliderImages.map((image, index) => (
+              <div
+                key={index}
+                className={`hero-slide ${index === currentSlide ? 'active' : ''}`}
+                style={{ backgroundImage: `url('${image}')` }}
+              ></div>
+            ))
+          ) : (
+            <div className="hero-slide active" style={{ backgroundColor: '#1a1a1a' }}></div>
+          )}
         </div>
 
-        <div className="slider-dots">
+        <div className="slider-pagination">
           {weddingData.sliderImages.map((_, index) => (
-            <button
-              key={index}
-              className={`slider-dot ${index === currentSlide ? 'active' : ''}`}
-              onClick={() => showSlide(index)}
-              aria-label={`Go to slide ${index + 1}`}
-            ></button>
+            <div key={index} className={`pagination-item ${index === currentSlide ? 'active' : ''}`}></div>
           ))}
         </div>
 
-        <div className="slider-controls">
-          <div className="slider-arrows-container">
-            <button className="slider-arrow-btn" id="prevSlide" onClick={prevSlide} aria-label="Previous slide">
-              <i className="fas fa-chevron-left"></i>
-            </button>
-            <button className="slider-arrow-btn" id="nextSlide" onClick={nextSlide} aria-label="Next slide">
-              <i className="fas fa-chevron-right"></i>
-            </button>
+        <div className="hero-content">
+          <div className="hero-subtitle">{weddingData.tagline}</div>
+          <div className="hero-title-container">
+            <h1 className="hero-title">
+              {weddingData.couple.bride.name?.split(' ')[0]}
+              <span className="ampersand">&</span>
+              {weddingData.couple.groom.name?.split(' ')[0]}
+            </h1>
           </div>
-          <div className="slider-progress">
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+
+          <div className="hero-details-row">
+            <div className="hero-detail-item">
+              <span className="hero-detail-label">Date</span>
+              <span className="hero-detail-value">
+                {weddingData.rawDate ? new Date(weddingData.rawDate).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric'
+                }) : weddingData.date}
+              </span>
             </div>
-            <span className="progress-text">
-              <span id="currentSlide">{currentSlide + 1}</span>/
-              <span id="totalSlides">{weddingData.sliderImages.length}</span>
-            </span>
+
+            <div className="hero-detail-divider"></div>
+
+            <div className="hero-detail-item">
+              <span className="hero-detail-label">Location</span>
+              <span className="hero-detail-value">{weddingData.location}</span>
+            </div>
+          </div>
+
+          <div className="hero-cta">
+            <a href="#about" className="btn-luxury">
+              Our Journey
+            </a>
           </div>
         </div>
+
+        {/* <div className="scroll-down-wrap">
+          <div className="scroll-line"></div>
+        </div> */}
       </section>
 
       {/* Countdown Section */}
@@ -2649,7 +2860,7 @@ const WeddingTemplate = () => {
 
       {/* Gifts Section */}
       {weddingData.gifts?.length > 0 && (
-        <section className="wedding-details fade-in-section" id="gifts-section" style={{ padding: "60px 0", background: "linear-gradient(135deg, #1a1a1afff 0%, #fafaf9 100%)" }}>
+        <section className="wedding-details fade-in-section" id="gifts-section" style={{ padding: "60px 0", background: "linear-gradient(135deg, #fafaf9 0%, #ffffff 100%)" }}>
           <div className="container">
             <div className="section-title">
               <h2>Gifts & Contributions</h2>
@@ -2749,6 +2960,7 @@ const WeddingTemplate = () => {
                 value={formData.name}
                 onChange={handleChange}
                 required
+                autoComplete="name"
               />
             </div>
             <div className="form-group">
@@ -2761,6 +2973,7 @@ const WeddingTemplate = () => {
                 placeholder="Your Phone Number"
                 value={formData.phone}
                 onChange={handleChange}
+                autoComplete="tel"
               />
             </div>
             <div className="form-group">
@@ -2773,6 +2986,7 @@ const WeddingTemplate = () => {
                 placeholder="Your email"
                 value={formData.email}
                 onChange={handleChange}
+                autoComplete="email"
               />
             </div>
             <div className="form-group">

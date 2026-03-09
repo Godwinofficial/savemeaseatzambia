@@ -10,6 +10,12 @@ interface Event {
   time?: string;
   venue_name?: string;
   venue_address?: string;
+  dress_code?: string;
+  theme?: string;
+  welcome_message?: string;
+  rsvp_message?: string;
+  logo_initials?: string;
+  extra_card_text?: string;
 }
 
 // Load html2canvas from CDN once
@@ -56,6 +62,7 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
           phone: form.phone.trim(),
           email: form.email.trim() || null,
           attending: form.attending === "yes",
+          status: "pending",
         },
       ]);
 
@@ -99,9 +106,13 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
     : "";
 
   const timeLabel = event?.time
-    ? new Date(`1970-01-01T${event.time}:00`).toLocaleTimeString("en-US", {
-      hour: "numeric", minute: "2-digit",
-    })
+    ? (() => {
+      const [h, m] = event.time.split(":");
+      const hrs = parseInt(h, 10);
+      const ampm = hrs >= 12 ? "PM" : "AM";
+      const h12 = hrs % 12 || 12;
+      return `${h12}:${m} ${ampm}`;
+    })()
     : "";
 
   return (
@@ -118,7 +129,7 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
           <h2 className="font-script text-5xl text-primary text-center mb-2">Rsvp</h2>
           <div className="w-16 h-1 bg-accent mx-auto mb-4 rounded-full" />
           <p className="text-muted-foreground text-sm">
-            We can't wait to celebrate with you. Let us know if you're coming.
+            {event?.welcome_message || "This is not just a party—it’s a secret waiting to unfold. We can’t wait to celebrate with you."}
           </p>
         </div>
 
@@ -210,7 +221,35 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
                     {event.venue_address}
                   </div>
                 )}
+                {(event?.dress_code || event?.theme) && (
+                  <div style={{
+                    marginTop: 12,
+                    paddingTop: 12,
+                    borderTop: "1px dashed rgba(255, 215, 0, 0.2)",
+                    fontSize: "0.82rem",
+                    color: "var(--primary, #FFD700)",
+                    fontWeight: 600
+                  }}>
+                    <span style={{ opacity: 0.8, textTransform: "uppercase", fontSize: "0.65rem", letterSpacing: "0.1em", display: "block", marginBottom: 2 }}>Dress Code</span>
+                    {event.dress_code || event.theme}
+                  </div>
+                )}
               </div>
+
+              {event?.extra_card_text && (
+                <div style={{
+                  padding: "10px 14px",
+                  background: "rgba(255, 215, 0, 0.08)",
+                  border: "1px dashed rgba(255, 215, 0, 0.3)",
+                  borderRadius: 12,
+                  color: "var(--foreground, hsl(210, 40%, 98%))",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  marginBottom: 20
+                }}>
+                  {event.extra_card_text}
+                </div>
+              )}
 
               {/* Divider */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
@@ -383,6 +422,17 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
                 : "Send My RSVP"
               }
             </button>
+
+            <p style={{
+              textAlign: "center",
+              fontSize: "0.85rem",
+              color: "var(--primary, #d4af37)",
+              fontWeight: 600,
+              marginTop: "8px",
+              fontStyle: "italic"
+            }}>
+              {event?.rsvp_message || "Strictly by invitation and no children allowed."}
+            </p>
           </form>
         )}
       </div>
@@ -393,7 +443,7 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
         paddingTop: 24, textAlign: "center", position: "relative", zIndex: 10,
       }}>
         <p style={{ fontFamily: "'Sacramento', cursive", fontSize: "2rem", color: "var(--primary, #d4af37)", margin: "0 0 4px" }}>
-          {event?.child_name || ""}
+          {event?.logo_initials || event?.child_name || ""}
         </p>
         <p style={{ fontSize: "0.76rem", color: "var(--muted-foreground, hsl(215, 20%, 65%))", margin: 0 }}>
           &copy; {new Date().getFullYear()}{" "}

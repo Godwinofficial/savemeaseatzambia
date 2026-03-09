@@ -92,6 +92,7 @@ export const sendEmail = async ({ to, subject, html, templateParams }) => {
                     to,
                     subject,
                     html: emailHtml,
+                    from: templateParams?.from || templateParams?.wedding_name || ''
                 }),
                 signal: controller.signal
             });

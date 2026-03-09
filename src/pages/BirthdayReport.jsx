@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient';
 import * as XLSX from 'xlsx';
 import { getEmailTemplate } from '../utils/emailTemplates';
 import { sendEmail as sendEmailService } from '../utils/emailService';
+import ReminderModal from '../components/ReminderModal';
 
 const BirthdayReport = () => {
     const { slug } = useParams();
@@ -17,6 +18,8 @@ const BirthdayReport = () => {
     const [editForm, setEditForm] = useState({});
     const [successMessage, setSuccessMessage] = useState(null);
     const [processingAction, setProcessingAction] = useState(null);
+    const [showReminderModal, setShowReminderModal] = useState(false);
+    const [sendingReminders, setSendingReminders] = useState(false);
 
     useEffect(() => {
         fetchReportData();
@@ -29,7 +32,7 @@ const BirthdayReport = () => {
             // Get Event Data
             const { data: eventData, error: eventError } = await supabase
                 .from('birthday_events')
-                .select('id, child_name, date, venue_name, venue_address')
+                .select('id, child_name, date, time, venue_name, venue_address')
                 .eq('slug', slug)
                 .single();
 
@@ -103,7 +106,7 @@ const BirthdayReport = () => {
                 title = "You have been removed from the guest list";
                 subtitle = "Important Notice";
                 message = "This change is final. It helps us maintain accurate numbers and comply with venue capacity.";
-                action_text = "View Wedding Website";
+                action_text = "View Details";
 
                 // Red Theme
                 theme_color = "#b91c1c";
@@ -118,7 +121,7 @@ const BirthdayReport = () => {
                 title = "You are on the list! RSVP Confirmed";
                 subtitle = "You are on the list!";
                 message = "Great news! Your RSVP has been confirmed. We have reserved your spot and look forward to celebrating with you.";
-                action_text = "View Wedding Details";
+                action_text = "View Details";
 
                 // Green Theme
                 theme_color = "#047857"; // emerald-700
@@ -135,8 +138,16 @@ const BirthdayReport = () => {
                 to_email: guest.email, // Kept for reference
                 email: guest.email,
                 message: message,
-                wedding_name: `${wedding.child_name}'s Birthday`,
-                event_date: new Date(wedding.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' }),
+                wedding_name: wedding.child_name.replace(/['’]s\s+Birthday$/i, ''),
+                event_type: 'birthday',
+                event_date: `${new Date(wedding.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at ${(() => {
+                    if (!wedding.time) return 'TBA';
+                    const [h, m] = wedding.time.split(':');
+                    const hrs = parseInt(h, 10);
+                    const ampm = hrs >= 12 ? 'PM' : 'AM';
+                    const h12 = hrs % 12 || 12;
+                    return `${h12}:${m} ${ampm}`;
+                })()}`,
                 venue: wedding.venue_name || 'Venue to be announced',
                 location: wedding.venue_address || '',
                 link: `${window.location.origin}/b/${slug}`,
@@ -152,9 +163,9 @@ const BirthdayReport = () => {
                 alert_title: alert_title,
                 alert_icon: alert_icon,
                 // Dynamic Content
-                action_note: type === 'removal' ? 'no further action is needed from you' : 'see event details below',
-                footer_text: type === 'removal' ? 'guest list control' : 'guest list update',
-                footer_subtext: type === 'removal' ? 'this notice confirms removal. no response required.' : 'this notice is an automatic confirmation.'
+                action_note: type === 'removal' ? 'No further action is needed from you' : 'See event details below',
+                footer_text: type === 'removal' ? 'Guest List Control' : 'Guest List Update',
+                footer_subtext: type === 'removal' ? 'This notice confirms removal. No response required.' : 'This notice is an automatic confirmation.'
             };
 
             // Generate HTML using the helper
@@ -299,6 +310,79 @@ const BirthdayReport = () => {
         XLSX.writeFile(wb, `RSVPs_${eventName.replace(/\s+/g, '_')}.xlsx`);
     };
 
+    const handleSendRemindersNow = async () => {
+        const approvedGuests = guests.filter(g => (g.status === 'approved' || !g.status) && g.email);
+        if (approvedGuests.length === 0) {
+            alert("No approved guests with email addresses found.");
+            return;
+        }
+
+        if (!window.confirm(`Send an immediate reminder to all ${approvedGuests.length} approved guests?`)) return;
+
+        setSendingReminders(true);
+        let sentCount = 0;
+        let failCount = 0;
+
+        try {
+            for (const guest of approvedGuests) {
+                const birthdayName = wedding.child_name.replace(/['’]s\s+Birthday$/i, '');
+                const templateParams = {
+                    to_name: guest.name,
+                    wedding_name: birthdayName,
+                    event_type: 'birthday',
+                    event_date: `${new Date(wedding.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at ${(() => {
+                        if (!wedding.time) return 'TBA';
+                        const [h, m] = wedding.time.split(':');
+                        const hrs = parseInt(h, 10);
+                        const ampm = hrs >= 12 ? 'PM' : AM;
+                        const h12 = hrs % 12 || 12;
+                        return `${h12}:${m} ${ampm}`;
+                    })()}`,
+                    venue: wedding.venue_name || 'TBA',
+                    location: wedding.venue_address || '',
+                    message: `This is a friendly reminder that the birthday celebration of ${birthdayName} is coming up! We're so excited to celebrate with you. Please be ready and we can't wait to see you there!`,
+                    link: `${window.location.origin}/b/${slug}`,
+                    title: `${birthdayName}'s Birthday Celebration`,
+                    subtitle: "Event Reminder",
+                    action_text: "View Invitation & Details",
+                    // Dynamic Theme Params
+                    theme_color: "#4f46e5",
+                    light_theme_color: "#eef2ff",
+                    status_badge_text: "✔ event reminder",
+                    badge_bg_color: "#eef2ff",
+                    badge_text_color: "#4f46e5",
+                    alert_title: "important reminder",
+                    alert_icon: "📅",
+                    action_note: "see event details below",
+                    footer_text: "guest reminder system",
+                    footer_subtext: "this is an automated reminder for your upcoming event."
+                };
+
+                try {
+                    const htmlContent = getEmailTemplate(templateParams);
+                    await sendEmailService({
+                        to: guest.email,
+                        subject: `Reminder: ${birthdayName}'s Birthday Celebration`,
+                        html: htmlContent
+                    });
+                    sentCount++;
+                    if (approvedGuests.length > 5) await new Promise(r => setTimeout(r, 400));
+                } catch (e) {
+                    console.error(`Failed to email ${guest.email}`, e);
+                    failCount++;
+                }
+            }
+
+            setSuccessMessage(`🔔 Sent reminders to ${sentCount} guests${failCount > 0 ? ` (${failCount} failed)` : ''}!`);
+            setTimeout(() => setSuccessMessage(null), 5000);
+        } catch (error) {
+            console.error("Batch reminder failed:", error);
+            alert("Error sending reminders: " + error.message);
+        } finally {
+            setSendingReminders(false);
+        }
+    };
+
     const formatDate = (dateString) => {
         const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
         return new Date(dateString).toLocaleDateString('en-US', options);
@@ -351,12 +435,46 @@ const BirthdayReport = () => {
                             </p>
                         )}
                     </div>
-                    <button onClick={downloadExcel} className="download-excel-btn">
-                        <i className="fas fa-file-excel"></i>
-                        Download Excel
-                    </button>
+                    <div className="header-buttons">
+                        <button
+                            onClick={() => setShowReminderModal(true)}
+                            className="reminder-btn"
+                            title="Schedule Reminders"
+                        >
+                            <i className="fas fa-clock"></i>
+                            Schedule
+                        </button>
+                        <button
+                            onClick={handleSendRemindersNow}
+                            className="send-reminders-now-btn"
+                            disabled={sendingReminders}
+                            title="Send Reminders to All Approved Guests"
+                        >
+                            {sendingReminders ? (
+                                <><i className="fas fa-spinner fa-spin"></i> Sending...</>
+                            ) : (
+                                <><i className="fas fa-bell"></i> Send Reminders</>
+                            )}
+                        </button>
+                        <button onClick={downloadExcel} className="download-excel-btn">
+                            <i className="fas fa-file-excel"></i>
+                            Excel
+                        </button>
+                    </div>
                 </div>
             </header>
+
+            {showReminderModal && (
+                <ReminderModal
+                    wedding={wedding}
+                    onClose={() => setShowReminderModal(false)}
+                    onSave={() => {
+                        setSuccessMessage("⏰ Reminders scheduled successfully!");
+                        setTimeout(() => setSuccessMessage(null), 3000);
+                        fetchReportData(true);
+                    }}
+                />
+            )}
 
             {/* Stats */}
             <section className="report-stats">
@@ -374,7 +492,7 @@ const BirthdayReport = () => {
                         <i className="fas fa-check-circle"></i>
                     </div>
                     <div className="stat-info">
-                        <h3>{guests.filter(g => g.attending?.toLowerCase() === 'yes' || g.attending?.toLowerCase() === 'attending').length}</h3>
+                        <h3>{guests.filter(g => g.attending === true || String(g.attending).toLowerCase() === 'yes' || String(g.attending).toLowerCase() === 'attending').length}</h3>
                         <p>Attending</p>
                     </div>
                 </div>
@@ -383,7 +501,7 @@ const BirthdayReport = () => {
                         <i className="fas fa-times-circle"></i>
                     </div>
                     <div className="stat-info">
-                        <h3>{guests.filter(g => g.attending?.toLowerCase() === 'no' || g.attending?.toLowerCase() === 'declined').length}</h3>
+                        <h3>{guests.filter(g => g.attending === false || String(g.attending).toLowerCase() === 'no' || String(g.attending).toLowerCase() === 'declined').length}</h3>
                         <p>Declined</p>
                     </div>
                 </div>
@@ -447,11 +565,11 @@ const BirthdayReport = () => {
                                             <td className="name-cell">{guest.name}</td>
                                             <td className="email-cell">{guest.email}</td>
                                             <td>
-                                                <span className={`status-badge ${guest.attending?.toLowerCase() === 'yes' ? 'yes' : 'no'}`}>
-                                                    {guest.attending}
+                                                <span className={`status-badge ${guest.attending === true || String(guest.attending).toLowerCase() === 'yes' ? 'yes' : 'no'}`}>
+                                                    {guest.attending === true || String(guest.attending).toLowerCase() === 'yes' ? 'Yes' : 'No'}
                                                 </span>
                                             </td>
-                                            <td className="guests-cell">{guest.guests_count}</td>
+                                            <td className="guests-cell">{guest.guests_count || 1}</td>
                                             <td>
                                                 <div className="action-buttons">
                                                     <button
@@ -586,15 +704,15 @@ const BirthdayReport = () => {
                                                     <td className="email-cell">{guest.email}</td>
                                                     <td className="phone-cell">{guest.phone}</td>
                                                     <td>
-                                                        <span className={`status-badge ${guest.attending?.toLowerCase() === 'yes' || guest.attending?.toLowerCase() === 'attending' ? 'yes' : 'no'}`}>
-                                                            {guest.attending?.toLowerCase() === 'yes' || guest.attending?.toLowerCase() === 'attending' ? (
+                                                        <span className={`status-badge ${guest.attending === true || String(guest.attending).toLowerCase() === 'yes' || String(guest.attending).toLowerCase() === 'attending' ? 'yes' : 'no'}`}>
+                                                            {guest.attending === true || String(guest.attending).toLowerCase() === 'yes' || String(guest.attending).toLowerCase() === 'attending' ? (
                                                                 <><i className="fas fa-check"></i> Attending</>
                                                             ) : (
                                                                 <><i className="fas fa-times"></i> Declined</>
                                                             )}
                                                         </span>
                                                     </td>
-                                                    <td className="guests-cell">{guest.guests_count}</td>
+                                                    <td className="guests-cell">{guest.guests_count || 1}</td>
                                                     <td className="date-cell">{formatDate(guest.created_at)}</td>
                                                     <td>
                                                         <div className="action-buttons">
@@ -754,15 +872,19 @@ const BirthdayReport = () => {
                     padding: 0 2rem;
                     display: flex;
                     align-items: center;
-                    justify-content: center;
+                    justify-content: space-between;
                     flex-wrap: wrap;
                     gap: 1.5rem;
                 }
 
-
+                .header-buttons {
+                    display: flex;
+                    gap: 0.75rem;
+                    align-items: center;
+                }
 
                 .wedding-info {
-                    text-align: center;
+                    text-align: left;
                     flex: 1;
                 }
 
@@ -770,7 +892,7 @@ const BirthdayReport = () => {
                     font-size: 2rem;
                     font-weight: 700;
                     margin-bottom: 0.5rem;
-                    background: linear-gradient(135deg, #1a1a1a 0%, #e0e7ff 100%);
+                    background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%);
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;
                     background-clip: text;
@@ -781,14 +903,13 @@ const BirthdayReport = () => {
                     font-size: 0.95rem;
                     display: flex;
                     align-items: center;
-                    justify-content: center;
+                    justify-content: flex-start;
                     gap: 0.5rem;
                     margin-top: 0.25rem;
                 }
 
-                .download-excel-btn {
-                    padding: 0.75rem 1.5rem;
-                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                .download-excel-btn, .send-reminders-now-btn, .reminder-btn {
+                    padding: 0.75rem 1.25rem;
                     color: white;
                     border: none;
                     border-radius: 0.75rem;
@@ -797,6 +918,38 @@ const BirthdayReport = () => {
                     display: flex;
                     align-items: center;
                     gap: 0.5rem;
+                    transition: all 0.2s;
+                    font-size: 0.9rem;
+                }
+
+                .download-excel-btn {
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                }
+
+                .send-reminders-now-btn {
+                    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+                }
+
+                .reminder-btn {
+                    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+                }
+
+                .download-excel-btn:hover, .send-reminders-now-btn:hover, .reminder-btn:hover {
+                    transform: translateY(-2px);
+                    filter: brightness(1.1);
+                    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+                }
+
+                .send-reminders-now-btn:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                    transform: none;
+                }
+
+                .download-excel-btn:active {
+                    transform: scale(0.95);
+                    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.2);
+                }
                     transition: all 0.3s ease;
                     box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
                 }
@@ -1153,12 +1306,38 @@ const BirthdayReport = () => {
                     .header-content {
                         flex-direction: column;
                         text-align: center;
+                        padding: 1.5rem 1rem;
+                        gap: 1.5rem;
                     }
 
+                    .wedding-info {
+                        text-align: center;
+                        width: 100%;
+                        flex: none;
+                    }
 
+                    .wedding-date, .wedding-venue {
+                        justify-content: center;
+                    }
+
+                    .header-buttons {
+                        justify-content: center;
+                        flex-wrap: wrap;
+                        width: 100%;
+                        gap: 0.75rem;
+                    }
 
                     .wedding-info h1 {
                         font-size: 1.5rem;
+                        margin-bottom: 0.75rem;
+                    }
+
+                    .download-excel-btn, .send-reminders-now-btn, .reminder-btn {
+                        padding: 0.625rem 1rem;
+                        font-size: 0.85rem;
+                        flex: 1;
+                        min-width: 140px;
+                        justify-content: center;
                     }
 
                     .table-container {

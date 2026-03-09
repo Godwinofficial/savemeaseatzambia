@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Clock, Building, MapPin } from "lucide-react";
+import { CalendarDays, Clock, Building, MapPin, Sparkles } from "lucide-react";
 import ConfettiDecorations from "./ConfettiDecorations";
 
 interface Event {
@@ -8,6 +8,8 @@ interface Event {
   venue_name?: string;
   venue_address?: string;
   child_name?: string;
+  dress_code?: string;
+  theme?: string;
 }
 
 const CountdownSection = ({ event }: { event: Event | null }) => {
@@ -52,14 +54,19 @@ const CountdownSection = ({ event }: { event: Event | null }) => {
     : "Date to be announced";
 
   const timeLabel = event?.time
-    ? new Date(`1970-01-01T${event.time}:00`).toLocaleTimeString("en-US", {
-      hour: "numeric", minute: "2-digit",
-    })
+    ? (() => {
+      const [h, m] = event.time.split(":");
+      const hrs = parseInt(h, 10);
+      const ampm = hrs >= 12 ? "PM" : "AM";
+      const h12 = hrs % 12 || 12;
+      return `${h12}:${m} ${ampm}`;
+    })()
     : "Time to be announced";
 
   const venueName = event?.venue_name || "Venue to be announced";
   const venueAddress = event?.venue_address || "";
   const childName = event?.child_name || "the birthday child";
+  const dressCode = event?.dress_code || event?.theme || "To be announced";
 
   const cards = [
     {
@@ -75,6 +82,11 @@ const CountdownSection = ({ event }: { event: Event | null }) => {
         { icon: Building, text: venueName },
         ...(venueAddress ? [{ icon: MapPin, text: venueAddress }] : []),
       ],
+    },
+    {
+      title: "Dress Code",
+      image: "/imgs/dress_code_clean.png",
+      items: [{ icon: Sparkles, text: dressCode }],
     },
   ];
 
@@ -120,7 +132,15 @@ const CountdownSection = ({ event }: { event: Event | null }) => {
         <div className="grid gap-6 mb-12 md:grid-cols-2 max-w-2xl mx-auto">
           {cards.map((card) => (
             <div key={card.title} className="bg-card rounded-2xl p-8 shadow-md text-center">
-              <card.icon className="mx-auto text-primary mb-4" size={32} />
+              {('image' in card && card.image) ? (
+                <img
+                  src={card.image}
+                  alt={card.title}
+                  className="mx-auto mb-4 w-32 h-32 object-contain filter brightness-110 drop-shadow-xl rounded-xl"
+                />
+              ) : (
+                card.icon && <card.icon className="mx-auto text-primary mb-4" size={32} />
+              )}
               <h3 className="font-bold text-lg mb-4">{card.title}</h3>
               <ul className="space-y-3">
                 {card.items.map((item, i) => (

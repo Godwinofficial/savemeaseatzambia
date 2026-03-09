@@ -147,7 +147,7 @@ const Birthday = () => {
 
       {isReady && (
         <div className="bd-page min-h-screen bg-background text-foreground font-nunito">
-          <Navbar childName={event?.child_name} />
+          <Navbar childName={event?.logo_initials || event?.child_name} />
           <HeroSection event={event} />
           <BirthdayQueen event={event} />
           <CountdownSection event={event} />

@@ -19,7 +19,7 @@ const PartyLocation = ({ event }: { event: Event | null }) => {
       <div className="container mx-auto px-6">
 
         {/* Section header — matches all other sections */}
-        <h2 className="font-script text-5xl text-primary text-center mb-2">Party Location</h2>
+        <h2 className="font-script text-5xl text-primary text-center mb-2">Location</h2>
         <div className="w-16 h-1 bg-accent mx-auto mb-10 rounded-full" />
 
         {/* Google Maps embed */}

@@ -79,22 +79,37 @@ const ReminderModal = ({ wedding, onClose, onSave }) => {
 
         setSending(true);
         try {
+            const isBirthday = !!wedding.child_name;
+            const weddingName = isBirthday
+                ? `${wedding.child_name}'s Birthday`
+                : `${wedding.groom_name} & ${wedding.bride_name}`;
+
             const templateParams = {
                 to_name: 'Test Guest',
-                wedding_name: `${wedding.groom_name} & ${wedding.bride_name}`,
-                event_date: new Date(wedding.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' }),
-                message: `This is a friendly reminder that the wedding of ${wedding.groom_name} & ${wedding.bride_name} is coming up! We're so excited to celebrate with you. Please be ready and we can't wait to see you there!`,
+                wedding_name: weddingName,
+                event_type: isBirthday ? 'birthday' : 'wedding',
+                event_date: (() => {
+                    if (!wedding.date) return 'TBA';
+                    const date = new Date(wedding.date);
+                    if (wedding.ceremony_time) {
+                        const [hours, minutes] = wedding.ceremony_time.split(':');
+                        date.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+                        return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+                    }
+                    return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                })(),
+                message: `This is a friendly reminder that the celebration of ${weddingName} is coming up! We're so excited to celebrate with you. Please be ready and we can't wait to see you there!`,
                 venue: wedding.venue_name || 'TBA',
-                location: wedding.location || '',
-                link: `${window.location.origin}/w/${wedding.slug}`,
-                title: `${wedding.groom_name} & ${wedding.bride_name} Wedding`,
-                subtitle: "Wedding Reminder",
+                location: wedding.location || wedding.venue_address || '',
+                link: `${window.location.origin}/${isBirthday ? 'b' : 'w'}/${wedding.slug}`,
+                title: `${weddingName} Celebration`,
+                subtitle: "Event Reminder",
                 action_text: "View Invitation & Details",
             };
 
             await sendEmail({
                 to: testEmail.trim(),
-                subject: `Reminder: ${wedding.groom_name} & ${wedding.bride_name} Wedding`,
+                subject: `Reminder: ${weddingName}`,
                 templateParams: templateParams
             });
 

@@ -5,7 +5,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ message: 'Method Not Allowed' });
     }
 
-    const { to, subject, html } = req.body;
+    const { to, subject, html, from } = req.body;
 
     if (!to || !subject || !html) {
         return res.status(400).json({ message: 'Missing required fields' });
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
         });
 
         const info = await transporter.sendMail({
-            from: `"Save Me A Seat Zambia" <${gmailUser}>`,
+            from: from ? `"${from}" <${gmailUser}>` : `"Save Me A Seat Zambia" <${gmailUser}>`,
             to: to,
             replyTo: gmailUser,
             subject: subject,

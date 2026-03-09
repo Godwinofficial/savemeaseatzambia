@@ -375,7 +375,16 @@ const AdminDashboard = () => {
                     const templateParams = {
                         to_name: guest.name,
                         wedding_name: `${wedding.groom_name} & ${wedding.bride_name}`,
-                        event_date: new Date(wedding.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' }),
+                        event_date: (() => {
+                            if (!wedding.date) return 'TBA';
+                            const date = new Date(wedding.date);
+                            if (wedding.ceremony_time) {
+                                const [hours, minutes] = wedding.ceremony_time.split(':');
+                                date.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+                                return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+                            }
+                            return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                        })(),
                         venue: wedding.venue_name || 'TBA',
                         location: wedding.location || '',
                         message: `This is a friendly reminder that the wedding of ${wedding.groom_name} & ${wedding.bride_name} is coming up! We're so excited to celebrate with you. Please be ready and we can't wait to see you there!`,
@@ -1006,7 +1015,7 @@ const AdminDashboard = () => {
                     --lighter: #f3f4f6;
                     --gray: #6b7280;
                     --gray-light: #9ca3af;
-                    --white: #1a1a1afff;
+                    --white: #ffffff;
                     --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
                     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
                     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);

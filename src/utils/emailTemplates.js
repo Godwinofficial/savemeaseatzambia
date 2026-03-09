@@ -26,7 +26,7 @@ export const getEmailTemplate = (params) => {
                 <!-- Alert Box -->
                 <p style="margin: 0 0 18px 0; background-color: ${params.light_theme_color}; padding: 20px 22px; border-radius: 20px; border-left: 4px solid ${params.theme_color}; color: #1f2e3a;">
                     <span style="font-weight: 650; color: ${params.theme_color};">${params.alert_icon} ${params.alert_title}</span><br>
-                    <span style="display: block; margin-top: 4px;">For the wedding of <strong style="font-weight: 650; color: #162b33;">${params.wedding_name}</strong>.</span>
+                    <span style="display: block; margin-top: 4px;">For the ${params.event_type || 'wedding'} of <strong style="font-weight: 650; color: #162b33;">${params.wedding_name}</strong>.</span>
                 </p>
 
                 <!-- Message -->
@@ -70,13 +70,6 @@ export const getEmailTemplate = (params) => {
                         ${params.location}
                     </p>
                 </div>
-            </div>
-
-            <!-- CTA Button -->
-            <div style="text-align: center; padding: 0 32px 32px;">
-                <a href="${params.link}" target="_blank" style="display: inline-block; background-color: #1e2b36; color: #ffffff; padding: 14px 32px; border-radius: 99px; text-decoration: none; font-weight: 600; font-size: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.2s;">
-                    ${params.action_text}
-                </a>
             </div>
 
         </div>

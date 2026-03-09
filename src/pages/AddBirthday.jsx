@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import './AddWedding.css'; // reuse same base styles
+import './AddBirthday.css';
 
 // Auto-computes ordinal suffix: 1→1st, 2→2nd, 21→21st, 30→30th etc.
 const getOrdinal = (n) => {
@@ -23,6 +23,8 @@ const AddBirthday = () => {
 
     const initialForm = {
         child_name: '',
+        logo_initials: '',
+        hero_text: '',
         age: '',
         date: '',
         time: '',
@@ -35,6 +37,10 @@ const AddBirthday = () => {
         hero_image: '',
         rsvp_deadline: '',
         message: "We'd love for you to join us in celebrating!",
+        hero_greeting: 'Shhhhh!!!',
+        welcome_message: 'This is not just a party—it’s a secret waiting to unfold. We can’t wait to celebrate with you.',
+        rsvp_message: 'Strictly by invitation and no children allowed.',
+        extra_card_text: '',
         slug: '',
         gallery_images: [],
     };
@@ -195,10 +201,10 @@ const AddBirthday = () => {
     };
 
     const ImageUpload = ({ label, field, path = 'birthday' }) => (
-        <div className="form-group">
-            <label className="form-label">{label}</label>
+        <div className="bd-form-group">
+            <label className="bd-form-label">{label}</label>
             <div
-                className="image-upload-wrapper"
+                className="bd-image-upload-wrapper"
                 onClick={() => document.getElementById(`file-${field}`).click()}
             >
                 <input
@@ -212,10 +218,10 @@ const AddBirthday = () => {
                     }}
                 />
                 {form[field] ? (
-                    <div className="image-preview" style={{ position: 'relative' }}>
+                    <div className="bd-image-preview" style={{ position: 'relative' }}>
                         <img src={form[field]} alt="preview" style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 8 }} />
                         <button
-                            className="remove-image"
+                            className="bd-remove-image"
                             type="button"
                             onClick={(e) => { e.stopPropagation(); setForm((p) => ({ ...p, [field]: '' })); }}
                         >
@@ -223,7 +229,7 @@ const AddBirthday = () => {
                         </button>
                     </div>
                 ) : (
-                    <div className="upload-placeholder">
+                    <div className="bd-upload-placeholder">
                         {uploading ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-cloud-upload-alt" />}
                         <span>{uploading ? 'Uploading…' : 'Click to Upload Photo'}</span>
                     </div>
@@ -263,67 +269,67 @@ const AddBirthday = () => {
     return (
         <>
             {/* Header – reuse admin styling */}
-            <header className="admin-header" style={{ background: 'linear-gradient(135deg,#ff6b9d,#c44569)' }}>
-                <div className="header-container">
-                    <div className="header-main">
-                        <div className="brand">
-                            <Link to="/admin">
-                                <img src="/imgs/logo1.png" alt="SaveMeASeat" className="logo-img" />
-                            </Link>
+            <header className="bd-admin-header">
+                <div className="bd-header-content">
+                    <div className="bd-admin-logo">
+                        <div className="bd-admin-logo-icon">
+                            <i className="fas fa-birthday-cake"></i>
                         </div>
-                        <div className="desktop-nav" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                            <Link to="/admin" className="nav-btn outline" style={{ textDecoration: 'none', fontSize: '0.85rem' }}>
-                                <i className="fas fa-arrow-left" /> Dashboard
-                            </Link>
-                            {form.slug && (
-                                <a
-                                    href={`/b/${form.slug}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="nav-btn primary"
-                                    style={{ textDecoration: 'none', fontSize: '0.85rem', background: '#1a1a1a', color: '#c44569' }}
-                                >
-                                    <i className="fas fa-eye" /> Preview
-                                </a>
-                            )}
+                        <div className="bd-admin-logo-text">
+                            <h1>SaveMeASeat</h1>
+                            <p>Birthday Admin Panel</p>
                         </div>
                     </div>
+                    <nav className="bd-admin-nav">
+                        <Link to="/admin" className="bd-nav-btn secondary">
+                            <i className="fas fa-th-large"></i> Dashboard
+                        </Link>
+                        {form.slug && (
+                            <a
+                                href={`/b/${form.slug}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bd-nav-btn primary">
+                                <i className="fas fa-eye" /> Preview
+                            </a>
+                        )}
+                    </nav>
                 </div>
             </header>
 
-            <div className="add-wedding-container" style={{ maxWidth: 800, margin: '0 auto', padding: '32px 20px 80px' }}>
+            <div className="bd-add-container">
                 {/* Title */}
-                <div className="page-title-card" style={{ background: 'linear-gradient(135deg,#1a1a1a0f8,#ffe8f3)', borderRadius: 16, padding: '28px 32px', marginBottom: 32, border: '1px solid #ffc2dd' }}>
-                    <h1 style={{ color: '#c44569', fontSize: '1.8rem', margin: 0 }}>
+                <div className="bd-page-title-card">
+                    <h1>
                         <i className={`fas ${isEditMode ? 'fa-edit' : 'fa-birthday-cake'}`} style={{ marginRight: 10 }} />
                         {isEditMode ? 'Edit Birthday Event' : 'Create Birthday Website'}
                     </h1>
-                    <p style={{ color: '#9b5a72', margin: '8px 0 0', fontSize: '0.9rem' }}>
+                    <p>
                         Fill in the details below. The birthday invitation page will be live at{' '}
-                        <code style={{ background: '#ffd6ea', padding: '2px 6px', borderRadius: 6 }}>/b/[slug]</code>
+                        <code>/b/[slug]</code>
                     </p>
                 </div>
 
                 {loading && !isEditMode ? (
                     <div style={{ textAlign: 'center', padding: 80 }}><i className="fas fa-spinner fa-spin" style={{ fontSize: 32, color: '#c44569' }} /></div>
                 ) : (
-                    <div className="form-content-card" style={{ borderRadius: 16, padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.07)', border: '1px solid #eee', background: '#1a1a1a' }}>
+                    <div className="bd-form-content-card">
 
                         {/* ── Basic Info ── */}
-                        <h2 className="section-title" style={{ color: '#c44569', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <h2 className="bd-section-title">
                             <i className="fas fa-star" /> Birthday Details
                         </h2>
-                        <div className="grid-2">
-                            <div className="form-group">
-                                <label className="form-label">Birthday Child's Name *</label>
-                                <input className="form-input" name="child_name" value={form.child_name} onChange={handleChange} placeholder="e.g. Katy" />
+                        <div className="bd-grid-2">
+                            <div className="bd-form-group">
+                                <label className="bd-form-label">Birthday Child's Name *</label>
+                                <input className="bd-form-input" name="child_name" value={form.child_name} onChange={handleChange} placeholder="e.g. Katy" />
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Age <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: '#aaa' }}>(number only — suffix added automatically)</span></label>
+                            <div className="bd-form-group">
+                                <label className="bd-form-label">Age <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: '#aaa' }}>(number only — suffix added automatically)</span></label>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                     <input
                                         type="number"
-                                        className="form-input"
+                                        className="bd-form-input"
                                         name="age"
                                         value={form.age}
                                         onChange={handleChange}
@@ -333,46 +339,45 @@ const AddBirthday = () => {
                                         style={{ flex: 1 }}
                                     />
                                     {form.age && !isNaN(parseInt(form.age)) && (
-                                        <span style={{
-                                            background: 'linear-gradient(135deg,#ff6b9d,#c44569)',
-                                            color: '#1a1a1a', borderRadius: 9999,
-                                            padding: '6px 16px', fontWeight: 800,
-                                            fontSize: '1rem', whiteSpace: 'nowrap', flexShrink: 0,
-                                        }}>
+                                        <span style={{ background: "linear-gradient(135deg, var(--bd-secondary) 0%, var(--bd-primary) 100%)", color: "var(--bd-white)", borderRadius: 9999, padding: "6px 16px", fontWeight: 800, fontSize: "1rem", whiteSpace: "nowrap", flexShrink: 0 }}>
                                             {getOrdinal(form.age)} Birthday
                                         </span>
                                     )}
                                 </div>
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Party Date *</label>
-                                <input type="date" className="form-input" name="date" value={form.date} onChange={handleChange} />
+                            <div className="bd-form-group">
+                                <label className="bd-form-label">Party Date *</label>
+                                <input type="date" className="bd-form-input" name="date" value={form.date} onChange={handleChange} />
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Party Time</label>
-                                <input type="time" className="form-input" name="time" value={form.time} onChange={handleChange} />
+                            <div className="bd-form-group">
+                                <label className="bd-form-label">Party Time</label>
+                                <input type="time" className="bd-form-input" name="time" value={form.time} onChange={handleChange} />
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">RSVP Deadline</label>
-                                <input type="date" className="form-input" name="rsvp_deadline" value={form.rsvp_deadline} onChange={handleChange} />
+                            <div className="bd-form-group">
+                                <label className="bd-form-label">RSVP Deadline</label>
+                                <input type="date" className="bd-form-input" name="rsvp_deadline" value={form.rsvp_deadline} onChange={handleChange} />
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Theme / Dress Code</label>
-                                <input className="form-input" name="theme" value={form.theme} onChange={handleChange} placeholder="e.g. Princess 👑" />
+                            <div className="bd-form-group">
+                                <label className="bd-form-label">Theme</label>
+                                <input className="bd-form-input" name="theme" value={form.theme} onChange={handleChange} placeholder="e.g. Princess 👑" />
+                            </div>
+                            <div className="bd-form-group">
+                                <label className="bd-form-label">Dress Code</label>
+                                <input className="bd-form-input" name="dress_code" value={form.dress_code} onChange={handleChange} placeholder="e.g. Smart Casual" />
                             </div>
                         </div>
 
                         {/* ── Venue ── */}
-                        <h2 className="section-title" style={{ color: '#c44569', marginTop: 32, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <h2 className="bd-section-title">
                             <i className="fas fa-map-marker-alt" /> Venue
                         </h2>
 
                         {/* Search box with autocomplete */}
-                        <div className="form-group" style={{ position: 'relative' }}>
-                            <label className="form-label">Search Location</label>
+                        <div className="bd-form-group" style={{ position: 'relative' }}>
+                            <label className="bd-form-label">Search Location</label>
                             <div style={{ position: 'relative' }}>
                                 <input
-                                    className="form-input"
+                                    className="bd-form-input"
                                     value={addressQuery}
                                     onChange={e => { setAddressQuery(e.target.value); setShowResults(true); }}
                                     placeholder="e.g. Roma Park, Lusaka"
@@ -423,52 +428,85 @@ const AddBirthday = () => {
                         </div>
 
                         {/* Manual venue name / address override */}
-                        <div className="grid-2">
-                            <div className="form-group">
-                                <label className="form-label">Venue Name</label>
-                                <input className="form-input" name="venue_name" value={form.venue_name} onChange={handleChange} placeholder="e.g. Roma Park" />
+                        <div className="bd-grid-2">
+                            <div className="bd-form-group">
+                                <label className="bd-form-label">Venue Name</label>
+                                <input className="bd-form-input" name="venue_name" value={form.venue_name} onChange={handleChange} placeholder="e.g. Roma Park" />
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Full Address</label>
-                                <input className="form-input" name="venue_address" value={form.venue_address} onChange={handleChange} placeholder="Auto-filled from map" />
+                            <div className="bd-form-group">
+                                <label className="bd-form-label">Full Address</label>
+                                <input className="bd-form-input" name="venue_address" value={form.venue_address} onChange={handleChange} placeholder="Auto-filled from map" />
                             </div>
                         </div>
 
-                        {/* ── Custom Message ── */}
-                        <h2 className="section-title" style={{ color: '#c44569', marginTop: 32, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <i className="fas fa-heart" /> Invitation Message
+                        {/* ── Custom Texts ── */}
+                        <h2 className="bd-section-title">
+                            <i className="fas fa-heart" /> Custom Texts
                         </h2>
-                        <div className="form-group">
-                            <label className="form-label">Message to Guests</label>
-                            <textarea
-                                className="form-input"
-                                name="message"
-                                value={form.message}
-                                onChange={handleChange}
-                                rows={3}
-                                style={{ resize: 'vertical' }}
-                            />
+                        <div className="bd-grid-2">
+                            <div className="bd-form-group">
+                                <label className="bd-form-label">Website Logo / Initials</label>
+                                <input className="bd-form-input" name="logo_initials" value={form.logo_initials} onChange={handleChange} placeholder="e.g. Katy (or ddf...)" />
+                            </div>
+                            <div className="bd-form-group">
+                                <label className="bd-form-label">Hero Greeting (e.g. Shhhhh!!!)</label>
+                                <input className="bd-form-input" name="hero_greeting" value={form.hero_greeting} onChange={handleChange} />
+                            </div>
+                            <div className="bd-form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label className="bd-form-label">Hero Main Text (e.g. Francis is 49 Again...)</label>
+                                <input className="bd-form-input" name="hero_text" value={form.hero_text} onChange={handleChange} placeholder="Leave blank for auto generated text" />
+                            </div>
+                            <div className="bd-form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label className="bd-form-label">Message to Guests (Birthday Queen/King Section)</label>
+                                <textarea
+                                    className="bd-form-input"
+                                    name="message"
+                                    value={form.message}
+                                    onChange={handleChange}
+                                    rows={2}
+                                    style={{ resize: 'vertical' }}
+                                />
+                            </div>
+                            <div className="bd-form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label className="bd-form-label">Secondary Message (Welcome/Secret)</label>
+                                <textarea
+                                    className="bd-form-input"
+                                    name="welcome_message"
+                                    value={form.welcome_message}
+                                    onChange={handleChange}
+                                    rows={2}
+                                    style={{ resize: 'vertical' }}
+                                />
+                            </div>
+                            <div className="bd-form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label className="bd-form-label">RSVP Policy</label>
+                                <input className="bd-form-input" name="rsvp_message" value={form.rsvp_message} onChange={handleChange} />
+                            </div>
+                            <div className="bd-form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label className="bd-form-label">Extra Card Text (Appears on the downloaded RSVP card)</label>
+                                <input className="bd-form-input" name="extra_card_text" value={form.extra_card_text} onChange={handleChange} placeholder="e.g. Please bring a swimsuit and towel." />
+                            </div>
                         </div>
 
                         {/* ── Images ── */}
-                        <h2 className="section-title" style={{ color: '#c44569', marginTop: 32, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <h2 className="bd-section-title">
                             <i className="fas fa-images" /> Photos
                         </h2>
-                        <div className="grid-2">
+                        <div className="bd-grid-2">
                             <ImageUpload label="Cover / Share Image" field="cover_image" path="birthday/covers" />
                             <ImageUpload label="Hero / Profile Photo" field="hero_image" path="birthday/heroes" />
                         </div>
 
                         {/* Gallery */}
-                        <div className="form-group" style={{ marginTop: 16 }}>
-                            <label className="form-label">Gallery Photos</label>
-                            <div className="grid-2">
+                        <div className="bd-form-group" style={{ marginTop: 16 }}>
+                            <label className="bd-form-label">Gallery Photos</label>
+                            <div className="bd-grid-2">
                                 {form.gallery_images.map((img, idx) => (
                                     <div key={idx} style={{ position: 'relative' }}>
                                         <img src={img} alt="" style={{ width: '100%', height: 130, objectFit: 'cover', borderRadius: 10 }} />
                                         <button
                                             type="button"
-                                            className="remove-image"
+                                            className="bd-remove-image"
                                             onClick={() => {
                                                 const n = [...form.gallery_images];
                                                 n.splice(idx, 1);
@@ -480,7 +518,7 @@ const AddBirthday = () => {
                                     </div>
                                 ))}
                                 <div
-                                    className="image-upload-wrapper"
+                                    className="bd-image-upload-wrapper"
                                     style={{ cursor: 'pointer' }}
                                     onClick={() => document.getElementById('gallery-add').click()}
                                 >
@@ -494,7 +532,7 @@ const AddBirthday = () => {
                                             if (url) setForm((p) => ({ ...p, gallery_images: [...p.gallery_images, url] }));
                                         }}
                                     />
-                                    <div className="upload-placeholder">
+                                    <div className="bd-upload-placeholder">
                                         <i className="fas fa-plus" />
                                         <span>Add Photo</span>
                                     </div>
@@ -503,15 +541,15 @@ const AddBirthday = () => {
                         </div>
 
                         {/* ── URL Slug ── */}
-                        <h2 className="section-title" style={{ color: '#c44569', marginTop: 32, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <h2 className="bd-section-title">
                             <i className="fas fa-link" /> URL / Slug
                         </h2>
-                        <div className="form-group">
-                            <label className="form-label">Custom Slug (leave blank to auto-generate)</label>
+                        <div className="bd-form-group">
+                            <label className="bd-form-label">Custom Slug (leave blank to auto-generate)</label>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <span style={{ color: '#888', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>/b/</span>
                                 <input
-                                    className="form-input"
+                                    className="bd-form-input"
                                     name="slug"
                                     value={form.slug}
                                     onChange={handleChange}
@@ -533,16 +571,15 @@ const AddBirthday = () => {
                         </div>
 
                         {/* ── Actions ── */}
-                        <div className="form-actions" style={{ marginTop: 40, borderTop: '1px solid #eee', paddingTop: 28 }}>
-                            <Link to="/admin" className="btn btn-secondary" style={{ textDecoration: 'none' }}>
+                        <div className="bd-form-actions">
+                            <Link to="/admin" className="bd-btn bd-btn-secondary">
                                 <i className="fas fa-times" /> Cancel
                             </Link>
                             <button
                                 type="button"
-                                className="btn btn-primary"
+                                className="bd-btn bd-btn-primary"
                                 onClick={handleSubmit}
                                 disabled={loading || uploading}
-                                style={{ background: 'linear-gradient(135deg,#ff6b9d,#c44569)', border: 'none' }}
                             >
                                 {loading ? (
                                     <><i className="fas fa-spinner fa-spin" /> Saving…</>
