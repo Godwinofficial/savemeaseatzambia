@@ -1,3 +1,5 @@
+import { motion } from "framer-motion";
+
 interface Event {
   child_name?: string;
   age?: string;
@@ -18,25 +20,27 @@ const BirthdayQueen = ({ event }: { event: Event | null }) => {
   };
 
   return (
-    <section className="py-20 bg-card">
+    <section className="py-20 bg-card overflow-hidden">
       <div className="container mx-auto px-6 text-center max-w-2xl">
-        <h2 className="font-script text-5xl text-primary mb-2">The Birthday</h2>
-        <div className="w-16 h-1 bg-accent mx-auto mb-8 rounded-full" />
-        <p className="text-muted-foreground leading-relaxed mb-8 italic">{message}</p>
-        {/* <div
-          style={{
-            display: "inline-block",
-            background: "#f4d05c",
-            color: "#000000",
-            borderRadius: 9999,
-            padding: "10px 28px",
-            fontWeight: 700,
-            fontSize: "1rem",
-            letterSpacing: "0.04em",
-          }}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8 }}
         >
-          Celebrating {name}'s {ordinal(ageValue)} Birthday
-        </div> */}
+          <h2 className="font-script text-5xl text-primary mb-2">The Birthday</h2>
+          <div className="w-16 h-1 bg-accent mx-auto mb-8 rounded-full" />
+        </motion.div>
+
+        <motion.p
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="text-muted-foreground leading-relaxed mb-8 italic"
+        >
+          {message}
+        </motion.p>
       </div>
     </section>
   );

@@ -1,3 +1,5 @@
+import { motion } from "framer-motion";
+
 interface Event {
   venue_name?: string;
   venue_address?: string;
@@ -15,15 +17,27 @@ const PartyLocation = ({ event }: { event: Event | null }) => {
       : null);
 
   return (
-    <section className="py-20 bg-card">
+    <section className="py-20 bg-card overflow-hidden">
       <div className="container mx-auto px-6">
-
-        {/* Section header — matches all other sections */}
-        <h2 className="font-script text-5xl text-primary text-center mb-2">Location</h2>
-        <div className="w-16 h-1 bg-accent mx-auto mb-10 rounded-full" />
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+        >
+          {/* Section header — matches all other sections */}
+          <h2 className="font-script text-5xl text-primary text-center mb-2">Location</h2>
+          <div className="w-16 h-1 bg-accent mx-auto mb-10 rounded-full" />
+        </motion.div>
 
         {/* Google Maps embed */}
-        <div style={{ maxWidth: 800, margin: "0 auto", borderRadius: 20, overflow: "hidden", boxShadow: "0 8px 40px rgba(0,0,0,0.30)", border: "1px solid var(--border, hsl(217, 33%, 22%))" }}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          style={{ maxWidth: 800, margin: "0 auto", borderRadius: 20, overflow: "hidden", boxShadow: "0 8px 40px rgba(0,0,0,0.30)", border: "1px solid var(--border, hsl(217, 33%, 22%))" }}
+        >
           {mapsEmbedUrl ? (
             <iframe
               src={mapsEmbedUrl}
@@ -40,7 +54,7 @@ const PartyLocation = ({ event }: { event: Event | null }) => {
               Venue details coming soon
             </div>
           )}
-        </div>
+        </motion.div>
 
       </div>
     </section>

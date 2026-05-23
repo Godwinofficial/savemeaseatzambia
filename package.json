@@ -13,6 +13,7 @@
     "@emailjs/browser": "^4.4.1",
     "@supabase/supabase-js": "^2.89.0",
     "@vercel/og": "^0.8.6",
+    "framer-motion": "^12.38.0",
     "html2canvas": "^1.4.1",
     "lucide-react": "^0.575.0",
     "next": "^16.1.1",

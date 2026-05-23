@@ -1,4 +1,5 @@
 import { CalendarDays } from "lucide-react";
+import { motion } from "framer-motion";
 import ConfettiDecorations from "./ConfettiDecorations";
 
 interface Event {
@@ -103,7 +104,7 @@ const HeroSection = ({ event }: { event: Event | null }) => {
   return (
     <>
       <section
-        className="bd-hero-section"
+        className="bd-hero-section bd-hero-gradient"
         style={{
           position: "relative",
           minHeight: "auto",
@@ -113,29 +114,23 @@ const HeroSection = ({ event }: { event: Event | null }) => {
           paddingTop: "clamp(124px, 15vw, 164px)",
           paddingBottom: "80px",
           overflowX: "hidden",
-          background: "linear-gradient(135deg, #111111 0%, #000000 100%)",
         }}
       >
         <SimpleGlitters />
 
         <div className="bd-hero-inner" style={{ position: "relative", zIndex: 10 }}>
           {/* Left: Text */}
-          <div className="bd-hero-text">
-            {/* <p
-              style={{
-                fontSize: "0.78rem",
-                fontWeight: 700,
-                letterSpacing: "0.18em",
-                textTransform: "uppercase",
-                color: "var(--muted-foreground, hsl(215, 20%, 65%))",
-                marginBottom: "12px",
-              }}
-            >
-              You are invited to
-            </p> */}
-
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="bd-hero-text"
+          >
             <div style={{ marginBottom: "20px" }}>
-              <span
+              <motion.span
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.8 }}
                 style={{
                   fontFamily: "'Sacramento', cursive",
                   fontSize: "clamp(3rem, 6vw, 4.5rem)",
@@ -146,8 +141,11 @@ const HeroSection = ({ event }: { event: Event | null }) => {
                 }}
               >
                 {heroGreeting}
-              </span>
-              <h1
+              </motion.span>
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.8 }}
                 style={{
                   fontFamily: "'Sacramento', cursive",
                   fontSize: "clamp(2.5rem, 5vw, 4rem)",
@@ -158,10 +156,15 @@ const HeroSection = ({ event }: { event: Event | null }) => {
                 }}
               >
                 {event?.hero_text || `${name} is ${displayAge} Again`}
-              </h1>
+              </motion.h1>
             </div>
 
-            <button
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7, duration: 0.8 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -177,20 +180,19 @@ const HeroSection = ({ event }: { event: Event | null }) => {
                 boxShadow: "0 8px 24px rgba(244, 208, 92, 0.35)",
                 transition: "opacity 0.2s",
               }}
-              onMouseEnter={(e) =>
-                ((e.currentTarget as HTMLButtonElement).style.opacity = "0.88")
-              }
-              onMouseLeave={(e) =>
-                ((e.currentTarget as HTMLButtonElement).style.opacity = "1")
-              }
             >
               <CalendarDays size={20} />
               {dateLabel}
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
 
           {/* Right: Blob image */}
-          <div className="bd-hero-image">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            transition={{ duration: 1, ease: "easeOut" }}
+            className="bd-hero-image"
+          >
             <div
               className="blob-shape"
               style={{
@@ -206,7 +208,7 @@ const HeroSection = ({ event }: { event: Event | null }) => {
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
             </div>
-          </div>
+          </motion.div>
         </div>
       </section >
 
@@ -220,7 +222,7 @@ const HeroSection = ({ event }: { event: Event | null }) => {
         .bd-hero-image { flex: 1; display: flex; justify-content: flex-end; }
 
         @media (max-width: 767px) {
-          .bd-hero-section { margin-top: 26px !important; padding-top: 68px !important; }
+          .bd-hero-section { margin-top: 0 !important; padding-top: 60px !important; }
           .bd-hero-inner {
             flex-direction: column; align-items: center;
             gap: 36px; padding: 0 20px;

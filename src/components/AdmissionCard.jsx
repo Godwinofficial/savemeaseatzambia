@@ -16,17 +16,15 @@ export default function AdmissionCard({ rsvp, wedding }) {
         try {
             const element = cardRef.current;
             const canvas = await html2canvas(element, {
-                scale: 1.5, // Lower scale for better iOS stability
-                backgroundColor: '#ffffff',
+                scale: 2, // 2x resolution for printing/sharing
+                backgroundColor: null, // Transparent to keep the card's actual background
                 useCORS: true,
                 logging: false,
                 onclone: (clonedDoc) => {
                     const clonedElement = clonedDoc.querySelector('.card-wrapper');
                     if (clonedElement) {
                         clonedElement.style.display = 'block';
-                        clonedElement.style.backgroundColor = '#ffffff';
-                        // Remove shadow in clone to reduce rendering load
-                        clonedElement.style.boxShadow = 'none';
+                        // Keep the actual background and styles exactly as seen
                     }
                 }
             });
@@ -83,6 +81,11 @@ export default function AdmissionCard({ rsvp, wedding }) {
 
     const formatTime = (dateString, timeString) => {
         if (timeString) {
+            // If already formatted with AM/PM, just return it
+            if (timeString.includes(' AM') || timeString.includes(' PM') || timeString.includes('AM') || timeString.includes('PM')) {
+                return timeString;
+            }
+
             const [hours, minutes] = timeString.split(':');
             const date = new Date();
             date.setHours(parseInt(hours, 10));
@@ -113,71 +116,70 @@ export default function AdmissionCard({ rsvp, wedding }) {
     return (
         <div className="admission-card-container">
             <div className="card-wrapper" ref={cardRef}>
-                <div className="card-content">
-                    {/* Decorative Border */}
-                    <div className="card-border"></div>
+                {/* Decorative Elements */}
+                <div className="card-frame"></div>
+                <div className="corner corner-tl"></div>
+                <div className="corner corner-tr"></div>
+                <div className="corner corner-bl"></div>
+                <div className="corner corner-br"></div>
 
-                    {/* Header */}
-                    <div className="card-header">
-                        <div className="wedding-title">The Wedding Of</div>
-                        <h1 className="couple-names">
-                            {getFirstName(wedding.couple?.groom?.name || wedding.groom_name)}
-                            <span className="ampersand">&</span>
-                            {getFirstName(wedding.couple?.bride?.name || wedding.bride_name)}
+                <div className="card-content">
+                    {/* Header Section */}
+                    <div className="card-header-premium">
+                        <span className="subtitle-invitation">An Invitation To</span>
+                        <div className="wedding-pretitle">The Marriage Of</div>
+                        <h1 className="couple-names-luxe">
+                            <span className="name-wrap">{getFirstName(wedding.couple?.bride?.name || wedding.bride_name)}</span>
+                            <span className="ampersand-stylized">&</span>
+                            <span className="name-wrap">{getFirstName(wedding.couple?.groom?.name || wedding.groom_name)}</span>
+
                         </h1>
-                        <div className="divider">
-                            <span className="line"></span>
-                            <span className="icon">Please Join Us</span>
-                            <span className="line"></span>
-                        </div>
                     </div>
 
-                    {/* Guest Info */}
-                    <div className="guest-info">
-                        <div className="info-label">Guest of Honor</div>
-                        <div className="guest-name">{rsvp.name}</div>
-                        <div className="guest-count">
+                    {/* Guest Section */}
+                    <div className="guest-section-elegant">
+                        <div className="invitation-ornament">
+                            <span className="line"></span>
+                            <i className="fas fa-heart ornament-icon"></i>
+                            <span className="line"></span>
+                        </div>
+                        <div className="guest-title">To Our Dearest Guest</div>
+                        <div className="guest-name-luxe">{rsvp.name}</div>
+                        <div className="admission-pill">
                             Admit {rsvp.guests_count} {rsvp.guests_count === 1 ? 'Guest' : 'Guests'}
                         </div>
                     </div>
 
-                    {/* Event Details Grid */}
-                    <div className="details-grid">
-                        <div className="detail-item">
-                            <i className="fas fa-calendar-alt detail-icon"></i>
-                            <div className="detail-text">
-                                <div className="detail-label">Date</div>
-                                <div className="detail-value">{formatDate(wedding.date)}</div>
+                    {/* Details Section */}
+                    <div className="details-stack">
+                        <div className="detail-row">
+                            <div className="detail-cell">
+                                <span className="label">Date</span>
+                                <span className="value">{formatDate(wedding.date)}</span>
                             </div>
-                        </div>
-
-                        <div className="detail-item">
-                            <i className="fas fa-clock detail-icon"></i>
-                            <div className="detail-text">
-                                <div className="detail-label">Time</div>
-                                <div className="detail-value">
+                            <div className="detail-cell divider-vertical">
+                                <span className="label">Time</span>
+                                <span className="value">
                                     {wedding.ceremony?.time
                                         ? formatTime(null, wedding.ceremony.time)
                                         : formatTime(wedding.date, null)}
-                                </div>
+                                </span>
                             </div>
                         </div>
 
-                        <div className="detail-item full-width">
-                            <i className="fas fa-map-marker-alt detail-icon"></i>
-                            <div className="detail-text">
-                                <div className="detail-label">Venue</div>
-                                <div className="detail-value">{wedding.venue?.name || wedding.venue_name}</div>
-                                <div className="detail-subvalue">{wedding.venue?.address || wedding.location}</div>
-                            </div>
+                        <div className="venue-cell">
+                            <span className="label">Venue</span>
+                            <span className="value-prominent">{wedding.venue?.name || wedding.venue_name}</span>
+                            <span style={{ padding: 10 }} className="subvalue">We’re delighted to share this special moment with you. Your presence truly means a lot to us.</span>
                         </div>
                     </div>
 
-
-                    {/* Footer */}
-                    <div className="card-footer">
-                        <div className="status-badge">Confirmed</div>
-                        <p className="footer-note">Kindly present this card at the entrance</p>
+                    {/* Footer / Status */}
+                    <div className="card-footer-luxury">
+                        <div className="status-badge-seal">
+                            <span className="seal-text">Confirmed</span>
+                        </div>
+                        <p className="footer-memo">Please present this card for priority entry</p>
                     </div>
                 </div>
             </div>
@@ -200,211 +202,273 @@ export default function AdmissionCard({ rsvp, wedding }) {
                 }
 
                 .card-wrapper {
-                    width: 450px;
-                    background: #fff !important;
-                    background-color: #ffffff !important;
-                    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23a68a64' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-                    border-radius: 4px;
-                    box-shadow: 0 20px 50px rgba(0,0,0,0.15);
-                    padding: 30px;
+                    width: 480px;
+                    background: #FFFDF5 !important;
+                    background-image: linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)), 
+                                      url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+                    border-radius: 8px;
+                    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(166, 138, 100, 0.1);
+                    padding: 40px;
                     position: relative;
                     color: #2c2c2c !important;
                     overflow: hidden;
+                    border: 1px solid rgba(166, 138, 100, 0.1);
                 }
 
-                .card-border {
+                .card-frame {
                     position: absolute;
-                    top: 15px;
-                    left: 15px;
-                    right: 15px;
-                    bottom: 15px;
-                    border: 1px solid #A68A64;
+                    top: 20px;
+                    left: 20px;
+                    right: 20px;
+                    bottom: 20px;
+                    border: 2px solid #D4AF37;
                     pointer-events: none;
                 }
 
-                .card-border::after {
+                .card-frame::after {
                     content: '';
                     position: absolute;
                     top: 4px;
                     left: 4px;
                     right: 4px;
                     bottom: 4px;
-                    border: 1px solid rgba(166, 138, 100, 0.3);
+                    border: 1px solid rgba(212, 175, 55, 0.3);
                 }
+
+                .corner {
+                    position: absolute;
+                    width: 40px;
+                    height: 40px;
+                    border: 3px solid #D4AF37;
+                    z-index: 5;
+                }
+
+                .corner-tl { top: 15px; left: 15px; border-right: none; border-bottom: none; }
+                .corner-tr { top: 15px; right: 15px; border-left: none; border-bottom: none; }
+                .corner-bl { bottom: 15px; left: 15px; border-right: none; border-top: none; }
+                .corner-br { bottom: 15px; right: 15px; border-left: none; border-top: none; }
 
                 .card-content {
-                    padding: 20px 10px;
-                    text-align: center;
                     position: relative;
                     z-index: 2;
+                    text-align: center;
                 }
 
-                .card-header {
-                    margin-bottom: 5px;
+                .card-header-premium {
+                    margin-bottom: 30px;
                 }
 
-                .wedding-title {
+                .subtitle-invitation {
+                    display: block;
                     font-family: 'Montserrat', sans-serif;
                     text-transform: uppercase;
-                    letter-spacing: 4px;
-                    font-size: 10px;
-                    color: #797979;
-                    margin-bottom: 10px;
+                    letter-spacing: 6px;
+                    font-size: 11px;
+                    color: #A68A64;
+                    margin-bottom: 8px;
                 }
 
-                .couple-names {
+                .wedding-pretitle {
                     font-family: 'Cormorant Garamond', serif;
-                    font-size: 38px;
-                    color: #A68A64;
+                    font-style: italic;
+                    font-size: 14px;
+                    color: #797979;
+                    margin-bottom: 12px;
+                }
+
+                .couple-names-luxe {
+                    font-family: 'Cormorant Garamond', serif;
+                    font-size: 44px;
+                    color: #2c2c2c;
                     margin: 0;
-                    line-height: 1.1;
+                    line-height: 1;
                     font-weight: 500;
                     display: flex;
                     flex-direction: column;
                     align-items: center;
-                    gap: 5px;
-                    text-align: center;
+                    gap: 4px;
                 }
 
-                .ampersand {
+                .name-wrap {
+                    color: #A68A64; /* Solid gold for consistency in PDF/Image renders */
+                    padding: 0 10px;
+                }
+
+                .ampersand-stylized {
                     font-family: 'Cormorant Garamond', serif;
                     font-style: italic;
-                    font-size: 24px;
-                    color: #D4C3AA;
+                    font-size: 28px;
+                    color: #D4AF37;
+                    opacity: 0.8;
                 }
 
-                .divider {
+                .guest-section-elegant {
+                    margin: 35px 0;
+                    padding: 25px;
+                    background: rgba(212, 175, 55, 0.04);
+                    border-top: 1px solid rgba(212, 175, 55, 0.1);
+                    border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+                }
+
+                .invitation-ornament {
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     gap: 15px;
-                    margin: 25px 0 15px;
-                    width: 100%;
+                    margin-bottom: 15px;
                 }
 
-                .line {
+                .invitation-ornament .line {
                     height: 1px;
-                    width: 60px;
-                    background: linear-gradient(90deg, transparent, #D4C3AA, transparent);
+                    width: 40px;
+                    background: #D4AF37;
+                    opacity: 0.4;
                 }
 
-                .icon {
-                    font-family: 'Montserrat', sans-serif;
-                    font-size: 9px;
-                    text-transform: uppercase;
-                    letter-spacing: 2px;
-                    color: #A68A64;
-                    text-align: center;
+                .ornament-icon {
+                    font-size: 12px;
+                    color: #D4AF37;
                 }
 
-                .guest-info {
-                    margin-bottom: 30px;
-                    background: rgba(166, 138, 100, 0.03);
-                    padding: 20px;
-                    border-radius: 2px;
-                    border: 1px solid rgba(166, 138, 100, 0.1);
-                    text-align: center;
-                }
-
-                .info-label {
-                    font-family: 'Montserrat', sans-serif;
+                .guest-title {
                     font-size: 10px;
                     text-transform: uppercase;
-                    letter-spacing: 1.5px;
+                    letter-spacing: 2px;
                     color: #999;
-                    margin-bottom: 8px;
+                    margin-bottom: 10px;
                 }
 
-                .guest-name {
+                .guest-name-luxe {
                     font-family: 'Cormorant Garamond', serif;
-                    font-size: 28px;
+                    font-size: 30px;
                     color: #2c2c2c;
                     font-weight: 600;
-                    margin-bottom: 5px;
-                    border-bottom: 1px solid rgba(166, 138, 100, 0.2);
-                    display: inline-block;
-                    padding-bottom: 5px;
-                }
-
-                .guest-count {
-                    font-family: 'Montserrat', sans-serif;
-                    font-size: 11px;
-                    color: #A68A64;
-                    font-weight: 500;
-                    margin-top: 5px;
-                    letter-spacing: 0.5px;
-                }
-
-                .details-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 20px;
-                    margin-bottom: 30px;
-                    text-align: left;
-                    padding: 0 20px;
-                }
-
-                .detail-item {
-                    display: flex;
-                    gap: 12px;
-                }
-
-                .detail-item.full-width {
-                    grid-column: span 2;
-                }
-
-                .detail-icon {
-                    color: #A68A64;
-                    font-size: 16px;
-                    margin-top: 4px;
-                    width: 20px;
-                    text-align: center;
-                }
-
-                .detail-text {
-                    flex: 1;
-                }
-
-                .detail-label {
-                    font-size: 9px;
-                    text-transform: uppercase;
+                    margin-bottom: 10px;
                     letter-spacing: 1px;
-                    color: #999;
-                    margin-bottom: 3px;
                 }
 
-                .detail-value {
-                    font-family: 'Montserrat', sans-serif;
-                    font-size: 13px;
-                    font-weight: 500;
-                    color: #2c2c2c;
-                    line-height: 1.4;
-                }
-
-                .detail-subvalue {
-                    font-size: 11px;
-                    color: #666;
-                    margin-top: 2px;
-                    font-style: italic;
-                }
-
-                .status-badge {
+                .admission-pill {
                     display: inline-block;
-                    padding: 6px 16px;
-                    background: #A68A64;
+                    padding: 4px 15px;
+                    background: #D4AF37;
                     color: white;
                     font-size: 10px;
                     text-transform: uppercase;
                     letter-spacing: 2px;
                     border-radius: 50px;
                     font-weight: 600;
-                    margin-bottom: 15px;
+                    margin-top: 5px;
                 }
 
-                .footer-note {
+                .details-stack {
+                    margin-bottom: 40px;
+                    text-align: center;
+                }
+
+                .detail-row {
+                    display: flex;
+                    justify-content: center;
+                    gap: 40px;
+                    margin-bottom: 25px;
+                }
+
+                .detail-cell {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 5px;
+                }
+
+                .divider-vertical {
+                    position: relative;
+                }
+
+                .divider-vertical::before {
+                    content: '';
+                    position: absolute;
+                    left: -20px;
+                    top: 10%;
+                    height: 80%;
+                    width: 1px;
+                    background: rgba(166, 138, 100, 0.2);
+                }
+
+                .label {
+                    font-size: 9px;
+                    text-transform: uppercase;
+                    letter-spacing: 2px;
+                    color: #A68A64;
+                }
+
+                .value {
+                    font-family: 'Montserrat', sans-serif;
+                    font-size: 14px;
+                    font-weight: 500;
+                    color: #2c2c2c;
+                }
+
+                .value-prominent {
+                    font-family: 'Montserrat', sans-serif;
+                    font-size: 15px;
+                    font-weight: 400; /* Unbolded as requested */
+                    color: #2c2c2c;
+                    display: block;
+                    margin-bottom: 5px;
+                    line-height: 1.4;
+                }
+
+                .subvalue {
+                    font-size: 12px;
+                    color: #797979;
+                    font-style: italic;
+                    max-width: 300px;
+                    margin: 0 auto;
+                    display: block;
+                }
+
+                .card-footer-luxury {
+                    margin-top: 10px;
+                }
+
+                .status-badge-seal {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 80px;
+                    height: 80px;
+                    background: radial-gradient(circle at center, #D4AF37, #A68A64);
+                    border-radius: 50%;
+                    box-shadow: 0 4px 15px rgba(166, 138, 100, 0.4), inset 0 0 10px rgba(0,0,0,0.1);
+                    margin-bottom: 20px;
+                    position: relative;
+                    border: 2px solid rgba(255, 255, 255, 0.3);
+                }
+
+                .status-badge-seal::after {
+                    content: '';
+                    position: absolute;
+                    top: -5px;
+                    left: -5px;
+                    right: -5px;
+                    bottom: -5px;
+                    border: 1px dashed #D4AF37;
+                    border-radius: 50%;
+                    opacity: 0.5;
+                }
+
+                .seal-text {
                     font-size: 10px;
+                    color: white;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 2px;
+                    transform: rotate(-15deg);
+                }
+
+                .footer-memo {
+                    font-size: 11px;
                     color: #999;
                     font-style: italic;
+                    letter-spacing: 0.5px;
                 }
 
                 .download-btn {

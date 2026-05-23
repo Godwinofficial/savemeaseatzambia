@@ -54,6 +54,25 @@ export default async function handler(request, response) {
                 description = `Join us on ${new Date(bday.date).toLocaleDateString()} at ${bday.venue_name || 'the venue'}.`;
                 if (bday.hero_image) image = bday.hero_image;
             }
+        } else if (type === 'bridal-shower') {
+            // Fetch bridal shower data
+            const { data: bs, error } = await supabase
+                .from('bridal_showers')
+                .select('bride_name, date, venue_name, gallery_images')
+                .eq('slug', slug)
+                .single();
+
+            if (error) {
+                console.error('Supabase bridal shower error:', error);
+            } else if (bs) {
+                title = `${bs.bride_name}'s Bridal Shower Invitation`;
+                description = `Join us on ${new Date(bs.date).toLocaleDateString()} at ${bs.venue_name || 'the venue'}.`;
+                const images = typeof bs.gallery_images === 'string'
+                    ? JSON.parse(bs.gallery_images)
+                    : bs.gallery_images;
+                if (images && images.length > 0) image = images[0];
+                redirectUrl = `/bridal-shower/${slug}`;
+            }
         } else {
             // Fetch wedding data
             const { data: wedding, error } = await supabase
@@ -94,7 +113,7 @@ export default async function handler(request, response) {
         <meta property="og:image:secure_url" content="${imageWithCacheBust}">
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">
-        <meta property="og:image:alt" content="Wedding Invitation">
+        <meta property="og:image:alt" content="${title}">
         <meta property="og:image:type" content="image/jpeg">
         
         <!-- Twitter -->

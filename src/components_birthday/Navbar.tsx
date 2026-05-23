@@ -1,9 +1,14 @@
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Sun, Moon } from "lucide-react";
 
 const navLinks = ["Home", "Counting Down", "Location", "RSVP"];
 
-const Navbar = ({ childName }: { childName?: string }) => {
+interface NavbarProps {
+  childName?: string;
+  isDarkMode?: boolean;
+}
+
+const Navbar = ({ childName, isDarkMode }: NavbarProps) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -28,7 +33,7 @@ const Navbar = ({ childName }: { childName?: string }) => {
             alignItems: "center",
             justifyContent: "space-between",
             padding: "0 20px",
-            height: "50px", // Reduced from 60px to 50px
+            height: "60px",
           }}
         >
           {/* Sacramento logo - kept original size */}
@@ -39,73 +44,75 @@ const Navbar = ({ childName }: { childName?: string }) => {
               fontSize: "2.6rem", // Kept original size
               color: "var(--primary, hsl(43, 74%, 49%))",
               textDecoration: "none",
-              lineHeight: 1,
-              marginTop: "-5px", // Adjust vertical alignment
+              lineHeight: "1.2",
             }}
           >
             {childName || "Katy"}
           </a>
 
-          {/* Mobile hamburger - kept original size */}
-          <button
-            onClick={() => setOpen(!open)}
-            aria-label="Toggle menu"
-            style={{
-              display: "none",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "var(--foreground, hsl(210, 40%, 98%))",
-            }}
-            className="bd-hamburger"
-          >
-            {open ? <X size={26} /> : <Menu size={26} />} {/* Kept original size */}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            {/* Nav links - hidden on mobile */}
+            <ul
+              style={{
+                display: "flex",
+                gap: "2rem",
+                listStyle: "none",
+                margin: 0,
+                padding: 0,
+              }}
+              className="bd-nav-links"
+            >
+              {navLinks.map((link) => (
+                <li key={link}>
+                  <a
+                    href={`#${link.toLowerCase().replace(/\s+/g, '-')}`}
+                    style={{
+                      fontSize: "0.8rem",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                      color: "var(--foreground, hsl(210, 40%, 98%))",
+                      opacity: 0.7,
+                      textDecoration: "none",
+                      transition: "opacity 0.2s, color 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.target as HTMLAnchorElement).style.opacity = "1";
+                      (e.target as HTMLAnchorElement).style.color =
+                        "var(--primary, hsl(43, 74%, 49%))";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.target as HTMLAnchorElement).style.opacity = "0.7";
+                      (e.target as HTMLAnchorElement).style.color =
+                        "var(--foreground, hsl(210, 40%, 98%))";
+                    }}
+                  >
+                    {link}
+                  </a>
+                </li>
+              ))}
+            </ul>
 
-          {/* Nav links - kept original sizes */}
-          <ul
-            style={{
-              display: "flex",
-              gap: "2rem", // Kept original gap
-              listStyle: "none",
-              margin: 0,
-              padding: 0,
-            }}
-            className="bd-nav-links"
-          >
-            {navLinks.map((link) => (
-              <li key={link}>
-                <a
-                  href="#"
-                  style={{
-                    fontSize: "0.8rem", // Kept original size
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                    color: "var(--foreground, hsl(210, 40%, 98%))",
-                    opacity: 0.7,
-                    textDecoration: "none",
-                    transition: "opacity 0.2s, color 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.target as HTMLAnchorElement).style.opacity = "1";
-                    (e.target as HTMLAnchorElement).style.color =
-                      "var(--primary, hsl(43, 74%, 49%))";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.target as HTMLAnchorElement).style.opacity = "0.7";
-                    (e.target as HTMLAnchorElement).style.color =
-                      "var(--foreground, hsl(210, 40%, 98%))";
-                  }}
-                >
-                  {link}
-                </a>
-              </li>
-            ))}
-          </ul>
+
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setOpen(!open)}
+              aria-label="Toggle menu"
+              style={{
+                display: "none",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "var(--foreground, hsl(210, 40%, 98%))",
+              }}
+              className="bd-hamburger"
+            >
+              {open ? <X size={26} /> : <Menu size={26} />}
+            </button>
+          </div>
         </div>
 
-        {/* Mobile dropdown – rendered absolutely so it doesn't push content down */}
+        {/* Mobile dropdown */}
         {open && (
           <div
             style={{
@@ -116,19 +123,19 @@ const Navbar = ({ childName }: { childName?: string }) => {
               backgroundColor: "var(--card, hsl(222, 47%, 15%))",
               borderTop: "1px solid var(--border, hsl(217, 33%, 22%))",
               borderBottom: "1px solid var(--border, hsl(217, 33%, 22%))",
-              padding: "8px 24px 12px", // Slightly reduced padding
+              padding: "8px 24px 12px",
               boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.5)",
             }}
           >
             {navLinks.map((link) => (
               <a
                 key={link}
-                href="#"
+                href={`#${link.toLowerCase().replace(/\s+/g, '-')}`}
                 onClick={() => setOpen(false)}
                 style={{
                   display: "block",
-                  padding: "8px 0", // Reduced from 10px
-                  fontSize: "0.85rem", // Kept original size
+                  padding: "8px 0",
+                  fontSize: "0.85rem",
                   fontWeight: 700,
                   textTransform: "uppercase",
                   letterSpacing: "0.08em",
@@ -145,10 +152,11 @@ const Navbar = ({ childName }: { childName?: string }) => {
         )}
       </nav>
 
+
       {/* Add padding to the body to prevent content from hiding under fixed navbar */}
       <style>{`
         body {
-          padding-top: 50px; /* Reduced from 60px to match new navbar height */
+          padding-top: 60px;
         }
         
         .bd-navbar {
@@ -184,7 +192,7 @@ const Navbar = ({ childName }: { childName?: string }) => {
           /* Reduced mobile navbar height */
           .bd-navbar {
             height: auto !important;
-            min-height: 45px !important; /* Reduced from 50px to 45px */
+            min-height: 55px !important;
             background-color: var(--background, hsl(222, 47%, 11%)) !important;
             backdrop-filter: none !important;
             -webkit-backdrop-filter: none !important;
@@ -193,17 +201,21 @@ const Navbar = ({ childName }: { childName?: string }) => {
           
           /* Keep the logo and hamburger visible with reduced height */
           .bd-navbar > div {
-            height: 45px !important; /* Reduced from 50px to 45px */
+            height: 55px !important;
           }
           
-          /* Adjust logo alignment on mobile */
+          /* Adjust logo alignment on mobile - removed negative margin to prevent clipping */
           .bd-navbar > div > a {
-            margin-top: -8px !important; /* More negative margin for mobile */
+            margin-top: 0 !important;
           }
           
           /* Mobile hamburger color */
           .bd-hamburger {
             color: var(--foreground, hsl(210, 40%, 98%)) !important;
+          }
+          
+          body {
+            padding-top: 55px !important;
           }
         }
       `}</style>

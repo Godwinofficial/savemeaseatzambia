@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#fdfbf7" />
   <title>SaveMeASeat Zambia – Premium Digital Invitations Platform</title>
   <meta name="title" content="SaveMeASeat Zambia – Premium Digital Invitations Platform" />
   <meta name="description"
@@ -18,11 +19,30 @@
   <meta property="og:image" content="https://www.savemeaseatzambia.com/imgs/logo1.png" />
 
   <link rel="icon" type="image/png" href="/imgs/logo1.png" />
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Outfit:wght@100;200;300;400;500;600&display=swap"
     rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
     crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bsPrimary: '#2d3a3a',
+            bsBg: '#fdfbf7',
+            bsText: '#1a1a1a',
+            bsWhite: '#ffffff',
+            bsAccent: '#c5a059'
+          },
+          fontFamily: {
+            outfit: ['Outfit', 'sans-serif'],
+            cormorant: ['Cormorant Garamond', 'serif']
+          }
+        }
+      }
+    }
+  </script>
 </head>
 
 <body>
