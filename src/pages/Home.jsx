@@ -386,8 +386,10 @@ const HowItWorks = () => {
                 <div className="steps">
                     {steps.map((step, index) => (
                         <div key={index} className="step">
-                            <div className="step-number">{step.number}</div>
-                            <i className={`${step.icon} step-icon`}></i>
+                            <div className="step-header">
+                                <i className={`${step.icon} step-icon`}></i>
+                                <div className="step-number">{step.number}</div>
+                            </div>
                             <h3>{step.title}</h3>
                             <p>{step.description}</p>
                         </div>
@@ -670,7 +672,7 @@ const Payment = () => {
                         Select your preferred payment method above and follow these
                         instructions:
                     </p>
-                    <p><strong>Account Name:</strong> Godwin Banda</p>
+                    <p><strong>Account Name:</strong> SaveMeASeat</p>
                     <p><strong>Mobile Money (Airtel):</strong> +260973848066</p>
                     <p>
                         <strong>Bank Details:</strong> FNB | Account #63149798184 | Branch:
@@ -985,9 +987,9 @@ const Footer = () => {
                         &copy; 2025 SaveMeASeat. All Rights Reserved. |
                         <a href="#" id="privacyPolicyLink">Privacy Policy</a> |
                         <a href="#" id="termsServiceLink">Terms of Service</a><br />
-                        Developed by
-                        <a href="https://godwinofficial.github.io/godwinbanda/" target="_blank" rel="noopener noreferrer"
-                            style={{ color: '#4cc9f0', marginLeft: '5px' }}>Godwin Banda</a>
+                        Powered by
+                        <a href="https://www.lightstackgroup.com/" target="_blank" rel="noopener noreferrer"
+                            style={{ color: '#4cc9f0', marginLeft: '5px' }}>Lightstack Group</a>
                     </p>
                 </div>
             </div>

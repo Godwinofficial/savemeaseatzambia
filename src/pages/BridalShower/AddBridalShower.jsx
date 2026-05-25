@@ -387,6 +387,72 @@ const AddBridalShower = () => {
 
     return (
         <div className="admin-page">
+            {/* Forced Clean Light-Mode Styles Overrides */}
+            <style>{`
+                html, body, #root, .admin-page, .add-bridal-shower-container, .form-content-card {
+                    background-color: #fdfbf7 !important;
+                    background: #fdfbf7 !important;
+                    color: #1b2424 !important;
+                }
+
+                .admin-header {
+                    background: rgba(253, 251, 247, 0.9) !important;
+                    backdrop-filter: blur(16px) !important;
+                    -webkit-backdrop-filter: blur(16px) !important;
+                    border-bottom: 1px solid #e9e4d9 !important;
+                }
+
+                .form-content-card, .page-title-card, .progress-section {
+                    background: #ffffff !important;
+                    border: 1px solid #e9e4d9 !important;
+                    box-shadow: 0 4px 15px rgba(45, 58, 58, 0.04) !important;
+                }
+
+                 .step.active .step-number {
+                    background: #ea8612 !important;
+                    color: #ffffff !important;
+                    border-color: #ea8612 !important;
+                }
+
+                .step.active .step-label {
+                    color: #ea8612 !important;
+                }
+
+                .step.completed .step-number {
+                    background: var(--success) !important;
+                    color: #ffffff !important;
+                    border-color: var(--success) !important;
+                }
+
+                .step-number {
+                    background: #f5f2eb !important;
+                    border: 1.5px solid #e9e4d9 !important;
+                    color: var(--text-muted) !important;
+                }
+
+                .form-input, .form-textarea, .form-select {
+                    background: #f5f2eb !important;
+                    border: 1.5px solid #e9e4d9 !important;
+                    color: #1b2424 !important;
+                }
+
+                .form-input:focus, .form-textarea:focus, .form-select:focus {
+                    border-color: #ea8612 !important;
+                    background: #ffffff !important;
+                }
+
+                .btn-primary {
+                    background: linear-gradient(135deg, #f7901b 0%, #ea8612 100%) !important;
+                    color: #ffffff !important;
+                    border: none !important;
+                }
+
+                .btn-secondary {
+                    background: #f5f2eb !important;
+                    border: 1px solid #e9e4d9 !important;
+                    color: #1b2424 !important;
+                }
+            `}</style>
             <header className="admin-header">
                 <div className="admin-header-content">
                     <div className="admin-logo">

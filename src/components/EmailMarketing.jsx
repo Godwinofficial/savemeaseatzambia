@@ -157,16 +157,37 @@ Save Me A Seat Team`
         fetchStats();
     }, []);
 
+    const fetchAllRSVPs = async (columns = 'email, name') => {
+        let allData = [];
+        let start = 0;
+        const limit = 1000;
+        let hasMore = true;
+
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from('rsvps')
+                .select(columns)
+                .not('email', 'is', null)
+                .range(start, start + limit - 1);
+
+            if (error) throw error;
+
+            allData = [...allData, ...data];
+
+            if (data.length < limit) {
+                hasMore = false;
+            } else {
+                start += limit;
+            }
+        }
+        return allData;
+    };
+
     const fetchStats = async () => {
         setLoading(true);
         try {
-            // Get all unique users from RSVPs
-            const { data: rsvps, error } = await supabase
-                .from('rsvps')
-                .select('email')
-                .not('email', 'is', null);
-
-            if (error) throw error;
+            // Get all unique users from RSVPs recursively using pagination
+            const rsvps = await fetchAllRSVPs('email');
 
             // Get unique emails
             const uniqueEmails = [...new Set(rsvps.map(r => r.email))];
@@ -281,16 +302,8 @@ Save Me A Seat Team`
         try {
             console.log("Starting bulk email process...");
 
-            // Fetch all unique emails
-            const { data: rsvps, error } = await supabase
-                .from('rsvps')
-                .select('email, name')
-                .not('email', 'is', null);
-
-            if (error) {
-                console.error("Supabase fetch error:", error);
-                throw error;
-            }
+            // Fetch all unique emails recursively using pagination
+            const rsvps = await fetchAllRSVPs('email, name');
 
             if (!rsvps || rsvps.length === 0) {
                 alert("No users found to email.");

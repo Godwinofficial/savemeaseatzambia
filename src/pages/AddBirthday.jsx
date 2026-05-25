@@ -268,6 +268,55 @@ const AddBirthday = () => {
 
     return (
         <>
+            {/* Forced Clean Light-Mode Styles Overrides */}
+            <style>{`
+                html, body, #root, .bd-add-container, .bd-form-content-card {
+                    background-color: #fdfbf7 !important;
+                    background: #fdfbf7 !important;
+                    color: #1b2424 !important;
+                }
+                
+                .bd-admin-header {
+                    background: rgba(253, 251, 247, 0.9) !important;
+                    backdrop-filter: blur(16px) !important;
+                    -webkit-backdrop-filter: blur(16px) !important;
+                    border-bottom: 1px solid #e9e4d9 !important;
+                }
+
+                .bd-page-title-card, .bd-form-content-card {
+                    background: #ffffff !important;
+                    border: 1px solid #e9e4d9 !important;
+                    box-shadow: 0 4px 15px rgba(45, 58, 58, 0.04) !important;
+                }
+
+                .bd-section-title {
+                    border-bottom-color: #e9e4d9 !important;
+                    color: #1b2424 !important;
+                }
+
+                .bd-form-input, .bd-form-textarea {
+                    background: #f5f2eb !important;
+                    border: 1.5px solid #e9e4d9 !important;
+                    color: #1b2424 !important;
+                }
+
+                .bd-form-input:focus, .bd-form-textarea:focus {
+                    border-color: #ea8612 !important;
+                    background: #ffffff !important;
+                }
+
+                .bd-btn-primary {
+                    background: linear-gradient(135deg, #f7901b 0%, #ea8612 100%) !important;
+                    color: #ffffff !important;
+                    border: none !important;
+                }
+
+                .bd-btn-secondary {
+                    background: #f5f2eb !important;
+                    border: 1px solid #e9e4d9 !important;
+                    color: #1b2424 !important;
+                }
+            `}</style>
             {/* Header – reuse admin styling */}
             <header className="bd-admin-header">
                 <div className="bd-header-content">

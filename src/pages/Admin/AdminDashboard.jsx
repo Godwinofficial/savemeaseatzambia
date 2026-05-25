@@ -5,6 +5,241 @@ import * as XLSX from 'xlsx';
 import { sendEmail } from '../../utils/emailService';
 import ReminderModal from '../../components/ReminderModal';
 import EmailMarketing from '../../components/EmailMarketing';
+import './Admin.css';
+
+// Premium Interactive SVG Dashboard Charts Component
+const DashboardCharts = ({ weddings, birthdays, bridalShowers }) => {
+    const [hoveredPoint, setHoveredPoint] = useState(null);
+
+    // 1. Data Prep for Area Trend (Weddings and their RSVPs)
+    const chartData = weddings.slice(0, 6).reverse().map((w, idx) => ({
+        label: w.groom_name ? `${w.groom_name.substring(0, 5)}&${w.bride_name.substring(0, 5)}` : `Evt#${idx+1}`,
+        value: w.rsvp_count || 0,
+        fullName: `${w.groom_name} & ${w.bride_name}`,
+        views: w.views || 0,
+        slug: w.slug
+    }));
+
+    // Width & Height of SVG
+    const width = 500;
+    const height = 220;
+    const padding = 35;
+    
+    // Compute SVG Points
+    const maxVal = Math.max(...chartData.map(d => d.value), 10);
+    const getX = (index) => padding + (index * (width - padding * 2)) / Math.max(chartData.length - 1, 1);
+    const getY = (val) => height - padding - (val * (height - padding * 2)) / maxVal;
+
+    // Build Curve Path
+    let pathD = "";
+    let areaD = "";
+    if (chartData.length > 0) {
+        pathD = `M ${getX(0)} ${getY(chartData[0].value)}`;
+        areaD = `M ${getX(0)} ${height - padding} L ${getX(0)} ${getY(chartData[0].value)}`;
+        
+        for (let i = 1; i < chartData.length; i++) {
+            const x = getX(i);
+            const y = getY(chartData[i].value);
+            pathD += ` L ${x} ${y}`;
+            areaD += ` L ${x} ${y}`;
+        }
+        
+        areaD += ` L ${getX(chartData.length - 1)} ${height - padding} Z`;
+    }
+
+    // 2. Data Prep for Event Ratios (Donut Chart)
+    const totalEvents = weddings.length + birthdays.length + bridalShowers.length;
+    const wPercent = totalEvents ? Math.round((weddings.length / totalEvents) * 100) : 0;
+    const bPercent = totalEvents ? Math.round((birthdays.length / totalEvents) * 100) : 0;
+    const bsPercent = totalEvents ? Math.round((bridalShowers.length / totalEvents) * 100) : 0;
+
+    // SVG Donut metrics
+    const radius = 50;
+    const strokeWidth = 14;
+    const circumference = 2 * Math.PI * radius;
+    
+    const wDashOffset = circumference - (wPercent / 100) * circumference;
+
+    return (
+        <div className="dashboard-charts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+            {/* RSVP Area Curve Chart */}
+            <div className="chart-container-card" style={{ flex: 1.6 }}>
+                <div className="chart-header-row">
+                    <h3 className="chart-title-text">
+                        <i className="fas fa-chart-line" style={{ marginRight: 8, color: 'var(--secondary)' }}></i>
+                        RSVP Conversion Trends
+                    </h3>
+                    <div className="chart-legend">
+                        <div className="legend-item">
+                            <span className="legend-dot emerald"></span>
+                            <span>Active RSVPs</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style={{ position: 'relative', width: '100%' }}>
+                    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} style={{ overflow: 'visible' }}>
+                        <defs>
+                            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#c5a059" stopOpacity="0.25" />
+                                <stop offset="100%" stopColor="#c5a059" stopOpacity="0.0" />
+                            </linearGradient>
+                            <linearGradient id="curveGrad" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stopColor="#2d3a3a" />
+                                <stop offset="100%" stopColor="#c5a059" />
+                            </linearGradient>
+                        </defs>
+
+                        {/* Grid Lines */}
+                        {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => {
+                            const y = padding + pct * (height - padding * 2);
+                            return (
+                                <line 
+                                    key={i} 
+                                    x1={padding} 
+                                    y1={y} 
+                                    x2={width - padding} 
+                                    y2={y} 
+                                    stroke="var(--border-color)" 
+                                    strokeWidth="1" 
+                                    strokeDasharray="4 4" 
+                                />
+                            );
+                        })}
+
+                        {/* Chart Area and Path */}
+                        {chartData.length > 0 && (
+                            <>
+                                <path d={areaD} fill="url(#areaGrad)" />
+                                <path d={pathD} fill="none" stroke="url(#curveGrad)" strokeWidth="3" strokeLinecap="round" />
+                                
+                                {/* Points & Interaction */}
+                                {chartData.map((d, i) => {
+                                    const cx = getX(i);
+                                    const cy = getY(d.value);
+                                    const isHovered = hoveredPoint === i;
+                                    return (
+                                        <g key={i}>
+                                            <circle
+                                                cx={cx}
+                                                cy={cy}
+                                                r={isHovered ? 8 : 5}
+                                                fill={isHovered ? '#c5a059' : '#2d3a3a'}
+                                                stroke="#ffffff"
+                                                strokeWidth="2"
+                                                style={{ transition: 'all 0.2s', cursor: 'pointer' }}
+                                                onMouseEnter={() => setHoveredPoint(i)}
+                                                onMouseLeave={() => setHoveredPoint(null)}
+                                            />
+                                        </g>
+                                    );
+                                })}
+                            </>
+                        )}
+
+                        {/* Axes Labels */}
+                        {chartData.map((d, i) => (
+                            <text
+                                key={i}
+                                x={getX(i)}
+                                y={height - 10}
+                                textAnchor="middle"
+                                fontSize="9"
+                                fontWeight="700"
+                                fill="var(--text-muted)"
+                            >
+                                {d.label}
+                            </text>
+                        ))}
+                    </svg>
+
+                    {/* Interactive Tooltip Box */}
+                    {hoveredPoint !== null && chartData[hoveredPoint] && (
+                        <div style={{
+                            position: 'absolute',
+                            top: '10px',
+                            right: '10px',
+                            background: 'rgba(45, 58, 58, 0.95)',
+                            color: '#ffffff',
+                            padding: '0.75rem 1rem',
+                            borderRadius: '0.75rem',
+                            fontSize: '0.75rem',
+                            boxShadow: '0 4px 15px rgba(0,0,0,0.15)',
+                            zIndex: 10,
+                            pointerEvents: 'none',
+                            border: '1px solid #c5a059',
+                            animation: 'fadeIn 0.2s ease-out'
+                        }}>
+                            <div style={{ fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: '0.25rem', marginBottom: '0.25rem' }}>
+                                {chartData[hoveredPoint].fullName}
+                            </div>
+                            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'space-between' }}>
+                                <span>RSVPs: <strong style={{ color: '#c5a059' }}>{chartData[hoveredPoint].value}</strong></span>
+                                <span>Views: <strong>{chartData[hoveredPoint].views.toLocaleString()}</strong></span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Event Type Donut distribution Chart */}
+            <div className="chart-container-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div>
+                    <h3 className="chart-title-text" style={{ marginBottom: '1.25rem' }}>
+                        <i className="fas fa-chart-pie" style={{ marginRight: 8, color: 'var(--secondary)' }}></i>
+                        Campaign Distribution
+                    </h3>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: '1.5rem', flex: 1 }}>
+                    <div style={{ position: 'relative', width: 120, height: 120 }}>
+                        <svg width="100%" height="100%" viewBox="0 0 120 120">
+                            {/* Empty background ring */}
+                            <circle cx="60" cy="60" r={radius} fill="transparent" stroke="var(--bg-surface-elevated)" strokeWidth={strokeWidth} />
+                            
+                            {/* Weddings Segment (Emerald Green) */}
+                            <circle cx="60" cy="60" r={radius} fill="transparent" 
+                                stroke="var(--primary)" strokeWidth={strokeWidth} 
+                                strokeDasharray={circumference} strokeDashoffset={wDashOffset} 
+                                transform="rotate(-90 60 60)" strokeLinecap="round"
+                                style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                            />
+
+                            {/* Donut inner text */}
+                            <text x="60" y="66" textAnchor="middle" fontSize="16" fontWeight="800" fill="var(--text-main)">
+                                {totalEvents}
+                            </text>
+                            <text x="60" y="80" textAnchor="middle" fontSize="9" fontWeight="700" fill="var(--text-muted)">
+                                TOTAL SITES
+                            </text>
+                        </svg>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: 'var(--primary)', display: 'inline-block' }}></span>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                                Weddings: {wPercent}%
+                            </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#c44569', display: 'inline-block' }}></span>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                                Birthdays: {bPercent}%
+                            </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#c5a059', display: 'inline-block' }}></span>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                                Showers: {bsPercent}%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const AdminDashboard = () => {
     const [weddings, setWeddings] = useState([]);
@@ -20,6 +255,8 @@ const AdminDashboard = () => {
     const [dueReminders, setDueReminders] = useState([]);
     const [processingReminders, setProcessingReminders] = useState(false);
     const [activeTab, setActiveTab] = useState('weddings'); // 'weddings' | 'birthdays' | 'marketing'
+    const [showRemindersAlert, setShowRemindersAlert] = useState(true);
+    const [activeActionSheet, setActiveActionSheet] = useState(null);
 
     // Birthday states
     const [birthdays, setBirthdays] = useState([]);
@@ -49,13 +286,6 @@ const AdminDashboard = () => {
     // This check is kept only to show the alert banner
     // Users can manually click "Send Reminders Now" if needed
 
-    // Removed auto-send effect - Supabase cron handles this now
-    // useEffect(() => {
-    //     if (dueReminders.length > 0 && !processingReminders) {
-    //         sendDueReminders();
-    //     }
-    // }, [dueReminders, processingReminders]);
-
     useEffect(() => {
         const filtered = weddings.filter(wedding =>
             wedding.groom_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -71,6 +301,31 @@ const AdminDashboard = () => {
         setStats({ totalRSVPs, totalViews });
     }, [searchTerm, weddings]);
 
+    const fetchAllRows = async (table, columns = '*') => {
+        let allData = [];
+        let start = 0;
+        const limit = 1000;
+        let hasMore = true;
+
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from(table)
+                .select(columns)
+                .range(start, start + limit - 1);
+
+            if (error) throw error;
+
+            allData = [...allData, ...data];
+
+            if (data.length < limit) {
+                hasMore = false;
+            } else {
+                start += limit;
+            }
+        }
+        return allData;
+    };
+
     const fetchWeddings = async () => {
         try {
             const { data: weddingsData, error: weddingsError } = await supabase
@@ -80,12 +335,8 @@ const AdminDashboard = () => {
 
             if (weddingsError) throw weddingsError;
 
-            // Fetch RSVP counts for all weddings
-            const { data: rsvpsData, error: rsvpsError } = await supabase
-                .from('rsvps')
-                .select('wedding_id');
-
-            if (rsvpsError) console.error("Error fetching RSVPs for counts:", rsvpsError);
+            // Fetch RSVP counts for all weddings recursively
+            const rsvpsData = await fetchAllRows('rsvps', 'wedding_id');
 
             // Compute counts
             const weddingsWithCounts = weddingsData.map(wedding => {
@@ -111,7 +362,8 @@ const AdminDashboard = () => {
                 .order('date', { ascending: false });
             if (error) throw error;
 
-            const { data: rsvps } = await supabase.from('birthday_rsvps').select('event_id');
+            // Fetch all birthday RSVPs recursively
+            const rsvps = await fetchAllRows('birthday_rsvps', 'event_id');
             const withCounts = (events || []).map(e => ({
                 ...e,
                 rsvp_count: rsvps ? rsvps.filter(r => r.event_id === e.id).length : 0,
@@ -133,10 +385,8 @@ const AdminDashboard = () => {
                 .order('created_at', { ascending: false });
             if (error) throw error;
 
-            // Fetch RSVP counts
-            const { data: rsvps } = await supabase
-                .from('bridal_shower_rsvps')
-                .select('event_id');
+            // Fetch RSVP counts recursively
+            const rsvps = await fetchAllRows('bridal_shower_rsvps', 'event_id');
 
             const withCounts = (data || []).map(bs => ({
                 ...bs,
@@ -220,7 +470,6 @@ const AdminDashboard = () => {
         }
     };
 
-
     const handleDelete = async (id, name) => {
         if (!window.confirm(`Delete wedding "${name}"? This action cannot be undone.`)) return;
 
@@ -273,7 +522,6 @@ const AdminDashboard = () => {
 
         const handleError = (err) => {
             console.error('Copy failed:', err);
-            // prompt user to copy manually as last resort
             prompt('Copy this link:', url);
         };
 
@@ -521,7 +769,7 @@ const AdminDashboard = () => {
         const colors = {
             upcoming: 'var(--success)',
             today: 'var(--accent)',
-            past: 'var(--gray)'
+            past: 'var(--text-muted)'
         };
         const labels = {
             upcoming: 'Upcoming',
@@ -538,6 +786,77 @@ const AdminDashboard = () => {
 
     return (
         <div className="admin-page admin-dashboard">
+            {/* Forced Clean Light-Mode Styles Overrides */}
+            <style>{`
+                html, body, #root, .admin-page, .admin-dashboard {
+                    background-color: var(--bg-base) !important;
+                    background: var(--bg-base) !important;
+                    color: var(--text-main) !important;
+                }
+                
+                .admin-header {
+                    background: var(--glass-bg) !important;
+                    backdrop-filter: blur(16px) !important;
+                    -webkit-backdrop-filter: blur(16px) !important;
+                    border-bottom: 1px solid var(--border-color) !important;
+                }
+
+                .content-container {
+                    background: var(--bg-surface) !important;
+                    border: none !important;
+                    border-radius: var(--radius-lg) !important;
+                    box-shadow: var(--shadow-md) !important;
+                }
+
+                .wedding-card {
+                    background: var(--bg-surface) !important;
+                    border: none !important;
+                    box-shadow: var(--shadow-md) !important;
+                    border-radius: var(--radius-lg) !important;
+                }
+
+                .card-header {
+                    background: transparent !important;
+                    border-bottom: 1px solid var(--border-color) !important;
+                }
+
+                .venue-info, .stat-item {
+                    background: var(--bg-surface-elevated) !important;
+                    border: 1px solid var(--border-color) !important;
+                    color: var(--text-main) !important;
+                    border-radius: var(--radius-md) !important;
+                }
+
+                .tab-btn.active {
+                    border-bottom-color: var(--primary) !important;
+                    color: var(--primary) !important;
+                }
+                
+                .tab-btn:hover {
+                    color: var(--primary) !important;
+                }
+
+                .stat-card {
+                    background: var(--bg-surface) !important;
+                    border: none !important;
+                    box-shadow: var(--shadow-md) !important;
+                    border-radius: var(--radius-lg) !important;
+                    padding: 1.5rem !important;
+                }
+
+                .stat-card.highlight {
+                    background: var(--bg-surface) !important;
+                    color: var(--text-main) !important;
+                }
+
+                .stat-card.highlight .stat-number {
+                    color: var(--primary) !important;
+                }
+                
+                .stat-card.highlight .stat-label {
+                    color: var(--text-muted) !important;
+                }
+            `}</style>
             {/* Mobile Menu Overlay */}
             {showMobileMenu && (
                 <div className="mobile-menu-overlay" onClick={() => setShowMobileMenu(false)}>
@@ -622,19 +941,45 @@ const AdminDashboard = () => {
 
             {/* Stats Cards */}
             <section className="stats-section">
-                {dueReminders.length > 0 && (
-                    <div className="alert-banner">
+                {dueReminders.length > 0 && showRemindersAlert && (
+                    <div className="alert-banner" style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                         <div className="alert-content">
                             <i className="fas fa-bell"></i>
                             <span>{dueReminders.length} weddings have reminders due today or pending.</span>
                         </div>
-                        <button
-                            className="alert-btn"
-                            onClick={sendDueReminders}
-                            disabled={processingReminders}
-                        >
-                            {processingReminders ? 'Sending...' : 'Send Reminders Now'}
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <button
+                                className="alert-btn"
+                                onClick={sendDueReminders}
+                                disabled={processingReminders}
+                            >
+                                {processingReminders ? 'Sending...' : 'Send Reminders Now'}
+                            </button>
+                            <button 
+                                onClick={() => setShowRemindersAlert(false)}
+                                style={{
+                                    background: 'var(--bg-surface-elevated)',
+                                    border: '1px solid var(--border-color)',
+                                    color: 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    fontSize: '1rem',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '0.25rem',
+                                    transition: 'all 0.2s',
+                                    borderRadius: '50%',
+                                    width: '36px',
+                                    height: '36px',
+                                    boxShadow: 'var(--shadow-sm)'
+                                }}
+                                title="Dismiss Alert"
+                                onMouseEnter={(e) => { e.currentTarget.style.color = '#ffffff'; e.currentTarget.style.background = 'var(--danger)'; e.currentTarget.style.borderColor = 'var(--danger)'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'var(--bg-surface-elevated)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
+                            >
+                                <i className="fas fa-times"></i>
+                            </button>
+                        </div>
                     </div>
                 )}
 
@@ -676,7 +1021,7 @@ const AdminDashboard = () => {
             {/* Weddings Tab Content */}
             {activeTab === 'weddings' && (
                 <>
-                    <div className="stats-container">
+                    <div className="stats-scroller">
                         <div className="stat-card">
                             <div className="stat-icon-wrapper gradient-1">
                                 <i className="fas fa-glass-cheers"></i>
@@ -722,6 +1067,11 @@ const AdminDashboard = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* Premium Animated Dashboard Charts */}
+                    <main className="main-content" style={{ paddingBottom: '1rem' }}>
+                        <DashboardCharts weddings={weddings} birthdays={birthdays} bridalShowers={bridalShowers} />
+                    </main>
 
                     {/* Main Content */}
                     <main className="main-content">
@@ -779,136 +1129,62 @@ const AdminDashboard = () => {
                                     )}
                                 </div>
                             ) : (
-                                <div className="weddings-grid">
+                                <div className="weddings-list" style={{ display: 'flex', flexDirection: 'column' }}>
                                     {filteredWeddings.map((wedding) => (
-                                        <div key={wedding.id} className="wedding-card">
-                                            <div className="card-gradient"></div>
+                                        <div key={wedding.id} className="app-row-item">
+                                            {/* Avatar badge with initials */}
+                                            <div style={{
+                                                width: 52, height: 52, borderRadius: '50%',
+                                                background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                color: '#ffffff', fontWeight: 800, fontSize: '0.95rem', marginRight: '1.25rem',
+                                                boxShadow: '0 4px 12px rgba(255, 123, 0, 0.3)'
+                                            }}>
+                                                {wedding.groom_name?.substring(0,1)}{wedding.bride_name?.substring(0,1)}
+                                            </div>
 
-                                            <div className="card-header">
-                                                <div className="wedding-info">
-                                                    <div className="couple-names">
-                                                        <h3 className="groom-name">{wedding.groom_name}</h3>
-                                                        <div className="and-symbol">
-                                                            <i className="fas fa-heart"></i>
-                                                        </div>
-                                                        <h3 className="bride-name">{wedding.bride_name}</h3>
-                                                    </div>
-                                                    <div className="wedding-meta">
-                                                        <span className="wedding-date">
-                                                            <i className="far fa-calendar"></i>
-                                                            {formatDate(wedding.date)}
-                                                        </span>
-                                                        <StatusBadge date={wedding.date} />
-                                                    </div>
+                                            {/* Content details */}
+                                            <div style={{ flex: 1 }}>
+                                                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                                                    {wedding.groom_name} & {wedding.bride_name}
+                                                </h4>
+                                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.15rem' }}>
+                                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                        <i className="far fa-calendar"></i> {formatDate(wedding.date)}
+                                                    </span>
+                                                    <StatusBadge date={wedding.date} />
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.4rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                                                    <span><i className="fas fa-users" style={{ color: 'var(--primary)' }}></i> RSVPs: <strong style={{ color: 'var(--text-main)' }}>{wedding.rsvp_count || 0}</strong></span>
+                                                    <span><i className="fas fa-eye" style={{ color: 'var(--primary)' }}></i> Views: <strong style={{ color: 'var(--text-main)' }}>{wedding.views?.toLocaleString() || 0}</strong></span>
                                                 </div>
                                             </div>
 
-                                            <div className="card-body">
-                                                <div className="venue-info">
-                                                    <i className="fas fa-map-marker-alt"></i>
-                                                    <span>{wedding.venue_name || 'Venue to be announced'}</span>
-                                                </div>
-
-                                                <div className="stats-row">
-                                                    <div className="stat-item">
-                                                        <div className="stat-icon-small">
-                                                            <i className="fas fa-users"></i>
-                                                        </div>
-                                                        <div className="stat-details">
-                                                            <span className="stat-value">{wedding.rsvp_count || 0}</span>
-                                                            <span className="stat-label">RSVPs</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="stat-item">
-                                                        <div className="stat-icon-small">
-                                                            <i className="fas fa-eye"></i>
-                                                        </div>
-                                                        <div className="stat-details">
-                                                            <span className="stat-value">{wedding.views?.toLocaleString() || 0}</span>
-                                                            <span className="stat-label">Views</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="stat-item">
-                                                        <div className="stat-icon-small">
-                                                            <i className="fas fa-link"></i>
-                                                        </div>
-                                                        <div className="stat-details">
-                                                            <span className="stat-value">/{wedding.slug}</span>
-                                                            <span className="stat-label">URL</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="quick-actions">
-                                                    <a
-                                                        href={`/w/${wedding.slug}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="action-btn view"
-                                                        style={{ textDecoration: 'none' }}
-                                                    >
-                                                        <i className="fas fa-external-link-alt"></i>
-                                                        View Site
-                                                    </a>
-                                                    <button
-                                                        className={`action-btn preview ${copiedLink === `${wedding.slug}-preview` ? 'copied' : ''}`}
-                                                        onClick={() => copyLink(wedding.slug, 'preview')}
-                                                    >
-                                                        <i className="fab fa-whatsapp"></i>
-                                                        {copiedLink === `${wedding.slug}-preview` ? 'Copied!' : 'Preview'}
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <div className="card-footer">
-                                                <div className="footer-actions">
-                                                    <div className="download-group" style={{ display: 'flex', gap: '0.5rem' }}>
-                                                        <button
-                                                            className="footer-btn download"
-                                                            onClick={() => downloadRSVPs(wedding.id, `${wedding.groom_name}_${wedding.bride_name}`)}
-                                                        >
-                                                            <i className="fas fa-file-excel"></i>
-                                                            Download Excel
-                                                        </button>
-                                                        <Link
-                                                            to={`/report/${wedding.slug}`}
-                                                            className="footer-btn download"
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            title="View RSVP Report"
-                                                        >
-                                                            <i className="fas fa-chart-bar"></i>
-                                                            View Report
-                                                        </Link>
-                                                    </div>
-
-                                                    <div className="action-group">
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedWeddingForReminder(wedding);
-                                                                setShowReminderModal(true);
-                                                            }}
-                                                            className="footer-btn edit"
-                                                            title="Reminders"
-                                                            style={{ color: '#6366f1' }}
-                                                        >
-                                                            <i className="fas fa-bell"></i>
-                                                        </button>
-                                                        <Link
-                                                            to={`/editWedding/${wedding.id}`}
-                                                            className="footer-btn edit"
-                                                        >
-                                                            <i className="fas fa-edit"></i>
-                                                        </Link>
-                                                        <button
-                                                            onClick={() => handleDelete(wedding.id, `${wedding.groom_name} & ${wedding.bride_name}`)}
-                                                            className="footer-btn delete"
-                                                        >
-                                                            <i className="fas fa-trash"></i>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            {/* Ellipsis Actions Button */}
+                                            <button
+                                                onClick={() => setActiveActionSheet({
+                                                    type: 'wedding',
+                                                    title: `${wedding.groom_name} & ${wedding.bride_name}`,
+                                                    subtitle: `Wedding Date: ${formatDate(wedding.date)}`,
+                                                    url: `/w/${wedding.slug}`,
+                                                    slug: wedding.slug,
+                                                    copyType: 'website',
+                                                    editUrl: `/editWedding/${wedding.id}`,
+                                                    rawEvent: wedding,
+                                                    reportUrl: `/report/${wedding.slug}`,
+                                                    onDownload: () => downloadRSVPs(wedding.id, `${wedding.groom_name}_${wedding.bride_name}`),
+                                                    onDelete: () => handleDelete(wedding.id, `${wedding.groom_name} & ${wedding.bride_name}`)
+                                                })}
+                                                style={{
+                                                    background: 'none', border: 'none', color: 'var(--text-muted)',
+                                                    cursor: 'pointer', fontSize: '1.2rem', padding: '0.5rem',
+                                                    marginLeft: '0.5rem', transition: 'color 0.2s'
+                                                }}
+                                                onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                                                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                                            >
+                                                <i className="fas fa-ellipsis-v"></i>
+                                            </button>
                                         </div>
                                     ))}
                                 </div>
@@ -935,7 +1211,7 @@ const AdminDashboard = () => {
                                 <p className="section-subtitle">Manage all birthday invitation sites</p>
                             </div>
                             <div className="header-right">
-                                <Link to="/addBirthday" className="nav-btn primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg,#ff6b9d,#c44569)', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, color: '#1a1a1a', fontWeight: 700, fontSize: '0.85rem' }}>
+                                <Link to="/addBirthday" className="nav-btn primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg,#ff6b9d,#c44569)', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, color: '#ffffff', fontWeight: 700, fontSize: '0.85rem' }}>
                                     <i className="fas fa-plus" />
                                     New Birthday
                                 </Link>
@@ -957,107 +1233,61 @@ const AdminDashboard = () => {
                                 </Link>
                             </div>
                         ) : (
-                            <div className="weddings-grid">
+                                <div className="birthdays-list" style={{ display: 'flex', flexDirection: 'column' }}>
                                 {birthdays.map((bdEvent) => (
-                                    <div key={bdEvent.id} className="wedding-card" style={{ '--card-accent': '#c44569' }}>
-                                        <div className="card-gradient" style={{ background: 'linear-gradient(135deg,#ff6b9d22,#c4456911)' }} />
+                                    <div key={bdEvent.id} className="app-row-item" style={{ borderLeft: '4px solid #c44569' }}>
+                                        {/* Avatar badge with cake icon */}
+                                        <div style={{
+                                            width: 52, height: 52, borderRadius: '50%',
+                                            background: 'linear-gradient(135deg, #ff6b9d 0%, #c44569 100%)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            color: '#ffffff', fontWeight: 800, fontSize: '1rem', marginRight: '1.25rem',
+                                            boxShadow: '0 4px 12px rgba(196, 69, 105, 0.3)'
+                                        }}>
+                                            <i className="fas fa-birthday-cake" style={{ fontSize: '1rem' }}></i>
+                                        </div>
 
-                                        <div className="card-header">
-                                            <div className="wedding-info">
-                                                <div className="couple-names">
-                                                    <h3 className="groom-name" style={{ color: '#c44569' }}>
-                                                        <i className="fas fa-birthday-cake" style={{ marginRight: 6, fontSize: '0.9rem' }} />
-                                                        {bdEvent.child_name}'s Birthday
-                                                    </h3>
-                                                </div>
-                                                <div className="wedding-meta">
-                                                    <span className="wedding-date">
-                                                        <i className="far fa-calendar" />
-                                                        {bdEvent.date ? new Date(bdEvent.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Date TBD'}
-                                                    </span>
-                                                    {bdEvent.age && <span className="status-badge" style={{ backgroundColor: '#c44569' }}>Age {bdEvent.age}</span>}
-                                                </div>
+                                        {/* Content details */}
+                                        <div style={{ flex: 1 }}>
+                                            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                                                {bdEvent.child_name}'s Birthday
+                                            </h4>
+                                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.15rem' }}>
+                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                    <i className="far fa-calendar"></i> {bdEvent.date ? new Date(bdEvent.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Date TBD'}
+                                                </span>
+                                                {bdEvent.age && <span className="status-badge" style={{ backgroundColor: '#c44569' }}>Age {bdEvent.age}</span>}
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.4rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                                                <span><i className="fas fa-users" style={{ color: '#c44569' }}></i> RSVPs: <strong style={{ color: 'var(--text-main)' }}>{bdEvent.rsvp_count || 0}</strong></span>
+                                                <span><i className="fas fa-link" style={{ color: '#c44569' }}></i> Slug: <strong style={{ color: 'var(--text-main)' }}>/{bdEvent.slug}</strong></span>
                                             </div>
                                         </div>
 
-                                        <div className="card-body">
-                                            <div className="venue-info">
-                                                <i className="fas fa-map-marker-alt" />
-                                                <span>{bdEvent.venue_name || 'Venue TBD'}</span>
-                                            </div>
-
-                                            <div className="stats-row">
-                                                <div className="stat-item">
-                                                    <div className="stat-icon-small"><i className="fas fa-users" /></div>
-                                                    <div className="stat-details">
-                                                        <span className="stat-value">{bdEvent.rsvp_count || 0}</span>
-                                                        <span className="stat-label">RSVPs</span>
-                                                    </div>
-                                                </div>
-                                                <div className="stat-item">
-                                                    <div className="stat-icon-small"><i className="fas fa-link" /></div>
-                                                    <div className="stat-details">
-                                                        <span className="stat-value" style={{ fontSize: '0.75rem' }}>/{bdEvent.slug}</span>
-                                                        <span className="stat-label">URL</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="quick-actions">
-                                                <a
-                                                    href={`/b/${bdEvent.slug}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="action-btn view"
-                                                    style={{ textDecoration: 'none' }}
-                                                >
-                                                    <i className="fas fa-external-link-alt" /> View Site
-                                                </a>
-                                                <button
-                                                    className={`action-btn preview ${copiedLink === `${bdEvent.slug}-preview-bd` ? 'copied' : ''}`}
-                                                    onClick={() => copyLink(bdEvent.slug, 'preview-bd')}
-                                                >
-                                                    <i className="fab fa-whatsapp"></i>
-                                                    {copiedLink === `${bdEvent.slug}-preview-bd` ? 'Copied!' : 'Preview'}
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div className="card-footer">
-                                            <div className="footer-actions">
-                                                <div className="download-group" style={{ display: 'flex', gap: '0.5rem' }}>
-                                                    <button
-                                                        className="footer-btn download"
-                                                        onClick={() => downloadBirthdayRSVPs(bdEvent.id, bdEvent.child_name)}
-                                                    >
-                                                        <i className="fas fa-file-excel" /> Download RSVPs
-                                                    </button>
-                                                    <Link
-                                                        to={`/b-report/${bdEvent.slug}`}
-                                                        className="footer-btn download"
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        title="View RSVP Report"
-                                                    >
-                                                        <i className="fas fa-chart-bar"></i> View Report
-                                                    </Link>
-                                                </div>
-                                                <div className="action-group">
-                                                    <Link
-                                                        to={`/editBirthday/${bdEvent.id}`}
-                                                        className="footer-btn edit"
-                                                    >
-                                                        <i className="fas fa-edit" />
-                                                    </Link>
-                                                    <button
-                                                        onClick={() => handleDeleteBirthday(bdEvent.id, `${bdEvent.child_name}'s Birthday`)}
-                                                        className="footer-btn delete"
-                                                    >
-                                                        <i className="fas fa-trash" />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        {/* Ellipsis Actions Button */}
+                                        <button
+                                            onClick={() => setActiveActionSheet({
+                                                type: 'birthday',
+                                                title: `${bdEvent.child_name}'s Birthday`,
+                                                subtitle: `Date: ${bdEvent.date ? new Date(bdEvent.date).toLocaleDateString() : 'TBD'}`,
+                                                url: `/b/${bdEvent.slug}`,
+                                                slug: bdEvent.slug,
+                                                copyType: 'preview-bd',
+                                                editUrl: `/editBirthday/${bdEvent.id}`,
+                                                reportUrl: `/b-report/${bdEvent.slug}`,
+                                                onDownload: () => downloadBirthdayRSVPs(bdEvent.id, bdEvent.child_name),
+                                                onDelete: () => handleDeleteBirthday(bdEvent.id, `${bdEvent.child_name}'s Birthday`)
+                                            })}
+                                            style={{
+                                                background: 'none', border: 'none', color: 'var(--text-muted)',
+                                                cursor: 'pointer', fontSize: '1.2rem', padding: '0.5rem',
+                                                marginLeft: '0.5rem', transition: 'color 0.2s'
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.color = '#c44569'}
+                                            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                                        >
+                                            <i className="fas fa-ellipsis-v"></i>
+                                        </button>
                                     </div>
                                 ))}
                             </div>
@@ -1092,113 +1322,61 @@ const AdminDashboard = () => {
                                 <Link to="/addBridalShower" className="empty-action"><i className="fas fa-plus"></i> Create Bridal Shower</Link>
                             </div>
                         ) : (
-                            <div className="weddings-grid">
+                                <div className="bridal-showers-list" style={{ display: 'flex', flexDirection: 'column' }}>
                                 {bridalShowers.map((bs) => (
-                                    <div key={bs.id} className="wedding-card">
-                                        <div className="card-gradient" style={{ background: 'linear-gradient(135deg, #c5a059, #2d3a3a)' }}></div>
+                                    <div key={bs.id} className="app-row-item" style={{ borderLeft: '4px solid #c5a059' }}>
+                                        {/* Avatar badge with gift icon */}
+                                        <div style={{
+                                            width: 52, height: 52, borderRadius: '50%',
+                                            background: 'linear-gradient(135deg, #dfc28c 0%, #c5a059 100%)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            color: '#ffffff', fontWeight: 800, fontSize: '1rem', marginRight: '1.25rem',
+                                            boxShadow: '0 4px 12px rgba(197, 160, 89, 0.3)'
+                                        }}>
+                                            <i className="fas fa-gift" style={{ fontSize: '1rem' }}></i>
+                                        </div>
 
-                                        <div className="card-header">
-                                            <div className="wedding-info">
-                                                <div className="couple-names">
-                                                    <h3 className="groom-name">{bs.bride_name}</h3>
-                                                    <div className="and-symbol"><i className="fas fa-female"></i></div>
-                                                    <h3 className="bride-name">Bridal Shower</h3>
-                                                </div>
-                                                <div className="wedding-meta">
-                                                    <span className="wedding-date">
-                                                        <i className="far fa-calendar"></i>
-                                                        {formatDate(bs.date)}
-                                                    </span>
-                                                    <StatusBadge date={bs.date} />
-                                                </div>
+                                        {/* Content details */}
+                                        <div style={{ flex: 1 }}>
+                                            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                                                {bs.bride_name}'s Bridal Shower
+                                            </h4>
+                                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.15rem' }}>
+                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                    <i className="far fa-calendar"></i> {bs.date ? new Date(bs.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Date TBD'}
+                                                </span>
+                                                <StatusBadge date={bs.date} />
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.4rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                                                <span><i className="fas fa-users" style={{ color: '#c5a059' }}></i> RSVPs: <strong style={{ color: 'var(--text-main)' }}>{bs.rsvp_count || 0}</strong></span>
+                                                <span><i className="fas fa-link" style={{ color: '#c5a059' }}></i> Slug: <strong style={{ color: 'var(--text-main)' }}>/{bs.slug}</strong></span>
                                             </div>
                                         </div>
 
-                                        <div className="card-body">
-                                            <div className="venue-info">
-                                                <i className="fas fa-map-marker-alt"></i>
-                                                <span>{bs.venue_name || 'Venue to be announced'}</span>
-                                            </div>
-
-                                            <div className="stats-row">
-                                                <div className="stat-item">
-                                                    <div className="stat-icon-small"><i className="fas fa-users"></i></div>
-                                                    <div className="stat-details">
-                                                        <span className="stat-value">{bs.rsvp_count || 0}</span>
-                                                        <span className="stat-label">RSVPs</span>
-                                                    </div>
-                                                </div>
-                                                <div className="stat-item">
-                                                    <div className="stat-icon-small"><i className="fas fa-eye"></i></div>
-                                                    <div className="stat-details">
-                                                        <span className="stat-value">{bs.views?.toLocaleString() || 0}</span>
-                                                        <span className="stat-label">Views</span>
-                                                    </div>
-                                                </div>
-                                                <div className="stat-item">
-                                                    <div className="stat-icon-small"><i className="fas fa-link"></i></div>
-                                                    <div className="stat-details">
-                                                        <span className="stat-value" style={{ fontSize: '0.7rem', wordBreak: 'break-all' }}>/{bs.slug}</span>
-                                                        <span className="stat-label">URL</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="quick-actions">
-                                                <a
-                                                    href={`/bridal-shower/${bs.slug}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="action-btn view"
-                                                    style={{ textDecoration: 'none' }}
-                                                >
-                                                    <i className="fas fa-external-link-alt"></i>
-                                                    View Site
-                                                </a>
-                                                <button
-                                                    className={`action-btn preview ${copiedLink === `${bs.slug}-bridal-shower` ? 'copied' : ''}`}
-                                                    onClick={() => copyLink(bs.slug, 'bridal-shower')}
-                                                >
-                                                    <i className="fab fa-whatsapp"></i>
-                                                    {copiedLink === `${bs.slug}-bridal-shower` ? 'Copied!' : 'Preview'}
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div className="card-footer">
-                                            <div className="footer-actions">
-                                                <div className="download-group" style={{ display: 'flex', gap: '0.5rem' }}>
-                                                    <button
-                                                        className="footer-btn download"
-                                                        onClick={() => downloadBridalShowerRSVPs(bs.id, bs.bride_name)}
-                                                    >
-                                                        <i className="fas fa-file-excel"></i>
-                                                        Download Excel
-                                                    </button>
-                                                    <Link
-                                                        to={`/bs-report/${bs.slug}`}
-                                                        className="footer-btn download"
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        title="View RSVP Report"
-                                                    >
-                                                        <i className="fas fa-chart-bar"></i>
-                                                        View Report
-                                                    </Link>
-                                                </div>
-                                                <div className="action-group">
-                                                    <Link to={`/editBridalShower/${bs.id}`} className="footer-btn edit">
-                                                        <i className="fas fa-edit" />
-                                                    </Link>
-                                                    <button
-                                                        onClick={() => handleDeleteBridalShower(bs.id, bs.bride_name)}
-                                                        className="footer-btn delete"
-                                                    >
-                                                        <i className="fas fa-trash" />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        {/* Ellipsis Actions Button */}
+                                        <button
+                                            onClick={() => setActiveActionSheet({
+                                                type: 'bridal_shower',
+                                                title: `${bs.bride_name}'s Bridal Shower`,
+                                                subtitle: `Date: ${bs.date ? new Date(bs.date).toLocaleDateString() : 'TBD'}`,
+                                                url: `/bridal-shower/${bs.slug}`,
+                                                slug: bs.slug,
+                                                copyType: 'bridal-shower',
+                                                editUrl: `/editBridalShower/${bs.id}`,
+                                                reportUrl: `/bs-report/${bs.slug}`,
+                                                onDownload: () => downloadBridalShowerRSVPs(bs.id, bs.bride_name),
+                                                onDelete: () => handleDeleteBridalShower(bs.id, `${bs.bride_name}'s Bridal Shower`)
+                                            })}
+                                            style={{
+                                                background: 'none', border: 'none', color: 'var(--text-muted)',
+                                                cursor: 'pointer', fontSize: '1.2rem', padding: '0.5rem',
+                                                marginLeft: '0.5rem', transition: 'color 0.2s'
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.color = '#c5a059'}
+                                            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                                        >
+                                            <i className="fas fa-ellipsis-v"></i>
+                                        </button>
                                     </div>
                                 ))}
                             </div>
@@ -1223,1194 +1401,131 @@ const AdminDashboard = () => {
                 />
             )}
 
-            <style jsx>{`
-                :root {
-                    --primary: #6366f1;
-                    --primary-light: #818cf8;
-                    --primary-dark: #4f46e5;
-                    --secondary: #f472b6;
-                    --accent: #f59e0b;
-                    --success: #10b981;
-                    --warning: #f59e0b;
-                    --danger: #ef4444;
-                    --dark: #1f2937;
-                    --darker: #111827;
-                    --light: #f9fafb;
-                    --lighter: #f3f4f6;
-                    --gray: #6b7280;
-                    --gray-light: #9ca3af;
-                    --white: #ffffff;
-                    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
-                    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
-                    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
-                    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
-                    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
-                    --shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.15);
-                    --radius-sm: 0.5rem;
-                    --radius-md: 0.75rem;
-                    --radius-lg: 1rem;
-                    --radius-xl: 1.25rem;
-                    --radius-2xl: 1.5rem;
-                    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-                    --transition: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-                    --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
-                }
-
-                * {
-                    margin: 0;
-                    padding: 0;
-                    box-sizing: border-box;
-                }
-
-                body {
-                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Segoe UI', sans-serif;
-                    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-                    min-height: 100vh;
-                    color: var(--dark);
-                    overflow-x: hidden;
-                }
-
-                .admin-dashboard {
-                    min-height: 100vh;
-                    position: relative;
-                }
-
-                /* Header Styles */
-                .admin-header {
-                    background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
-                    color: var(--white);
-                    padding: 0.75rem 0;
-                    box-shadow: var(--shadow-xl);
-                    position: sticky;
-                    top: 0;
-                    z-index: 1000;
-                    backdrop-filter: blur(10px);
-                    background: rgba(31, 41, 55, 0.98);
-                    border: none;
-                    border-radius: 0;
-                }
-                
-                .alert-banner {
-                    background-color: #fef2f2;
-                    border-bottom: 1px solid #fee2e2;
-                    color: #991b1b;
-                    padding: 1rem;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 1rem;
-                    border-radius: var(--radius-md);
-                    margin: 1rem auto;
-                    max-width: 1440px;
-                    width: 95%;
-                }
-                
-                .alert-content {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                    font-weight: 500;
-                }
-                
-                .alert-btn {
-                    background-color: #ef4444;
-                    color: white;
-                    border: none;
-                    padding: 0.5rem 1rem;
-                    border-radius: 0.375rem;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: background-color 0.2s;
-                }
-                
-                .alert-btn:hover {
-                    background-color: #dc2626;
-                }
-                
-                .alert-btn:disabled {
-                    background-color: #fca5a5;
-                    cursor: not-allowed;
-                }
-
-                /* Tab Navigation */
-                .tab-navigation {
-                    display: flex;
-                    gap: 1rem;
-                    max-width: 1440px;
-                    margin: 1.5rem auto 2rem;
-                    padding: 0 1.5rem;
-                    border-bottom: 2px solid #e5e7eb;
-                }
-
-                .tab-btn {
-                    padding: 1rem 2rem;
-                    background: transparent;
-                    border: none;
-                    border-bottom: 3px solid transparent;
-                    color: #6b7280;
-                    font-size: 16px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    margin-bottom: -2px;
-                }
-
-                .tab-btn:hover {
-                    color: #6366f1;
-                    background: rgba(99, 102, 241, 0.05);
-                }
-
-                .tab-btn.active {
-                    color: #6366f1;
-                    border-bottom-color: #6366f1;
-                }
-
-                .tab-btn i {
-                    font-size: 18px;
-                }
-
-                @media (max-width: 768px) {
-                    .tab-navigation {
-                        padding: 0 1rem;
-                    }
-
-                    .tab-btn {
-                        padding: 0.75rem 1rem;
-                        font-size: 14px;
-                    }
-
-                    .tab-btn i {
-                        font-size: 16px;
-                    }
-                }
-
-                .header-container {
-                    max-width: 1440px;
-                    margin: 0 auto;
-                    padding: 0 1.5rem;
-                }
-
-                .header-main {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                }
-
-                .brand {
-                    display: flex;
-                    align-items: center;
-                    order: 1; /* Left */
-                    margin-right: 2rem;
-                }
-                
-                .logo-img {
-                    height: 48px;
-                    width: auto;
-                    object-fit: contain;
-                }
-                
-                .user-profile-section {
-                    order: 3; /* Right on Desktop */
-                    display: flex;
-                    align-items: center;
-                    margin-left: 1rem;
-                    margin-right: 0;
-                }
-
-                .user-icon-circle {
-                    width: 44px;
-                    height: 44px;
-                    background: rgba(255, 255, 255, 0.08);
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: var(--white);
-                    font-size: 1.25rem;
-                    cursor: pointer;
-                    transition: var(--transition);
-                    border: 1px solid rgba(255, 255, 255, 0.05);
-                    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
-                }
-
-                .user-icon-circle:hover {
-                    background: var(--primary);
-                    color: var(--white);
-                    transform: translateY(-2px);
-                    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
-                    border-color: transparent;
-                }
-
-                /* Desktop Navigation */
-                .desktop-nav {
-                    display: flex;
-                    align-items: center;
-                    gap: 1.5rem;
-                    flex: 1;
-                    justify-content: center;
-                    margin: 0 1rem;
-                    order: 2;
-                }
-
-                @media (max-width: 1024px) {
-                    .desktop-nav {
-                        display: none;
-                    }
-                }
-
-                .search-container {
-                    flex: 1;
-                    position: relative;
-                    max-width: 400px;
-                }
-
-                .search-icon {
-                    position: absolute;
-                    left: 1rem;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    color: var(--gray-light);
-                    font-size: 0.875rem;
-                }
-
-                .search-input {
-                    width: 100%;
-                    padding: 0.75rem 1rem 0.75rem 3rem;
-                    background: rgba(255, 255, 255, 0.1);
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                    border-radius: var(--radius-lg);
-                    color: var(--white);
-                    font-size: 0.875rem;
-                    transition: var(--transition);
-                }
-
-                .search-input::placeholder {
-                    color: rgba(255, 255, 255, 0.5);
-                }
-
-                .search-input:focus {
-                    outline: none;
-                    background: rgba(255, 255, 255, 0.15);
-                    border-color: var(--primary-light);
-                    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-                }
-
-                .clear-search {
-                    position: absolute;
-                    right: 1rem;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    background: none;
-                    border: none;
-                    color: var(--gray-light);
-                    cursor: pointer;
-                    padding: 0.25rem;
-                    font-size: 0.75rem;
-                }
-
-                .nav-actions {
-                    display: flex;
-                    gap: 0.75rem;
-                }
-
-                .nav-btn {
-                    padding: 0.625rem 1.25rem;
-                    border-radius: var(--radius-lg);
-                    font-size: 0.875rem;
-                    font-weight: 500;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    cursor: pointer;
-                    transition: var(--transition);
-                    border: none;
-                    text-decoration: none;
-                }
-
-                .nav-btn.primary {
-                    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-                    color: var(--white);
-                    box-shadow: var(--shadow-md);
-                }
-
-                .nav-btn.primary:hover {
-                    transform: translateY(-2px);
-                    box-shadow: var(--shadow-lg);
-                }
-
-                .nav-btn.outline {
-                    background: transparent;
-                    border: 1px solid rgba(255, 255, 255, 0.3);
-                    color: var(--white);
-                }
-
-                .nav-btn.outline:hover {
-                    background: rgba(255, 255, 255, 0.1);
-                    border-color: rgba(255, 255, 255, 0.5);
-                }
-
-                .mobile-menu-btn {
-                    order: 4;
-                    display: none;
-                    background: rgba(255, 255, 255, 0.1);
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                    border-radius: var(--radius-md);
-                    width: 40px;
-                    height: 40px;
-                    color: var(--white);
-                    cursor: pointer;
-                    transition: var(--transition);
-                }
-
-                .mobile-menu-btn:hover {
-                    background: rgba(255, 255, 255, 0.2);
-                }
-
-                @media (max-width: 1024px) {
-                    .mobile-menu-btn {
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                    }
-                    .user-profile-section {
-                        display: none;
-                    }
-                }
-
-                /* Mobile Menu */
-                .mobile-menu-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0, 0, 0, 0.8);
-                    backdrop-filter: blur(4px);
-                    z-index: 2000;
-                    display: flex;
-                    align-items: flex-start;
-                    justify-content: flex-end;
-                    padding: 1rem;
-                }
-
-                .mobile-menu {
-                    background: var(--white);
-                    border-radius: var(--radius-xl);
-                    width: 320px;
-                    max-width: 90vw;
-                    box-shadow: var(--shadow-2xl);
-                    animation: slideIn 0.3s ease-out;
-                }
-
-                @keyframes slideIn {
-                    from {
-                        transform: translateX(100%);
-                        opacity: 0;
-                    }
-                    to {
-                        transform: translateX(0);
-                        opacity: 1;
-                    }
-                }
-
-                .mobile-header {
-                    padding: 1.5rem;
-                    border-bottom: 1px solid var(--lighter);
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                }
-
-                .mobile-header h3 {
-                    color: var(--dark);
-                    font-size: 1.25rem;
-                    font-weight: 600;
-                }
-
-                .close-menu {
-                    background: none;
-                    border: none;
-                    color: var(--gray);
-                    cursor: pointer;
-                    font-size: 1.25rem;
-                    padding: 0.25rem;
-                }
-
-                .mobile-nav {
-                    padding: 1rem;
-                }
-
-                .mobile-nav-item {
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                    padding: 1rem;
-                    width: 100%;
-                    background: none;
-                    border: none;
-                    color: var(--dark);
-                    font-size: 0.875rem;
-                    font-weight: 500;
-                    cursor: pointer;
-                    transition: var(--transition);
-                    border-radius: var(--radius-md);
-                    text-decoration: none;
-                }
-
-                .mobile-nav-item:hover {
-                    background: var(--lighter);
-                }
-
-                .mobile-nav-item i {
-                    color: var(--primary);
-                    width: 20px;
-                }
-
-                /* Stats Section */
-                .stats-section {
-                    padding: 2rem 1.5rem;
-                    max-width: 1440px;
-                    margin: 0 auto;
-                }
-
-                .stats-container {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-                    gap: 1.5rem;
-                }
-
-                .stat-card {
-                    background: var(--white);
-                    border-radius: var(--radius-xl);
-                    padding: 1.5rem;
-                    display: flex;
-                    align-items: center;
-                    gap: 1.25rem;
-                    box-shadow: var(--shadow-lg);
-                    transition: var(--transition);
-                    border: 1px solid rgba(255, 255, 255, 0.8);
-                    backdrop-filter: blur(10px);
-                }
-
-                .stat-card:hover {
-                    transform: translateY(-4px);
-                    box-shadow: var(--shadow-xl);
-                }
-
-                .stat-card.highlight {
-                    background: linear-gradient(135deg, var(--primary-light), var(--primary));
-                    color: var(--white);
-                }
-
-                .stat-card.highlight .stat-label {
-                    color: rgba(255, 255, 255, 0.9);
-                }
-
-                .stat-icon-wrapper {
-                    width: 60px;
-                    height: 60px;
-                    border-radius: var(--radius-lg);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 1.5rem;
-                    color: var(--white);
-                    flex-shrink: 0;
-                }
-
-                .gradient-1 {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                }
-
-                .gradient-2 {
-                    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-                }
-
-                .gradient-3 {
-                    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-                }
-
-                .gradient-4 {
-                    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-                }
-
-                .stat-content {
-                    flex: 1;
-                }
-
-                .stat-number {
-                    font-size: 2rem;
-                    font-weight: 700;
-                    line-height: 1;
-                    margin-bottom: 0.25rem;
-                    color: var(--dark);
-                }
-
-                .stat-card.highlight .stat-number {
-                    color: var(--white);
-                }
-
-                .stat-label {
-                    font-size: 0.875rem;
-                    color: var(--gray);
-                    font-weight: 500;
-                }
-
-                /* Main Content */
-                .main-content {
-                    padding: 0 1.5rem 3rem;
-                    max-width: 1440px;
-                    margin: 0 auto;
-                }
-
-                .content-container {
-                    background: var(--white);
-                    border-radius: var(--radius-xl);
-                    box-shadow: var(--shadow-lg);
-                    overflow: hidden;
-                    border: 1px solid rgba(255, 255, 255, 0.8);
-                }
-
-                .content-header {
-                    padding: 2rem 2rem 1.5rem;
-                    border-bottom: 1px solid var(--lighter);
-                    display: flex;
-                    align-items: flex-start;
-                    justify-content: space-between;
-                    flex-wrap: wrap;
-                    gap: 1.5rem;
-                }
-
-                .header-left {
-                    flex: 1;
-                    min-width: 300px;
-                }
-
-                .section-title {
-                    font-size: 1.75rem;
-                    font-weight: 700;
-                    color: var(--dark);
-                    margin-bottom: 0.5rem;
-                }
-
-                .section-subtitle {
-                    color: var(--gray);
-                    font-size: 0.875rem;
-                }
-
-                .header-right {
-                    display: flex;
-                    align-items: center;
-                    gap: 1.5rem;
-                }
-
-                .results-info {
-                    display: flex;
-                    align-items: baseline;
-                    gap: 0.5rem;
-                }
-
-                .results-count {
-                    font-size: 1.5rem;
-                    font-weight: 700;
-                    color: var(--primary);
-                }
-
-                .results-text {
-                    color: var(--gray);
-                    font-size: 0.875rem;
-                }
-
-                .sort-select {
-                    padding: 0.625rem 1rem 0.625rem 2.5rem;
-                    border: 1px solid var(--lighter);
-                    border-radius: var(--radius-lg);
-                    background: var(--lighter);
-                    color: var(--dark);
-                    font-size: 0.875rem;
-                    font-weight: 500;
-                    cursor: pointer;
-                    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-                    background-repeat: no-repeat;
-                    background-position: left 0.75rem center;
-                    background-size: 1rem;
-                    padding-left: 2.5rem;
-                    appearance: none;
-                }
-
-                .sort-select:focus {
-                    outline: none;
-                    border-color: var(--primary);
-                    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-                }
-
-                /* Loading State */
-                .loading-container {
-                    padding: 4rem 2rem;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 1.5rem;
-                }
-
-                .loading-spinner {
-                    position: relative;
-                    width: 60px;
-                    height: 60px;
-                }
-
-                .spinner-ring {
-                    display: block;
-                    position: absolute;
-                    width: 100%;
-                    height: 100%;
-                    border-radius: 50%;
-                    border: 4px solid transparent;
-                    animation: spinner 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-                }
-
-                .spinner-ring:nth-child(1) {
-                    border-top-color: var(--primary);
-                    animation-delay: -0.45s;
-                }
-
-                .spinner-ring:nth-child(2) {
-                    border-right-color: var(--primary);
-                    animation-delay: -0.3s;
-                }
-
-                .spinner-ring:nth-child(3) {
-                    border-bottom-color: var(--primary);
-                    animation-delay: -0.15s;
-                }
-
-                .spinner-ring:nth-child(4) {
-                    border-left-color: var(--primary);
-                }
-
-                @keyframes spinner {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-
-                .loading-text {
-                    color: var(--gray);
-                    font-size: 0.875rem;
-                }
-
-                /* Empty State */
-                .empty-state {
-                    padding: 4rem 2rem;
-                    text-align: center;
-                }
-
-                .empty-icon {
-                    width: 80px;
-                    height: 80px;
-                    background: linear-gradient(135deg, var(--lighter), var(--light));
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    margin: 0 auto 1.5rem;
-                    color: var(--primary);
-                    font-size: 2rem;
-                }
-
-                .empty-title {
-                    font-size: 1.5rem;
-                    font-weight: 600;
-                    color: var(--dark);
-                    margin-bottom: 0.5rem;
-                }
-
-                .empty-description {
-                    color: var(--gray);
-                    margin-bottom: 2rem;
-                    max-width: 400px;
-                    margin-left: auto;
-                    margin-right: auto;
-                }
-
-                .empty-action {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    padding: 0.75rem 1.5rem;
-                    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-                    color: var(--white);
-                    border-radius: var(--radius-lg);
-                    text-decoration: none;
-                    font-weight: 500;
-                    font-size: 0.875rem;
-                    transition: var(--transition);
-                    box-shadow: var(--shadow-md);
-                }
-
-                .empty-action:hover {
-                    transform: translateY(-2px);
-                    box-shadow: var(--shadow-lg);
-                }
-
-                /* Weddings Grid */
-                .weddings-grid {
-                    padding: 2rem;
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-                    gap: 1.5rem;
-                }
-
-                @media (max-width: 1024px) {
-                    .weddings-grid {
-                        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-                        padding: 1.5rem;
-                    }
-                }
-
-                @media (max-width: 768px) {
-                    .weddings-grid {
-                        grid-template-columns: 1fr;
-                        padding: 1rem;
-                    }
-                }
-
-                /* Wedding Card */
-                .wedding-card {
-                    background: var(--white);
-                    border-radius: var(--radius-lg);
-                    overflow: hidden;
-                    box-shadow: var(--shadow-md);
-                    transition: var(--transition);
-                    position: relative;
-                    border: 1px solid var(--lighter);
-                    animation: fadeIn 0.5s ease-out;
-                }
-
-                @keyframes fadeIn {
-                    from {
-                        opacity: 0;
-                        transform: translateY(20px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-
-                .wedding-card:hover {
-                    transform: translateY(-4px);
-                    box-shadow: var(--shadow-xl);
-                    border-color: var(--primary-light);
-                }
-
-                .card-gradient {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    height: 4px;
-                    background: linear-gradient(90deg, var(--primary), var(--secondary));
-                }
-
-                .card-header {
-                    padding: 1.5rem 1.5rem 1rem;
-                    border-bottom: 1px solid var(--lighter);
-                }
-
-                .wedding-info {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.75rem;
-                }
-
-                .couple-names {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 0.75rem;
-                    flex-wrap: wrap;
-                }
-
-                .groom-name, .bride-name {
-                    font-size: 1.25rem;
-                    font-weight: 600;
-                    color: var(--dark);
-                }
-
-                .and-symbol {
-                    color: var(--primary);
-                    font-size: 0.875rem;
-                    display: flex;
-                    align-items: center;
-                }
-
-                .wedding-meta {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    flex-wrap: wrap;
-                    gap: 0.5rem;
-                }
-
-                .wedding-date {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    color: var(--gray);
-                    font-size: 0.875rem;
-                }
-
-                .status-badge {
-                    padding: 0.25rem 0.75rem;
-                    border-radius: 9999px;
-                    font-size: 0.75rem;
-                    font-weight: 600;
-                    color: var(--white);
-                    text-transform: uppercase;
-                    letter-spacing: 0.025em;
-                }
-
-                /* Card Body */
-                .card-body {
-                    padding: 1.5rem;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1.5rem;
-                }
-
-                .venue-info {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                    color: var(--gray);
-                    font-size: 0.875rem;
-                    padding: 0.75rem;
-                    background: var(--lighter);
-                    border-radius: var(--radius-md);
-                }
-
-                .venue-info i {
-                    color: var(--primary);
-                }
-
-                .stats-row {
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 1rem;
-                }
-
-                .stat-item {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                    padding: 0.75rem;
-                    background: var(--lighter);
-                    border-radius: var(--radius-md);
-                }
-
-                .stat-icon-small {
-                    width: 32px;
-                    height: 32px;
-                    background: var(--white);
-                    border-radius: var(--radius-sm);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: var(--primary);
-                    font-size: 0.875rem;
-                }
-
-                .stat-details {
-                    display: flex;
-                    flex-direction: column;
-                }
-
-                .stat-value {
-                    font-size: 0.875rem;
-                    font-weight: 600;
-                    color: var(--dark);
-                    line-height: 1;
-                }
-
-                .stat-label {
-                    font-size: 0.75rem;
-                    color: var(--gray);
-                    margin-top: 0.125rem;
-                }
-
-                .quick-actions {
-                    display: flex;
-                    gap: 0.75rem;
-                }
-
-                .action-btn {
-                    flex: 1;
-                    padding: 0.75rem 1rem;
-                    border: none;
-                    border-radius: var(--radius-md);
-                    font-size: 0.875rem;
-                    font-weight: 500;
-                    cursor: pointer;
-                    transition: var(--transition);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 0.5rem;
-                }
-
-                .action-btn.view {
-                    background: var(--primary);
-                    color: var(--white);
-                }
-
-                .action-btn.view:hover {
-                    background: var(--primary-dark);
-                }
-
-                .action-btn.preview {
-                    background: #25D366;
-                    color: var(--white);
-                }
-
-                .action-btn.preview:hover {
-                    background: #128C7E;
-                }
-
-                .action-btn.copied {
-                    background: var(--success);
-                    color: var(--white);
-                }
-
-                /* Card Footer */
-                .card-footer {
-                    padding: 1.25rem 1.5rem;
-                    border-top: 1px solid var(--lighter);
-                    background: var(--lighter);
-                }
-
-                .footer-actions {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    gap: 1rem;
-                }
-
-                @media (max-width: 480px) {
-                    .footer-actions {
-                        flex-direction: column;
-                    }
-                }
-
-                .footer-btn {
-                    padding: 0.625rem 1rem;
-                    border: none;
-                    border-radius: var(--radius-md);
-                    font-size: 0.875rem;
-                    font-weight: 500;
-                    cursor: pointer;
-                    transition: var(--transition);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 0.5rem;
-                    text-decoration: none;
-                }
-
-                .footer-btn.download {
-                    background: var(--white);
-                    color: var(--dark);
-                    border: 1px solid var(--lighter);
-                }
-
-                .footer-btn.download:hover {
-                    background: var(--lighter);
-                    transform: translateY(-2px);
-                }
-
-                .action-group {
-                    display: flex;
-                    gap: 0.5rem;
-                }
-
-                .footer-btn.edit, .footer-btn.delete {
-                    width: 40px;
-                    height: 40px;
-                    padding: 0;
-                    border-radius: 50%;
-                }
-
-                .footer-btn.edit {
-                    background: var(--success);
-                    color: var(--white);
-                }
-
-                .footer-btn.edit:hover {
-                    background: #0da271;
-                    transform: translateY(-2px);
-                }
-
-                .footer-btn.delete {
-                    background: var(--danger);
-                    color: var(--white);
-                }
-
-                .footer-btn.delete:hover {
-                    background: #dc2626;
-                    transform: translateY(-2px);
-                }
-
-                /* Floating Action Button */
-                .fab {
-                    position: fixed;
-                    bottom: 2rem;
-                    right: 2rem;
-                    width: 56px;
-                    height: 56px;
-                    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: var(--white);
-                    font-size: 1.25rem;
-                    box-shadow: var(--shadow-xl);
-                    cursor: pointer;
-                    transition: var(--transition);
-                    z-index: 100;
-                    text-decoration: none;
-                }
-
-                .fab:hover {
-                    transform: scale(1.1) rotate(90deg);
-                    box-shadow: var(--shadow-2xl);
-                }
-
-                @media (min-width: 1025px) {
-                    .fab {
-                        display: none;
-                    }
-                }
-
-                /* Mobile Optimizations */
-                @media (max-width: 640px) {
-                    .header-container,
-                    .stats-section,
-                    .main-content {
-                        padding-left: 1rem;
-                        padding-right: 1rem;
-                    }
-
-                    .content-header {
-                        flex-direction: column;
-                        gap: 1rem;
-                        padding: 1.5rem 1rem;
-                    }
-
-                    .header-left, .header-right {
-                        width: 100%;
-                    }
-
-                    .section-title {
-                        font-size: 1.5rem;
-                    }
-
-                    .results-info {
-                        justify-content: space-between;
-                        width: 100%;
-                    }
-
-                    .sort-select {
-                        width: 100%;
-                    }
-
-                    .stats-container {
-                        grid-template-columns: 1fr;
-                    }
-
-                    .stat-card {
-                        padding: 1.25rem;
-                    }
-
-                    .weddings-grid {
-                        padding: 1rem;
-                        gap: 1rem;
-                    }
-
-                    .card-body {
-                        padding: 1rem;
-                    }
-
-                    .stats-row {
-                        grid-template-columns: 1fr;
-                    }
-
-                    .quick-actions {
-                        flex-direction: column;
-                    }
-
-                    .fab {
-                        bottom: 1.5rem;
-                        right: 1.5rem;
-                    }
-                }
-
-                /* Dark mode support */
-                @media (prefers-color-scheme: dark) {
-                    body {
-                        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-                    }
-
-                    .content-container,
-                    .wedding-card,
-                    .stat-card {
-                        background: #2d3748;
-                        border-color: #4a5568;
-                    }
-
-                    .groom-name, .bride-name,
-                    .stat-number,
-                    .stat-value,
-                    .section-title {
-                        color: #e2e8f0;
-                    }
-
-                    .section-subtitle,
-                    .stat-label,
-                    .wedding-date,
-                    .venue-info,
-                    .empty-description {
-                        color: #a0aec0;
-                    }
-
-                    .lighter {
-                        background: #4a5568;
-                    }
-
-                    .venue-info,
-                    .stat-item {
-                        background: #4a5568;
-                        color: #e2e8f0;
-                    }
-
-                    .card-footer {
-                        background: #4a5568;
-                    }
-
-                    .footer-btn.download {
-                        background: #4a5568;
-                        color: #e2e8f0;
-                        border-color: #718096;
-                    }
-
-                    .footer-btn.download:hover {
-                        background: #5a6b82;
-                    }
-                }
-            `}</style>
+            {activeActionSheet && (
+                <div className="bottom-sheet-overlay" onClick={() => setActiveActionSheet(null)}>
+                    <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
+                        <div className="bottom-sheet-drag-handle"></div>
+                        
+                        <div className="bottom-sheet-header">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div className="bottom-sheet-avatar">
+                                    <i className={
+                                        activeActionSheet.type === 'wedding' ? 'fas fa-glass-cheers' :
+                                        activeActionSheet.type === 'birthday' ? 'fas fa-birthday-cake' :
+                                        'fas fa-gift'
+                                    } style={{
+                                        color: activeActionSheet.type === 'wedding' ? 'var(--primary)' :
+                                               activeActionSheet.type === 'birthday' ? '#c44569' :
+                                               '#c5a059'
+                                    }}></i>
+                                </div>
+                                <div>
+                                    <h4 className="bottom-sheet-title">{activeActionSheet.title}</h4>
+                                    <p className="bottom-sheet-subtitle">{activeActionSheet.subtitle}</p>
+                                </div>
+                            </div>
+                            <button className="bottom-sheet-close" onClick={() => setActiveActionSheet(null)}>
+                                <i className="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div className="bottom-sheet-actions">
+                            {/* View Site */}
+                            {activeActionSheet.type === 'wedding' && (
+                                <a href={`${window.location.origin}/w/${activeActionSheet.slug}`} target="_blank" rel="noopener noreferrer" className="bottom-sheet-action-btn">
+                                    <i className="fas fa-external-link-alt" style={{ color: 'var(--primary)' }}></i>
+                                    <span>View Invitation Website</span>
+                                </a>
+                            )}
+                            {activeActionSheet.type === 'birthday' && (
+                                <a href={`${window.location.origin}/b/${activeActionSheet.slug}`} target="_blank" rel="noopener noreferrer" className="bottom-sheet-action-btn">
+                                    <i className="fas fa-external-link-alt" style={{ color: '#c44569' }}></i>
+                                    <span>View Invitation Website</span>
+                                </a>
+                            )}
+                            {activeActionSheet.type === 'bridal_shower' && (
+                                <a href={`${window.location.origin}/bridal-shower/${activeActionSheet.slug}`} target="_blank" rel="noopener noreferrer" className="bottom-sheet-action-btn">
+                                    <i className="fas fa-external-link-alt" style={{ color: '#c5a059' }}></i>
+                                    <span>View Invitation Website</span>
+                                </a>
+                            )}
+
+                            {/* Share / Copy WhatsApp Link */}
+                            <button onClick={() => { copyLink(activeActionSheet.slug, activeActionSheet.copyType); setActiveActionSheet(null); }} className="bottom-sheet-action-btn">
+                                <i className="fab fa-whatsapp" style={{ color: '#25D366' }}></i>
+                                <span>Copy Link for WhatsApp</span>
+                            </button>
+                            
+                            {/* RSVP Report */}
+                            <Link to={activeActionSheet.reportUrl} target="_blank" className="bottom-sheet-action-btn">
+                                <i className="fas fa-chart-bar" style={{ color: '#3b82f6' }}></i>
+                                <span>View RSVP Report</span>
+                            </Link>
+
+                            {/* Download Excel */}
+                            <button onClick={() => { activeActionSheet.onDownload(); setActiveActionSheet(null); }} className="bottom-sheet-action-btn">
+                                <i className="fas fa-file-excel" style={{ color: 'var(--success)' }}></i>
+                                <span>Download RSVPs Excel</span>
+                            </button>
+
+                            {/* Manage Reminder Modal (Weddings only) */}
+                            {activeActionSheet.type === 'wedding' && (
+                                <button onClick={() => { 
+                                    setSelectedWeddingForReminder(activeActionSheet.rawEvent); 
+                                    setShowReminderModal(true); 
+                                    setActiveActionSheet(null); 
+                                }} className="bottom-sheet-action-btn">
+                                    <i className="fas fa-bell" style={{ color: 'var(--primary)' }}></i>
+                                    <span>Manage Reminders</span>
+                                </button>
+                            )}
+
+                            {/* Edit */}
+                            <Link to={activeActionSheet.editUrl} className="bottom-sheet-action-btn">
+                                <i className="fas fa-edit" style={{ color: '#8b5cf6' }}></i>
+                                <span>Edit Event Details</span>
+                            </Link>
+
+                            {/* Delete */}
+                            <button onClick={() => { activeActionSheet.onDelete(); setActiveActionSheet(null); }} className="bottom-sheet-action-btn delete">
+                                <i className="fas fa-trash" style={{ color: 'var(--danger)' }}></i>
+                                <span style={{ color: 'var(--danger)' }}>Delete Event</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Premium Mobile Bottom Navigation Bar */}
+            <div className="mobile-bottom-nav">
+                <button
+                    className={`mobile-bottom-nav-item ${activeTab === 'weddings' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('weddings')}
+                >
+                    <i className="fas fa-glass-cheers"></i>
+                    <span>Weddings</span>
+                </button>
+                <button
+                    className={`mobile-bottom-nav-item birthdays-tab ${activeTab === 'birthdays' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('birthdays')}
+                >
+                    <i className="fas fa-birthday-cake"></i>
+                    <span>Birthdays</span>
+                </button>
+                <button
+                    className={`mobile-bottom-nav-item bridal-tab ${activeTab === 'bridal_showers' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('bridal_showers')}
+                >
+                    <i className="fas fa-gift"></i>
+                    <span>Showers</span>
+                </button>
+                <button
+                    className={`mobile-bottom-nav-item ${activeTab === 'marketing' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('marketing')}
+                >
+                    <i className="fas fa-envelope"></i>
+                    <span>Marketing</span>
+                </button>
+            </div>
         </div>
     );
 };

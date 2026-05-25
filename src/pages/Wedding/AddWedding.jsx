@@ -1855,6 +1855,61 @@ const AddWedding = () => {
 
     return (
         <div className="admin-page add-wedding-page">
+            {/* Forced Clean Light-Mode Styles Overrides */}
+            <style>{`
+                html, body, #root, .add-wedding-page, .sidebar, .form-content-card, .person-card {
+                    background-color: #fdfbf7 !important;
+                    background: #fdfbf7 !important;
+                    color: #1b2424 !important;
+                }
+
+                .sidebar {
+                    background: #ffffff !important;
+                    border-right: 1px solid #e9e4d9 !important;
+                }
+
+                .form-content-card, .person-card, .page-title-card, .progress-section {
+                    background: #ffffff !important;
+                    border: 1px solid #e9e4d9 !important;
+                    box-shadow: 0 4px 15px rgba(45, 58, 58, 0.04) !important;
+                }
+
+                .sidebar-step.active {
+                    background: #f5f2eb !important;
+                    border-left: 3px solid #ea8612 !important;
+                }
+
+                .sidebar-step.active .step-number {
+                    background: #ea8612 !important;
+                    color: #ffffff !important;
+                }
+
+                .step-number {
+                    background: #f5f2eb !important;
+                    border: 1px solid #e9e4d9 !important;
+                }
+
+                .form-input, .form-textarea, .form-select {
+                    background: #f5f2eb !important;
+                    border: 1.5px solid #e9e4d9 !important;
+                    color: #1b2424 !important;
+                }
+
+                .form-input:focus, .form-textarea:focus, .form-select:focus {
+                    border-color: #ea8612 !important;
+                    background: #ffffff !important;
+                }
+
+                .sidebar-btn {
+                    background: #f5f2eb !important;
+                    border: 1px solid #e9e4d9 !important;
+                    color: #1b2424 !important;
+                }
+
+                .sidebar-btn:hover {
+                    background: #e9e4d9 !important;
+                }
+            `}</style>
             {/* Mobile Sidebar Toggle */}
             <button className="mobile-sidebar-toggle" onClick={() => setShowSidebar(!showSidebar)}>
                 <i className={`fas fa-${showSidebar ? 'times' : 'bars'}`}></i>
@@ -2056,21 +2111,21 @@ const AddWedding = () => {
 
             <style jsx>{`
                 :root {
-                    --primary: #8b5cf6;
-                    --primary-light: #a78bfa;
-                    --primary-dark: #7c3aed;
+                    --primary: #4f46e5;
+                    --primary-light: #818cf8;
+                    --primary-dark: #3730a3;
                     --secondary: #ec4899;
                     --accent: #f59e0b;
                     --success: #10b981;
                     --warning: #f59e0b;
                     --danger: #ef4444;
-                    --dark: #1f2937;
-                    --darker: #111827;
-                    --light: #f9fafb;
-                    --lighter: #f3f4f6;
-                    --gray: #6b7280;
-                    --gray-light: #9ca3af;
-                    --white: #1a1a1afff;
+                    --dark: #0f172a;
+                    --darker: #f8fafc;
+                    --light: #f8fafc;
+                    --lighter: #f1f5f9;
+                    --gray: #64748b;
+                    --gray-light: #94a3b8;
+                    --white: #ffffff;
                     --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
                     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
                     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
@@ -2107,12 +2162,12 @@ const AddWedding = () => {
                 /* Sidebar Styles */
                 .sidebar {
                     width: 320px;
-                    background: linear-gradient(180deg, var(--darker) 0%, #1e293b 100%);
-                    color: var(--white);
+                    background: var(--white);
+                    color: var(--dark);
                     padding: 2rem;
                     display: flex;
                     flex-direction: column;
-                    border-right: 1px solid rgba(255, 255, 255, 0.1);
+                    border-right: 1px solid var(--lighter);
                     position: fixed;
                     left: 0;
                     top: 0;
@@ -2202,7 +2257,7 @@ const AddWedding = () => {
                 .logo-text h2 {
                     font-size: 1.5rem;
                     font-weight: 700;
-                    background: linear-gradient(135deg, var(--white), #e5e7eb);
+                    background: linear-gradient(135deg, var(--dark), var(--gray));
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;
                     background-clip: text;
@@ -2234,11 +2289,11 @@ const AddWedding = () => {
                 }
 
                 .sidebar-step:hover {
-                    background: rgba(255, 255, 255, 0.1);
+                    background: var(--lighter);
                 }
 
                 .sidebar-step.active {
-                    background: rgba(139, 92, 246, 0.2);
+                    background: var(--lighter);
                     border-left: 3px solid var(--primary);
                 }
 
@@ -2253,7 +2308,7 @@ const AddWedding = () => {
                     width: 36px;
                     height: 36px;
                     border-radius: 50%;
-                    background: rgba(255, 255, 255, 0.1);
+                    background: var(--lighter);
                     display: flex;
                     align-items: center;
                     justify-content: center;
@@ -2266,7 +2321,7 @@ const AddWedding = () => {
                 .sidebar-step.active .step-number {
                     background: var(--primary);
                     color: white;
-                    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
+                    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
                 }
 
                 .sidebar-step.completed .step-number {
@@ -2277,7 +2332,7 @@ const AddWedding = () => {
                 .step-line {
                     width: 2px;
                     height: 40px;
-                    background: rgba(255, 255, 255, 0.1);
+                    background: var(--lighter);
                     margin-top: 0.5rem;
                 }
 
@@ -2296,7 +2351,7 @@ const AddWedding = () => {
 
                 .step-desc {
                     font-size: 0.875rem;
-                    color: var(--gray-light);
+                    color: var(--gray);
                 }
 
                 .sidebar-actions {
@@ -2309,9 +2364,9 @@ const AddWedding = () => {
                 .sidebar-btn {
                     padding: 0.875rem 1rem;
                     border-radius: var(--radius-md);
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                    background: rgba(255, 255, 255, 0.05);
-                    color: white;
+                    border: 1px solid var(--lighter);
+                    background: var(--light);
+                    color: var(--dark);
                     font-weight: 500;
                     cursor: pointer;
                     transition: var(--transition);
@@ -2322,24 +2377,27 @@ const AddWedding = () => {
                 }
 
                 .sidebar-btn:hover {
-                    background: rgba(255, 255, 255, 0.1);
+                    background: var(--lighter);
                     transform: translateY(-2px);
+                    color: var(--dark);
                 }
 
                 .sidebar-btn.dashboard {
-                    background: rgba(139, 92, 246, 0.2);
-                    border-color: var(--primary);
+                    background: var(--lighter);
+                    border-color: var(--primary-light);
+                    color: var(--primary);
                 }
 
                 .sidebar-btn.preview {
-                    background: rgba(236, 72, 153, 0.2);
+                    background: var(--lighter);
                     border-color: var(--secondary);
+                    color: var(--secondary);
                 }
 
                 .sidebar-footer {
                     margin-top: 2rem;
                     padding-top: 2rem;
-                    border-top: 1px solid rgba(255, 255, 255, 0.1);
+                    border-top: 1px solid var(--lighter);
                 }
 
                 .progress-info {
@@ -2350,17 +2408,17 @@ const AddWedding = () => {
 
                 .progress-label {
                     font-size: 0.875rem;
-                    color: var(--gray-light);
+                    color: var(--gray);
                 }
 
                 .progress-value {
                     font-weight: 600;
-                    color: var(--primary-light);
+                    color: var(--primary);
                 }
 
                 .progress-bar {
                     height: 6px;
-                    background: rgba(255, 255, 255, 0.1);
+                    background: var(--lighter);
                     border-radius: 3px;
                     overflow: hidden;
                 }

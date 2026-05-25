@@ -29,32 +29,59 @@ const Login = () => {
     };
 
     return (
-        <div className="admin-page login-container">
+        <div className="login-container">
             <div className="login-card">
-                <h1>Admin Login</h1>
+                <div className="login-brand" style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                    <img 
+                        src="/imgs/logo1.png" 
+                        alt="Save Me A Seat" 
+                        style={{ height: '56px', width: 'auto', marginBottom: '1rem', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))' }} 
+                    />
+                </div>
+                <h1>Admin Portal</h1>
                 <form onSubmit={handleLogin}>
-                    <div className="form-group">
-                        <label>Email</label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            className="form-input"
-                        />
+                    <div className="form-group" style={{ marginBottom: '1.75rem' }}>
+                        <label>Email Address</label>
+                        <div style={{ position: 'relative' }}>
+                            <i className="fas fa-envelope" style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.9rem' }}></i>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                placeholder="name@example.com"
+                                className="form-input"
+                                style={{ paddingLeft: '3rem' }}
+                            />
+                        </div>
                     </div>
-                    <div className="form-group">
+                    <div className="form-group" style={{ marginBottom: '2rem' }}>
                         <label>Password</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            className="form-input"
-                        />
+                        <div style={{ position: 'relative' }}>
+                            <i className="fas fa-lock" style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.9rem' }}></i>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                placeholder="••••••••"
+                                className="form-input"
+                                style={{ paddingLeft: '3rem' }}
+                            />
+                        </div>
                     </div>
-                    <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
-                        {loading ? 'Logging in...' : 'Login'}
+                    <button type="submit" className="btn btn-primary btn-block" disabled={loading} style={{ padding: '1rem 2rem' }}>
+                        {loading ? (
+                            <>
+                                <i className="fas fa-spinner fa-spin" style={{ marginRight: '0.5rem' }}></i>
+                                Authenticating...
+                            </>
+                        ) : (
+                            <>
+                                Sign In
+                                <i className="fas fa-arrow-right" style={{ marginLeft: '0.5rem', transition: 'transform 0.2s' }}></i>
+                            </>
+                        )}
                     </button>
                 </form>
             </div>
@@ -63,3 +90,4 @@ const Login = () => {
 };
 
 export default Login;
+
