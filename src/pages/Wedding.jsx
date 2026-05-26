@@ -2559,7 +2559,7 @@ const WeddingTemplate = () => {
             <a href="#" className="logonobold" id="couple-initials" onClick={(e) => e.preventDefault()}>
               {weddingData.couple.bride.name?.charAt(0)} & {weddingData.couple.groom.name?.charAt(0)}
             </a>
-            <ul className={`nav-links ${mobileMenuOpen ? '' : ''}`}>
+            <ul className={`nav-links ${mobileMenuOpen ? 'active' : ''}`}>
               <li><a href="#home" onClick={handleNavClick}>Home</a></li>
               <li><a href="#about" onClick={handleNavClick}>Story</a></li>
               <li><a href="#party" onClick={handleNavClick}>Party</a></li>
@@ -2567,9 +2567,6 @@ const WeddingTemplate = () => {
               <li><a href="#gallery" onClick={handleNavClick}>Gallery</a></li>
               <li><a href="#rsvp" onClick={handleNavClick}>RSVP</a></li>
             </ul>
-            <div className="mobile-menu" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-              <i className="fas fa-bars"></i>
-            </div>
           </nav>
         </div>
       </header>

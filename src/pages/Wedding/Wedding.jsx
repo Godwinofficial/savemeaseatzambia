@@ -54,7 +54,7 @@ const WeddingTemplate = () => {
 
   const [loading, setLoading] = useState(true);
   const [scrolled, setScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -401,7 +401,7 @@ const WeddingTemplate = () => {
         behavior: 'smooth'
       });
     }
-    setMobileMenuOpen(false);
+    setIsMenuOpen(false);
   };
 
   // Slider Functions
@@ -905,8 +905,12 @@ const WeddingTemplate = () => {
       width: 100%;
     }
 
-    .mobile-menu {
+    .mobile-menu-btn {
       display: none;
+      background: none;
+      border: none;
+      outline: none;
+      padding: 0;
       font-size: 1.5rem;
       cursor: pointer;
       color: var(--text-color);
@@ -2327,7 +2331,7 @@ const WeddingTemplate = () => {
         margin: 0 !important;
       }
 
-      .mobile-menu {
+      .mobile-menu-btn {
         display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
@@ -2337,6 +2341,10 @@ const WeddingTemplate = () => {
         cursor: pointer !important;
         position: relative !important;
         margin: 0 !important;
+        background: none !important;
+        border: none !important;
+        outline: none !important;
+        padding: 0 !important;
       }
 
       .nav-links {
@@ -2615,7 +2623,10 @@ const WeddingTemplate = () => {
             <a href="#" className="logonobold" id="couple-initials" onClick={(e) => e.preventDefault()}>
               {weddingData.couple.bride.name?.charAt(0)} & {weddingData.couple.groom.name?.charAt(0)}
             </a>
-            <ul className={`nav-links ${mobileMenuOpen ? '' : ''}`}>
+            <button className="mobile-menu-btn" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+              <i className={isMenuOpen ? "fas fa-times" : "fas fa-bars"}></i>
+            </button>
+            <ul className={`nav-links ${isMenuOpen ? 'active' : ''}`}>
               <li><a href="#home" onClick={handleNavClick}>Home</a></li>
               <li><a href="#about" onClick={handleNavClick}>Story</a></li>
               <li><a href="#party" onClick={handleNavClick}>Party</a></li>
@@ -2623,9 +2634,6 @@ const WeddingTemplate = () => {
               <li><a href="#gallery" onClick={handleNavClick}>Gallery</a></li>
               <li><a href="#rsvp" onClick={handleNavClick}>RSVP</a></li>
             </ul>
-            <div className="mobile-menu" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-              <i className="fas fa-bars"></i>
-            </div>
           </nav>
         </div>
       </header>

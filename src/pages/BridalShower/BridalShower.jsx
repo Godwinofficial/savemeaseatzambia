@@ -9,6 +9,7 @@ const BridalShower = () => {
 
     const [event, setEvent] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [cdnLoaded, setCdnLoaded] = useState(false);
     const [notFound, setNotFound] = useState(false);
 
     const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
@@ -52,8 +53,9 @@ const BridalShower = () => {
         fetchEvent();
     }, [slug]);
 
-    // ─── Theme color ────────────────────────────────────────────────────────────
+    // ─── Theme color, background, & font styling ───────────────────────────────
     useEffect(() => {
+        // Theme color meta tag
         let meta = document.querySelector("meta[name='theme-color']");
         const orig = meta?.getAttribute('content') || null;
         if (!meta) {
@@ -62,7 +64,69 @@ const BridalShower = () => {
             document.head.appendChild(meta);
         }
         meta.setAttribute('content', '#fdfbf7');
-        return () => { orig ? meta.setAttribute('content', orig) : meta.remove(); };
+
+        // Capture original inline styles to prevent leakage
+        const origBodyBg = document.body.style.backgroundColor;
+        const origBodyColor = document.body.style.color;
+        const origBodyFont = document.body.style.fontFamily;
+        const origHtmlBg = document.documentElement.style.backgroundColor;
+        const origHtmlColor = document.documentElement.style.color;
+        const origHtmlFont = document.documentElement.style.fontFamily;
+
+        // Force brand identities
+        document.body.style.setProperty('background-color', '#fdfbf7', 'important');
+        document.body.style.setProperty('color', '#1a1a1a', 'important');
+        document.body.style.setProperty('font-family', "'Outfit', sans-serif", 'important');
+
+        document.documentElement.style.setProperty('background-color', '#fdfbf7', 'important');
+        document.documentElement.style.setProperty('color', '#1a1a1a', 'important');
+        document.documentElement.style.setProperty('font-family', "'Outfit', sans-serif", 'important');
+
+        return () => {
+            // Restore original states
+            orig ? meta.setAttribute('content', orig) : meta.remove();
+
+            document.body.style.backgroundColor = origBodyBg;
+            document.body.style.color = origBodyColor;
+            document.body.style.fontFamily = origBodyFont;
+
+            document.documentElement.style.backgroundColor = origHtmlBg;
+            document.documentElement.style.color = origHtmlColor;
+            document.documentElement.style.fontFamily = origHtmlFont;
+        };
+    }, []);
+
+    // ─── Load Tailwind CDN ───────────────────────────────────────────────────────
+    useEffect(() => {
+        window.tailwind = window.tailwind || {};
+        window.tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        bsPrimary: '#2d3a3a',
+                        bsBg: '#fdfbf7',
+                        bsText: '#1a1a1a',
+                        bsWhite: '#ffffff',
+                        bsAccent: '#c5a059'
+                    },
+                    fontFamily: {
+                        outfit: ['Outfit', 'sans-serif'],
+                        cormorant: ['Cormorant Garamond', 'serif']
+                    }
+                }
+            }
+        };
+
+        if (!document.getElementById('tailwind-cdn')) {
+            const script = document.createElement('script');
+            script.id = 'tailwind-cdn';
+            script.src = 'https://cdn.tailwindcss.com';
+            script.onload = () => setCdnLoaded(true);
+            document.head.appendChild(script);
+        } else {
+            setCdnLoaded(true);
+        }
     }, []);
 
     // ─── Scroll listener ────────────────────────────────────────────────────────
@@ -172,7 +236,7 @@ const BridalShower = () => {
     };
 
     // ─── Loading / Not Found ─────────────────────────────────────────────────────
-    if (loading) return (
+    if (loading || !cdnLoaded) return (
         <div className="min-h-screen bg-[#fdfbf7] flex items-center justify-center">
             <div className="text-center">
                 <div className="w-12 h-12 border-2 border-[#2d3a3a] border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
@@ -420,7 +484,7 @@ const BridalShower = () => {
 
                                 {/* Landscape Ticket Container */}
                                 <div className="flex flex-col lg:flex-row border border-gray-100 rounded-sm overflow-hidden">
-                                    
+
                                     {/* Left Side: Main Pass Info */}
                                     <div className="flex-[1.8] p-6 lg:p-8 bg-white relative">
                                         <div className="flex items-center gap-5 mb-5">
@@ -476,7 +540,7 @@ const BridalShower = () => {
                                                 <p className="font-cormorant text-base text-bsPrimary leading-tight">{event?.venue_name || 'The Venue'}</p>
                                             </div>
                                         </div>
-                                        
+
                                         <div className="mt-6 pt-4 border-t border-gray-100 lg:border-none lg:pt-0 lg:mt-6">
                                             <div className="text-center lg:text-left">
                                                 <p className="text-[8px] uppercase tracking-[3px] text-bsAccent font-bold">Show at Entry</p>
