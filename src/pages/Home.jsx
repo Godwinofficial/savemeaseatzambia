@@ -11,6 +11,7 @@ import corporateImg from '../assets/images/Business Meeting Invitation.png';
 import birthdayImg from '../assets/images/Birthday Greeting Card.png';
 import weddingInvitationCardImg from '../assets/images/Wedding Invitation Card.png';
 import bridalShowerImg from '../assets/images/Bridal Shower Invitation.png';
+import GlobalAIAgentWidget from '../components/GlobalAIAgentWidget';
 
 // Header Component
 const Header = () => {
@@ -565,14 +566,14 @@ const PricingCard = ({ title, price, features, popular, packageType, onOpenPacka
         <div className={`pricing-card ${popular ? 'popular' : ''}`}>
             {popular && <div className="popular-badge">Most Popular</div>}
             <h3>{title}</h3>
-            <div className="price">{price}<span>/invitation</span></div>
+            <div className="price">{price} {packageType !== 'corporate' && <span>/invitation</span>}</div>
             <ul className="pricing-features">
                 {features.map((feature, index) => (
                     <li key={index}>{feature}</li>
                 ))}
             </ul>
             <a href="#" className="btn view-package" data-package={packageType} onClick={handleViewPackage}>
-                View Plan
+                View Plan Specs
             </a>
         </div>
     );
@@ -582,46 +583,74 @@ const PricingCard = ({ title, price, features, popular, packageType, onOpenPacka
 const Pricing = ({ onOpenPackage }) => {
     const plans = [
         {
-            title: 'Starter Plan',
-            price: 'ZMW 750',
+            title: 'Starter Package',
+            price: 'ZMW 450',
             features: [
-                'Beautiful digital invitation',
-                'Up to 250 guests',
-                'Standard template design',
-                'Basic RSVP tracking',
-                'Mobile-friendly design'
+                'Up to 100 Guests limit',
+                'Premium digital invitation',
+                'Event details page',
+                'WhatsApp sharing & directions',
+                'RSVP tracking & maps location',
+                'Countdown timer & 1 free revision'
             ],
             popular: false,
-            packageType: 'standard'
+            packageType: 'starter'
         },
         {
-            title: 'Standard Plan',
-            price: 'ZMW 1600',
+            title: 'Silver Package',
+            price: 'ZMW 650',
             features: [
-                'Custom digital invitation',
-                'Up to 800 guests',
-                'Premium template designs',
-                'Advanced RSVP management',
-                'Guest list tracking',
-                'Photo gallery integration'
+                'Up to 200 Guests limit',
+                'Everything in Starter package',
+                'Stunning photo gallery panel',
+                'Background music integration',
+                'Event schedule section',
+                '3 free revisions support'
+            ],
+            popular: false,
+            packageType: 'silver'
+        },
+        {
+            title: 'Gold Package',
+            price: 'ZMW 850',
+            features: [
+                'Up to 350 Guests limit',
+                'Everything in Silver package',
+                'Fully custom RSVP form layout',
+                'Guest list groupings/categories',
+                'Gift registry integration',
+                'Unlimited revisions guarantee'
             ],
             popular: true,
-            packageType: 'custom'
+            packageType: 'gold'
         },
         {
-            title: 'Premium Plan',
-            price: 'ZMW 2500',
+            title: 'Platinum Package',
+            price: 'ZMW 1,500',
             features: [
-                'Luxury custom invitation',
-                'Unlimited guests',
-                'Bespoke design & branding',
-                'Advanced RSVP features',
-                'Multi-page invitation website',
-                'Video integration',
-                'Priority support'
+                'Up to 500 Guests limit',
+                'Everything in Gold package',
+                'Personalized guest invitation cards',
+                'Unique QR Code gate entry tickets',
+                'Premium interactive animations',
+                'VIP guest management & support'
             ],
             popular: false,
-            packageType: 'custom-plus'
+            packageType: 'platinum'
+        },
+        {
+            title: 'Corporate Package',
+            price: 'From ZMW 2,500',
+            features: [
+                'Custom branded portal design',
+                'Corporate colors & brand assets',
+                'Multiple RSVP attendee categories',
+                'Event analytics live dashboard',
+                'Dedicated planning manager support',
+                'Conference & product launch modules'
+            ],
+            popular: false,
+            packageType: 'corporate'
         }
     ];
 
@@ -637,7 +666,6 @@ const Pricing = ({ onOpenPackage }) => {
                 </div>
             </div>
         </section>
-
     );
 };
 
@@ -1039,9 +1067,11 @@ function App() {
     };
 
     const openPackagePopup = (packageType) => {
-        if (packageType === 'standard') setActivePopup('standardPackage');
-        else if (packageType === 'custom') setActivePopup('customPackage');
-        else if (packageType === 'custom-plus') setActivePopup('customPlusPackage');
+        if (packageType === 'starter') setActivePopup('starterPackage');
+        else if (packageType === 'silver') setActivePopup('silverPackage');
+        else if (packageType === 'gold') setActivePopup('goldPackage');
+        else if (packageType === 'platinum') setActivePopup('platinumPackage');
+        else if (packageType === 'corporate') setActivePopup('corporatePackage');
     };
 
     return (
@@ -1059,6 +1089,7 @@ function App() {
             <Testimonials />
             <Contact />
             <Footer />
+            <GlobalAIAgentWidget />
 
             {/* Popups */}
             <div className={`popup-overlay ${activePopup === 'privacyPolicy' ? 'active' : ''}`} id="privacyPolicyPopup" onClick={(e) => e.target.id === 'privacyPolicyPopup' && closePopup()}>
@@ -1077,100 +1108,149 @@ function App() {
                 </div>
             </div>
 
-            <div className={`popup-overlay ${activePopup === 'standardPackage' ? 'active' : ''}`} id="standardPackagePopup">
+            {/* Starter Package Modal */}
+            <div className={`popup-overlay ${activePopup === 'starterPackage' ? 'active' : ''}`} id="starterPackagePopup" onClick={(e) => e.target.id === 'starterPackagePopup' && closePopup()}>
                 <div className="popup-content package-popup">
                     <button className="popup-close" onClick={closePopup}>&times;</button>
-                    <h3>Digital Package</h3>
-                    <p className="package-tagline">Digital Excellence. Real Results.</p>
-                    <p className="package-description">Perfect for events that need beautiful digital presence. Our Digital Package delivers stunning invitations and RSVP pages using our curated templates — fast, beautiful, and easy to share with your guests.</p>
+                    <h3>Starter Package Specs</h3>
+                    <p className="package-tagline">Premium Digital Invitation. Essential Features.</p>
+                    <p className="package-description">Ideal for standard intimate celebrations for up to 100 guests. Share easily and track your seats instantly.</p>
                     <div className="package-section">
                         <h4>What You Get:</h4>
                         <ul>
-                            <li>One-page digital invite or RSVP page</li>
-                            <li>Choose from a selection of designer templates</li>
-                            <li>Custom event link (e.g. savemeaseatzambia.com/benandlisa)</li>
-                            <li>Downloadable program card included in RSVP confirmation</li>
-                            <li>Guest list tracked in a Google Sheet</li>
-                            <li>Open or closed RSVP option</li>
-                            <li>Some templates include gallery or map</li>
-                            <li>2 free edit rounds (extra changes: K300 per round)</li>
+                            <li>Premium digital invitation & event details page</li>
+                            <li>RSVP tracking & WhatsApp sharing</li>
+                            <li>Google Maps location integration</li>
+                            <li>Interactive Countdown timer</li>
+                            <li>1 free design/text revision included</li>
+                            <li>Mobile-friendly clean layout</li>
                         </ul>
                     </div>
                     <div className="package-section">
-                        <h4>How It Works:</h4>
+                        <h4>Fulfill Process:</h4>
                         <ol>
-                            <li>Choose Your Template</li>
-                            <li>Pay & Send Receipt via WhatsApp or Email</li>
-                            <li>Fill Out Event Info via Short Form</li>
-                            <li>Your Page Goes Live in 24 Hours</li>
-                            <li>You Review & Request Up to 2 Changes</li>
+                            <li>Select your theme preferences</li>
+                            <li>Settle payment and share receipt proof via WhatsApp</li>
+                            <li>Submit your event details and schedule</li>
+                            <li>Your portal goes live within 24 hours for review</li>
                         </ol>
                     </div>
                 </div>
             </div>
 
-            <div className={`popup-overlay ${activePopup === 'customPackage' ? 'active' : ''}`} id="customPackagePopup">
+            {/* Silver Package Modal */}
+            <div className={`popup-overlay ${activePopup === 'silverPackage' ? 'active' : ''}`} id="silverPackagePopup" onClick={(e) => e.target.id === 'silverPackagePopup' && closePopup()}>
                 <div className="popup-content package-popup">
                     <button className="popup-close" onClick={closePopup}>&times;</button>
-                    <h3>Planning Package</h3>
-                    <p className="package-tagline">Complete Planning. Perfect Execution.</p>
-                    <p className="package-description">For hosts who want comprehensive event planning with personal touch. We handle everything from venue selection to vendor coordination — ensuring your event is perfectly executed.</p>
+                    <h3>Silver Package Specs</h3>
+                    <p className="package-tagline">Everything in Starter, Plus Beautiful Media.</p>
+                    <p className="package-description">Perfect for mid-sized events up to 200 guests with media, audio integration, and timeline schedule views.</p>
                     <div className="package-section">
                         <h4>What You Get:</h4>
                         <ul>
-                            <li>Custom-designed single-page RSVP or invite</li>
-                            <li>Personalized planning call with our team</li>
-                            <li>Event link like savemeaseatzambia.com/emmaandpatrick</li>
-                            <li>Guest list managed in real-time via Google Sheets</li>
-                            <li>Optional: dress code, gift info, gallery, location, downloads</li>
-                            <li>Open or private RSVP</li>
-                            <li>2 free edit rounds (extra changes: K300 per round)</li>
+                            <li>Everything in Starter Package</li>
+                            <li>Stunning image photo gallery panel</li>
+                            <li>Elegant background music integration</li>
+                            <li>Detailed event schedule/program section</li>
+                            <li>3 free design/text revisions included</li>
                         </ul>
                     </div>
                     <div className="package-section">
-                        <h4>How It Works:</h4>
+                        <h4>Fulfill Process:</h4>
                         <ol>
-                            <li>Book the Custom Package</li>
-                            <li>Pay & Send Proof</li>
-                            <li>Complete Our Form</li>
-                            <li>Hop on a Quick Planning Call</li>
-                            <li>We Build and Launch Your Page Within 48 Hours</li>
-                            <li>You Get 2 Free Revisions</li>
+                            <li>Choose your style and complete Kwacha payment</li>
+                            <li>Share transaction confirmation screenshot on WhatsApp</li>
+                            <li>Send event photos, music audio, and schedule details</li>
+                            <li>Portal goes live within 24-48 hours for review</li>
                         </ol>
                     </div>
                 </div>
             </div>
 
-            <div className={`popup-overlay ${activePopup === 'customPlusPackage' ? 'active' : ''}`} id="customPlusPackagePopup">
+            {/* Gold Package Modal */}
+            <div className={`popup-overlay ${activePopup === 'goldPackage' ? 'active' : ''}`} id="goldPackagePopup" onClick={(e) => e.target.id === 'goldPackagePopup' && closePopup()}>
                 <div className="popup-content package-popup">
                     <button className="popup-close" onClick={closePopup}>&times;</button>
-                    <h3>Premium Package</h3>
-                    <p className="package-tagline">Luxury Experience. Unforgettable Events.</p>
-                    <p className="package-description">Ideal for premium events, large celebrations, or when you want the complete luxury experience. This comprehensive package includes everything from planning to execution with premium services.</p>
+                    <h3>Gold Package Specs</h3>
+                    <p className="package-tagline">Tailored Customization. Unlimited Revisions.</p>
+                    <p className="package-description">Our best-value plan for weddings and events up to 350 guests. Offers complete layout styling and registries.</p>
                     <div className="package-section">
                         <h4>What You Get:</h4>
                         <ul>
-                            <li>Multi-page custom RSVP or invitation website</li>
-                            <li>Unlimited guests and responses</li>
-                            <li>Personalized layout and strategy call</li>
-                            <li>Custom link (e.g. savemeaseatzambia.com/thekundaunion2025)</li>
-                            <li>Sections for: Agenda, Travel, Gift Registry</li>
-                            <li>Photo Galleries, Maps, Videos</li>
-                            <li>Downloads, FAQs, and more</li>
-                            <li>Google Sheet for live guest tracking</li>
-                            <li>Open or invite-only registration</li>
-                            <li>2 edit rounds included (K300 for each extra)</li>
+                            <li>Everything in Silver Package</li>
+                            <li>Fully customized RSVP submission form</li>
+                            <li>Guest lists categorization (VIP, Family, Friends)</li>
+                            <li>Interactive gift registry section with links</li>
+                            <li>Unlimited package design revisions</li>
                         </ul>
                     </div>
                     <div className="package-section">
-                        <h4>How It Works:</h4>
+                        <h4>Fulfill Process:</h4>
                         <ol>
-                            <li>Confirm Your Custom Plus Booking</li>
-                            <li>Make Payment & Share Proof</li>
-                            <li>Submit Event Info via Form</li>
-                            <li>Join a Planning Call with Our Team</li>
-                            <li>Your Website Goes Live in 48 Hours</li>
-                            <li>Refinements? You Get 2 Free</li>
+                            <li>Book the Gold plan and transfer package fee</li>
+                            <li>Provide payment receipt and design guide suggestions</li>
+                            <li>Our designer creates your bespoke layout draft</li>
+                            <li>Revision feedback is processed immediately with unlimited edits</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            {/* Platinum Package Modal */}
+            <div className={`popup-overlay ${activePopup === 'platinumPackage' ? 'active' : ''}`} id="platinumPackagePopup" onClick={(e) => e.target.id === 'platinumPackagePopup' && closePopup()}>
+                <div className="popup-content package-popup">
+                    <button className="popup-close" onClick={closePopup}>&times;</button>
+                    <h3>Platinum Package Specs</h3>
+                    <p className="package-tagline">Bespoke Luxury. Security gate check-ins.</p>
+                    <p className="package-description">Curated for high-profile weddings, large events, and elite celebrations up to 500 guests with unique QR Code tickets.</p>
+                    <div className="package-section">
+                        <h4>What You Get:</h4>
+                        <ul>
+                            <li>Everything in Gold Package</li>
+                            <li>Personalized guest invitation sheets</li>
+                            <li>Secure QR Code tickets generated for gate entry</li>
+                            <li>Premium customized animations & visual layouts</li>
+                            <li>Priority planning support & dedicated coordination desk</li>
+                            <li>Advanced VIP guest management features</li>
+                        </ul>
+                    </div>
+                    <div className="package-section">
+                        <h4>Fulfill Process:</h4>
+                        <ol>
+                            <li>Book Platinum Package and complete FNB or MoMo transfer</li>
+                            <li>Send proof via WhatsApp and connect with your dedicated designer</li>
+                            <li>Provide guest list database for QR code generation</li>
+                            <li>Luxury portal goes live in 48-72 hours with VIP features</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            {/* Corporate Package Modal */}
+            <div className={`popup-overlay ${activePopup === 'corporatePackage' ? 'active' : ''}`} id="corporatePackagePopup" onClick={(e) => e.target.id === 'corporatePackagePopup' && closePopup()}>
+                <div className="popup-content package-popup">
+                    <button className="popup-close" onClick={closePopup}>&times;</button>
+                    <h3>Corporate Package Specs</h3>
+                    <p className="package-tagline">Professional Branding. Robust Event Analytics.</p>
+                    <p className="package-description">A custom-built solution for corporate summits, product launches, banquets, and seminars.</p>
+                    <div className="package-section">
+                        <h4>What You Get:</h4>
+                        <ul>
+                            <li>Custom-branded event invitation portal</li>
+                            <li>Complete corporate color scheme and identity assets</li>
+                            <li>Multiple RSVP categories (VIP, general, media, speakers)</li>
+                            <li>Advanced event registration analytics dashboard</li>
+                            <li>Dedicated project manager & priority SLA support</li>
+                            <li>Custom feature additions based on conference goals</li>
+                        </ul>
+                    </div>
+                    <div className="package-section">
+                        <h4>Fulfill Process:</h4>
+                        <ol>
+                            <li>Submit business requirements via email or WhatsApp</li>
+                            <li>Receive a custom project quote and statement of work</li>
+                            <li>Review prototype wireframes with branding assets</li>
+                            <li>Live deployment with direct coordination dashboard access</li>
                         </ol>
                     </div>
                 </div>

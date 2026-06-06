@@ -11,7 +11,8 @@ import { supabase } from '../../supabaseClient';
 import corporateImg from '/src/assets/images/Business Meeting Invitation.png';
 import birthdayImg from '/src/assets/images/Birthday Greeting Card.png';
 import weddingInvitationCardImg from '/src/assets/images/Wedding Invitation Card.png';
-import bridalShowerImg from '/src/assets/images/Bridal Shower Invitation.png';
+import bridalShowerImg from '../../assets/images/Bridal Shower Invitation.png';
+import GlobalAIAgentWidget from '../../components/GlobalAIAgentWidget';
 
 // Synthetic Beep Sound Generator using Web Audio API
 const playSuccessBeep = () => {
@@ -944,18 +945,29 @@ const PricingCard = ({ title, price, features, popular, packageType, onOpenPacka
         onOpenPackage(packageType);
     };
 
+    const getIconClass = (pkgType) => {
+        switch (pkgType) {
+            case 'starter': return 'fas fa-paper-plane';
+            case 'silver': return 'fas fa-palette';
+            case 'gold': return 'fas fa-gem';
+            case 'platinum': return 'fas fa-crown';
+            case 'corporate': return 'fas fa-building';
+            default: return 'fas fa-rocket';
+        }
+    };
+
     return (
         <div className={`pricing-card-spec ${popular ? 'popular' : ''}`}>
             {popular && <span className="spec-card-badge">Most Popular</span>}
             <div className="spec-card-header">
                 <div className="spec-icon-box">
-                    <i className={packageType === 'standard' ? "fas fa-paper-plane" : packageType === 'custom' ? "fas fa-rocket" : "fas fa-crown"}></i>
+                    <i className={getIconClass(packageType)}></i>
                 </div>
                 <span className="spec-tag">{labelCode}</span>
             </div>
             <h3>{title}</h3>
             <div className="spec-price-tag">
-                {price} <span className="price-sub">/ portal</span>
+                {price} {packageType !== 'corporate' && <span className="price-sub">/ portal</span>}
             </div>
             <ul className="spec-features-list">
                 {features.map((feature, index) => (
@@ -976,48 +988,79 @@ const PricingCard = ({ title, price, features, popular, packageType, onOpenPacka
 const Pricing = ({ onOpenPackage }) => {
     const plans = [
         {
-            title: 'Starter Plan',
-            price: 'ZMW 750',
+            title: 'Starter Package',
+            price: 'ZMW 450',
             features: [
-                'Beautiful one-page digital invitation',
-                'Up to 250 guest RSVP slots',
-                'Curated standard template design',
-                'Basic real-time RSVP sheet tracking',
-                'Highly mobile-optimized viewport'
+                'Up to 100 Guests limit',
+                'Premium digital invitation',
+                'Event details page',
+                'WhatsApp sharing & directions',
+                'RSVP tracking & maps location',
+                'Countdown timer & 1 free revision'
             ],
             popular: false,
-            packageType: 'standard',
+            packageType: 'starter',
             labelCode: 'PKG-STR-01'
         },
         {
-            title: 'Standard Plan',
-            price: 'ZMW 1,600',
+            title: 'Silver Package',
+            price: 'ZMW 650',
             features: [
-                'Custom colors digital invitation website',
-                'Up to 800 guest RSVP slots',
-                'Premium template designs with maps',
-                'Advanced RSVP capping & code restrict',
-                'Google Sheets tracking integration',
-                'Photo gallery slider integration'
-            ],
-            popular: true,
-            packageType: 'custom',
-            labelCode: 'PKG-STD-02'
-        },
-        {
-            title: 'Premium Plan',
-            price: 'ZMW 2,500',
-            features: [
-                'Bespoke multi-page luxury wedding website',
-                'Unlimited guest RSVP entries',
-                'Tailor-made grid UI and timeline blocks',
-                'Family group RSVPs & QR check-in codes',
-                'Dynamic registry list & download link',
-                'Full priority design support'
+                'Up to 200 Guests limit',
+                'Everything in Starter package',
+                'Stunning photo gallery panel',
+                'Background music integration',
+                'Event schedule section',
+                '3 free revisions support'
             ],
             popular: false,
-            packageType: 'custom-plus',
-            labelCode: 'PKG-PRM-03'
+            packageType: 'silver',
+            labelCode: 'PKG-SLV-02'
+        },
+        {
+            title: 'Gold Package',
+            price: 'ZMW 850',
+            features: [
+                'Up to 350 Guests limit',
+                'Everything in Silver package',
+                'Fully custom RSVP form layout',
+                'Guest list groupings/categories',
+                'Gift registry integration',
+                'Unlimited revisions guarantee'
+            ],
+            popular: true,
+            packageType: 'gold',
+            labelCode: 'PKG-GLD-03'
+        },
+        {
+            title: 'Platinum Package',
+            price: 'ZMW 1,500',
+            features: [
+                'Up to 500 Guests limit',
+                'Everything in Gold package',
+                'Personalized guest invitation cards',
+                'Unique QR Code gate entry tickets',
+                'Premium interactive animations',
+                'VIP guest management & support'
+            ],
+            popular: false,
+            packageType: 'platinum',
+            labelCode: 'PKG-PLT-04'
+        },
+        {
+            title: 'Corporate Package',
+            price: 'From ZMW 2,500',
+            features: [
+                'Custom branded portal design',
+                'Corporate colors & brand assets',
+                'Multiple RSVP attendee categories',
+                'Event analytics live dashboard',
+                'Dedicated planning manager support',
+                'Conference & product launch modules'
+            ],
+            popular: false,
+            packageType: 'corporate',
+            labelCode: 'PKG-CRP-05'
         }
     ];
 
@@ -1026,10 +1069,17 @@ const Pricing = ({ onOpenPackage }) => {
             <div className="container">
                 <div className="section-title-wrap">
                     <span className="sub-title">PRICING PACKAGES</span>
-                    <h2>Digital Invitation Plans</h2>
+                    <h2>Digital Invitations Starting From Just ZMW 450</h2>
                     <p className="section-desc">
-                        Select a digital infrastructure plan engineered to meet your guest lists and coordinating goals.
+                        Whether it's a wedding, birthday, bridal shower, kitchen party, graduation, or corporate event, SaveMeASeat helps you create stunning digital invitations that impress your guests and simplify event management.
                     </p>
+                    <div className="pricing-promo-highlights">
+                        <span><i className="fas fa-check-circle"></i> Easy Sharing</span>
+                        <span><i className="fas fa-check-circle"></i> Maps & Directions</span>
+                        <span><i className="fas fa-check-circle"></i> Countdown Timer</span>
+                        <span><i className="fas fa-check-circle"></i> RSVP Tracking</span>
+                    </div>
+                    <p className="pricing-slogan">Save money. Save time. Save your seat with SaveMeASeat.</p>
                 </div>
                 <div className="pricing-plans-grid">
                     {plans.map((plan, index) => (
@@ -1220,51 +1270,107 @@ const Statistics = () => {
 // Elite Local Zambia Event Vendor Directory (with real-time filters)
 const VendorDirectory = () => {
     const [selectedFilter, setSelectedFilter] = useState('all');
+    const [vendors, setVendors] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [activeVendor, setActiveVendor] = useState(null);
+    const [lightboxIndex, setLightboxIndex] = useState(null);
 
-    const vendors = [
+    const fallbackVendors = [
         {
             name: 'Glow by Sarah M.',
             category: 'Makeup',
             city: 'Lusaka',
-            image: 'https://images.pexels.com/photos/2533266/pexels-photo-2533266.jpeg?auto=compress&cs=tinysrgb&w=600'
+            image: 'https://images.pexels.com/photos/2533266/pexels-photo-2533266.jpeg?auto=compress&cs=tinysrgb&w=600',
+            rating: '5.0 Verified',
+            description: 'Top-rated makeup professional. One simple search.'
         },
         {
             name: 'Obelisk Photography',
             category: 'Photography',
             city: 'Lusaka',
-            image: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=600&q=80'
+            image: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=600&q=80',
+            rating: '5.0 Verified',
+            description: 'Top-rated photography professional. One simple search.'
         },
         {
             name: 'Amethyst Decor Designs',
             category: 'Decor',
             city: 'Lusaka',
-            image: 'https://images.unsplash.com/photo-1478146896981-b80fe463b330?auto=format&fit=crop&w=600&q=80'
+            image: 'https://images.unsplash.com/photo-1478146896981-b80fe463b330?auto=format&fit=crop&w=600&q=80',
+            rating: '5.0 Verified',
+            description: 'Top-rated decor professional. One simple search.'
         },
         {
             name: 'Lusaka Gourmet Caterers',
             category: 'Catering',
             city: 'Lusaka',
-            image: 'https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=600&q=80'
+            image: 'https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=600&q=80',
+            rating: '5.0 Verified',
+            description: 'Top-rated catering professional. One simple search.'
         },
         {
             name: 'The Savannah Pavilions',
             category: 'Venues',
             city: 'Lusaka',
-            image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=600&q=80'
+            image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=600&q=80',
+            rating: '5.0 Verified',
+            description: 'Top-rated venues professional. One simple search.'
         },
         {
             name: 'Lola Wedding Planners',
             category: 'Decor',
             city: 'Kitwe',
-            image: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=600&q=80'
+            image: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=600&q=80',
+            rating: '5.0 Verified',
+            description: 'Top-rated decor professional. One simple search.'
         },
         {
             name: 'Zambia Sound & Stage Lights',
             category: 'Venues',
             city: 'Lusaka',
-            image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=600&q=80'
+            image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=600&q=80',
+            rating: '5.0 Verified',
+            description: 'Top-rated venues professional. One simple search.'
         }
     ];
+
+    useEffect(() => {
+        const getVendors = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('vendors')
+                    .select('*')
+                    .order('created_at', { ascending: true });
+                if (error) throw error;
+                if (data && data.length > 0) {
+                    setVendors(data);
+                } else {
+                    setVendors(fallbackVendors);
+                }
+            } catch (err) {
+                console.warn('Failed to fetch vendors from Supabase, loading fallbacks:', err);
+                setVendors(fallbackVendors);
+            } finally {
+                setLoading(false);
+            }
+        };
+        getVendors();
+    }, []);
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (lightboxIndex === null || !activeVendor || !activeVendor.portfolio) return;
+            if (e.key === 'ArrowRight') {
+                setLightboxIndex(prev => (prev < activeVendor.portfolio.length - 1 ? prev + 1 : 0));
+            } else if (e.key === 'ArrowLeft') {
+                setLightboxIndex(prev => (prev > 0 ? prev - 1 : activeVendor.portfolio.length - 1));
+            } else if (e.key === 'Escape') {
+                setLightboxIndex(null);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [lightboxIndex, activeVendor]);
 
     const filteredVendors = selectedFilter === 'all'
         ? vendors
@@ -1283,7 +1389,7 @@ const VendorDirectory = () => {
 
                 {/* Filter Tabs Row */}
                 <div className="vendor-tabs-row">
-                    {['all', 'Makeup', 'Photography', 'Decor', 'Catering', 'Venues'].map((cat) => (
+                    {['all', 'Makeup', 'Photography', 'Decor', 'Catering', 'Venues', 'DJ/Sound', 'Planning'].map((cat) => (
                         <button
                             key={cat}
                             className={`vendor-tab-btn ${selectedFilter === cat ? 'active' : ''}`}
@@ -1302,12 +1408,14 @@ const VendorDirectory = () => {
                         if (vendor.category === "Decor") catIcon = "fas fa-palette";
                         if (vendor.category === "Catering") catIcon = "fas fa-utensils";
                         if (vendor.category === "Venues") catIcon = "fas fa-map-marker-alt";
+                        if (vendor.category === "DJ/Sound") catIcon = "fas fa-music";
+                        if (vendor.category === "Planning") catIcon = "fas fa-calendar-alt";
 
                         return (
-                            <div key={idx} className="vendor-horizontal-card">
+                            <div key={idx} className="vendor-horizontal-card" onClick={() => setActiveVendor(vendor)} style={{ cursor: 'pointer' }}>
                                 <div className="vhc-header">
                                     <h3>{vendor.name}</h3>
-                                    <p>Top-rated {vendor.category.toLowerCase()} professional. One simple search.</p>
+                                    <p>{vendor.description || `Top-rated ${vendor.category.toLowerCase()} professional. One simple search.`}</p>
                                 </div>
                                 
                                 <div className="vhc-pill-bar">
@@ -1335,7 +1443,7 @@ const VendorDirectory = () => {
                                         <i className="far fa-star"></i>
                                         <div className="vhc-seg-text">
                                             <span className="vhc-label">Rating</span>
-                                            <span className="vhc-value">5.0 Verified</span>
+                                            <span className="vhc-value">{vendor.rating || '5.0 Verified'}</span>
                                         </div>
                                     </div>
 
@@ -1346,6 +1454,325 @@ const VendorDirectory = () => {
                     })}
                 </div>
             </div>
+
+            {activeVendor && (
+                <div 
+                    className="popup-overlay active" 
+                    onClick={() => setActiveVendor(null)}
+                    style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        zIndex: 3000, 
+                        background: 'rgba(8, 8, 10, 0.8)',
+                        backdropFilter: 'blur(12px)',
+                        padding: '1.5rem',
+                        position: 'fixed',
+                        top: 0, left: 0, right: 0, bottom: 0
+                    }}
+                >
+                    <div 
+                        className="popup-content" 
+                        onClick={(e) => e.stopPropagation()} 
+                        style={{ 
+                            maxWidth: '600px', 
+                            width: '100%', 
+                            maxHeight: '85vh',
+                            overflowY: 'auto',
+                            background: 'var(--bg-surface)', 
+                            borderRadius: '24px', 
+                            border: '1px solid var(--border-color)', 
+                            position: 'relative',
+                            boxShadow: '0 30px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            animation: 'modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                            padding: 0,
+                            margin: 0
+                        }}
+                    >
+                        <style>{`
+                            @keyframes modalSlideUp {
+                                from { transform: translateY(20px); opacity: 0; }
+                                to { transform: translateY(0); opacity: 1; }
+                            }
+                            .portfolio-thumb-card {
+                                transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                            }
+                            .portfolio-thumb-card:hover {
+                                transform: translateY(-3px) !important;
+                                box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2) !important;
+                            }
+                            .portfolio-thumb-card:hover .video-play-btn {
+                                transform: scale(1.1) !important;
+                                background: #10b981 !important;
+                                color: #ffffff !important;
+                            }
+                        `}</style>
+
+                        {/* Modal Header Cover */}
+                        <div style={{ position: 'relative', width: '100%', height: '220px', background: '#000', overflow: 'hidden', borderTopLeftRadius: '24px', borderTopRightRadius: '24px' }}>
+                            <img 
+                                src={activeVendor.image || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80'} 
+                                alt={activeVendor.name} 
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                            />
+                            <div style={{ 
+                                position: 'absolute', bottom: 0, left: 0, right: 0, 
+                                background: 'linear-gradient(to top, var(--bg-surface), transparent)',
+                                height: '120px'
+                            }}></div>
+                            <button 
+                                onClick={() => setActiveVendor(null)} 
+                                style={{ 
+                                    position: 'absolute', top: '15px', right: '15px', 
+                                    background: 'rgba(15, 23, 42, 0.6)', 
+                                    backdropFilter: 'blur(8px)',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)', 
+                                    fontSize: '1rem', 
+                                    cursor: 'pointer', 
+                                    color: '#ffffff',
+                                    width: '32px', height: '32px',
+                                    borderRadius: '50%',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    transition: 'all 0.2s',
+                                    zIndex: 10
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(15, 23, 42, 0.8)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(15, 23, 42, 0.6)'}
+                            >
+                                <i className="fas fa-times"></i>
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', textAlign: 'left', marginTop: '-40px', zIndex: 2 }}>
+                            <div>
+                                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
+                                    {activeVendor.name}
+                                </h3>
+                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <span style={{ 
+                                        fontSize: '0.75rem', color: '#10b981', background: 'rgba(16, 185, 129, 0.08)', 
+                                        padding: '4px 10px', borderRadius: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' 
+                                    }}>
+                                        <i className="fas fa-tag"></i> {activeVendor.category}
+                                    </span>
+                                    <span style={{ 
+                                        fontSize: '0.75rem', color: 'var(--text-muted)', background: 'var(--bg-surface-elevated)', 
+                                        padding: '4px 10px', borderRadius: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                                        border: '1px solid var(--border-color)'
+                                    }}>
+                                        <i className="fas fa-map-marker-alt"></i> {activeVendor.city}
+                                    </span>
+                                    <span style={{ 
+                                        fontSize: '0.75rem', color: '#eab308', background: 'rgba(234, 179, 8, 0.08)', 
+                                        padding: '4px 10px', borderRadius: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' 
+                                    }}>
+                                        <i className="fas fa-star"></i> {activeVendor.rating || '5.0 Verified'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* About Section */}
+                            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                                <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                                    {activeVendor.description || `Top-rated ${activeVendor.category.toLowerCase()} professional providing premium wedding and event services in ${activeVendor.city}.`}
+                                </p>
+                            </div>
+
+                            {/* Portfolio Gallery Section */}
+                            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                                <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
+                                    Work Portfolio
+                                </h4>
+                                {activeVendor.portfolio && activeVendor.portfolio.length > 0 ? (
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.75rem' }}>
+                                        {activeVendor.portfolio.map((item, idx) => (
+                                            <div 
+                                                key={idx} 
+                                                onClick={() => setLightboxIndex(idx)}
+                                                style={{ 
+                                                    position: 'relative', 
+                                                    borderRadius: '12px', 
+                                                    overflow: 'hidden', 
+                                                    aspectRatio: '4 / 3', 
+                                                    border: '1px solid var(--border-color)', 
+                                                    background: '#0a0a0c',
+                                                    cursor: 'pointer',
+                                                    boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+                                                }}
+                                                className="portfolio-thumb-card"
+                                            >
+                                                {item.type === 'video' ? (
+                                                    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                                                        <video 
+                                                            src={item.url} 
+                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                                            muted 
+                                                            playsInline 
+                                                            preload="metadata"
+                                                        />
+                                                        <div style={{ 
+                                                            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 
+                                                            background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            zIndex: 2
+                                                        }}>
+                                                            <div className="video-play-btn" style={{
+                                                                width: '32px', height: '32px', borderRadius: '50%',
+                                                                background: 'rgba(255, 255, 255, 0.95)', display: 'flex',
+                                                                alignItems: 'center', justifyContent: 'center', color: '#10b981',
+                                                                boxShadow: '0 4px 12px rgba(0,0,0,0.2)', transition: 'all 0.2s'
+                                                            }}>
+                                                                <i className="fas fa-play" style={{ fontSize: '0.75rem', marginLeft: '2px' }}></i>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <img src={item.url} alt={`Work ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                )}
+                                                <span style={{ 
+                                                    position: 'absolute', bottom: '6px', left: '6px', 
+                                                    background: 'rgba(15, 23, 42, 0.75)', color: '#fff', fontSize: '0.55rem', 
+                                                    padding: '2px 6px', borderRadius: '4px', fontWeight: 800, textTransform: 'uppercase',
+                                                    zIndex: 5, letterSpacing: '0.05em'
+                                                }}>
+                                                    {item.type}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div style={{ 
+                                        padding: '1.5rem', 
+                                        border: '1px dashed var(--border-color)', 
+                                        borderRadius: '12px', 
+                                        textAlign: 'center',
+                                        background: 'var(--bg-surface-elevated)'
+                                    }}>
+                                        <i className="fas fa-camera" style={{ fontSize: '1.25rem', color: 'var(--text-muted)', marginBottom: '0.35rem', display: 'block' }}></i>
+                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No work samples uploaded yet.</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Lightbox Slider for Images & Videos */}
+            {lightboxIndex !== null && activeVendor && activeVendor.portfolio && activeVendor.portfolio[lightboxIndex] && (
+                <div 
+                    onClick={() => setLightboxIndex(null)}
+                    style={{ 
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+                        background: 'rgba(10, 10, 12, 0.95)', 
+                        backdropFilter: 'blur(15px)',
+                        zIndex: 4000, 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        padding: '1.5rem',
+                        userSelect: 'none'
+                    }}
+                >
+                    <button 
+                        onClick={() => setLightboxIndex(null)} 
+                        style={{ 
+                            position: 'absolute', top: '25px', right: '25px', 
+                            background: 'rgba(255,255,255,0.1)', border: 'none', fontSize: '1.25rem', 
+                            color: '#fff', cursor: 'pointer', width: '44px', height: '44px', borderRadius: '50%',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10,
+                            transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                    >
+                        <i className="fas fa-times"></i>
+                    </button>
+
+                    {/* Previous Button */}
+                    {activeVendor.portfolio.length > 1 && (
+                        <button 
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setLightboxIndex(prev => prev > 0 ? prev - 1 : activeVendor.portfolio.length - 1); 
+                            }} 
+                            style={{ 
+                                position: 'absolute', left: '25px', 
+                                background: 'rgba(255,255,255,0.1)', border: 'none', fontSize: '1.25rem', 
+                                color: '#fff', cursor: 'pointer', width: '50px', height: '50px', borderRadius: '50%',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10,
+                                transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                        >
+                            <i className="fas fa-chevron-left"></i>
+                        </button>
+                    )}
+
+                    {/* Main Content Item */}
+                    <div 
+                        onClick={(e) => e.stopPropagation()} 
+                        style={{ 
+                            maxWidth: '90%', 
+                            maxHeight: '80vh', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            position: 'relative'
+                        }}
+                    >
+                        {activeVendor.portfolio[lightboxIndex].type === 'video' ? (
+                            <video 
+                                src={activeVendor.portfolio[lightboxIndex].url} 
+                                controls 
+                                autoPlay
+                                playsInline
+                                style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }} 
+                            />
+                        ) : (
+                            <img 
+                                src={activeVendor.portfolio[lightboxIndex].url} 
+                                alt={`Work preview ${lightboxIndex}`} 
+                                style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }} 
+                            />
+                        )}
+                    </div>
+
+                    {/* Next Button */}
+                    {activeVendor.portfolio.length > 1 && (
+                        <button 
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setLightboxIndex(prev => prev < activeVendor.portfolio.length - 1 ? prev + 1 : 0); 
+                            }} 
+                            style={{ 
+                                position: 'absolute', right: '25px', 
+                                background: 'rgba(255,255,255,0.1)', border: 'none', fontSize: '1.25rem', 
+                                color: '#fff', cursor: 'pointer', width: '50px', height: '50px', borderRadius: '50%',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10,
+                                transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                        >
+                            <i className="fas fa-chevron-right"></i>
+                        </button>
+                    )}
+
+                    {/* Navigation Counter */}
+                    <div style={{ 
+                        position: 'absolute', bottom: '30px', 
+                        background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '0.85rem', 
+                        padding: '6px 14px', borderRadius: '20px', fontWeight: 600,
+                        border: '1px solid rgba(255,255,255,0.1)'
+                    }}>
+                        {lightboxIndex + 1} / {activeVendor.portfolio.length}
+                    </div>
+                </div>
+            )}
         </section>
     );
 };
@@ -1774,9 +2201,11 @@ function App() {
     };
 
     const openPackagePopup = (packageType) => {
-        if (packageType === 'standard') setActivePopup('standardPackage');
-        else if (packageType === 'custom') setActivePopup('customPackage');
-        else if (packageType === 'custom-plus') setActivePopup('customPlusPackage');
+        if (packageType === 'starter') setActivePopup('starterPackage');
+        else if (packageType === 'silver') setActivePopup('silverPackage');
+        else if (packageType === 'gold') setActivePopup('goldPackage');
+        else if (packageType === 'platinum') setActivePopup('platinumPackage');
+        else if (packageType === 'corporate') setActivePopup('corporatePackage');
     };
 
     return (
@@ -1799,6 +2228,7 @@ function App() {
             <FaqAccordion />
             <Contact />
             <Footer />
+            <GlobalAIAgentWidget />
 
             {/* Live Template Mobile Preview Simulator Modal */}
             {selectedTemplate && (
@@ -1825,91 +2255,149 @@ function App() {
                 </div>
             </div>
 
-            <div className={`popup-overlay ${activePopup === 'standardPackage' ? 'active' : ''}`} id="standardPackagePopup" onClick={(e) => e.target.id === 'standardPackagePopup' && closePopup()}>
+            {/* Starter Package Modal */}
+            <div className={`popup-overlay ${activePopup === 'starterPackage' ? 'active' : ''}`} id="starterPackagePopup" onClick={(e) => e.target.id === 'starterPackagePopup' && closePopup()}>
                 <div className="popup-content package-popup">
                     <button className="popup-close" onClick={closePopup}>&times;</button>
-                    <h3>Starter Plan Specs</h3>
-                    <p className="package-tagline">Elegant Simplicity. Rapid Turnaround.</p>
-                    <p className="package-description">Perfect for small events that need high-end digital invitation sheets. Our Starter package delivers stunning RSVP forms based on our elegant templates quickly.</p>
+                    <h3>Starter Package Specs</h3>
+                    <p className="package-tagline">Premium Digital Invitation. Essential Features.</p>
+                    <p className="package-description">Ideal for standard intimate celebrations for up to 100 guests. Share easily and track your seats instantly.</p>
                     <div className="package-section">
                         <h4>What You Get:</h4>
                         <ul>
-                            <li>One-page digital invitation or RSVP portal</li>
-                            <li>Select from standard designer templates</li>
-                            <li>Custom URL path (e.g. savemeaseatzambia.com/w/mark-and-linda)</li>
-                            <li>Downloadable PDF digital program card sync</li>
-                            <li>Live guest RSVP status lists tracked on spreadsheet</li>
-                            <li>Open registration or restricted response cap options</li>
-                            <li>2 rounds of minor design/text changes included</li>
+                            <li>Premium digital invitation & event details page</li>
+                            <li>RSVP tracking & WhatsApp sharing</li>
+                            <li>Google Maps location integration</li>
+                            <li>Interactive Countdown timer</li>
+                            <li>1 free design/text revision included</li>
+                            <li>Mobile-friendly clean layout</li>
                         </ul>
                     </div>
                     <div className="package-section">
                         <h4>Fulfill Process:</h4>
                         <ol>
-                            <li>Select Your Starter Template</li>
-                            <li>Settle Kwacha payment and share proof via WhatsApp</li>
-                            <li>Submit your event schedule details</li>
+                            <li>Select your theme preferences</li>
+                            <li>Settle payment and share receipt proof via WhatsApp</li>
+                            <li>Submit your event details and schedule</li>
                             <li>Your portal goes live within 24 hours for review</li>
                         </ol>
                     </div>
                 </div>
             </div>
 
-            <div className={`popup-overlay ${activePopup === 'customPackage' ? 'active' : ''}`} id="customPackagePopup" onClick={(e) => e.target.id === 'customPackagePopup' && closePopup()}>
+            {/* Silver Package Modal */}
+            <div className={`popup-overlay ${activePopup === 'silverPackage' ? 'active' : ''}`} id="silverPackagePopup" onClick={(e) => e.target.id === 'silverPackagePopup' && closePopup()}>
                 <div className="popup-content package-popup">
                     <button className="popup-close" onClick={closePopup}>&times;</button>
-                    <h3>Standard Plan Specs</h3>
-                    <p className="package-tagline">Beautiful Styling. Advanced Tracking.</p>
-                    <p className="package-description">For mid-size and large events requiring custom themes and detailed coordinating parameters. Includes direct gallery panels and tailored map widgets.</p>
+                    <h3>Silver Package Specs</h3>
+                    <p className="package-tagline">Everything in Starter, Plus Beautiful Media.</p>
+                    <p className="package-description">Perfect for mid-sized events up to 200 guests with media, audio integration, and timeline schedule views.</p>
                     <div className="package-section">
                         <h4>What You Get:</h4>
                         <ul>
-                            <li>Custom-colors themed digital RSVP page</li>
-                            <li>Supports up to 800 guest entries</li>
-                            <li>Custom URL path (e.g. savemeaseatzambia.com/w/ben-and-sarah)</li>
-                            <li>Photos gallery slider (up to 10 event photos)</li>
-                            <li>Map coordinates and FNB registry links integrated</li>
-                            <li>Active dress-code guidance cards</li>
-                            <li>RSVP closed controls and guest limitations</li>
+                            <li>Everything in Starter Package</li>
+                            <li>Stunning image photo gallery panel</li>
+                            <li>Elegant background music integration</li>
+                            <li>Detailed event schedule/program section</li>
+                            <li>3 free design/text revisions included</li>
                         </ul>
                     </div>
                     <div className="package-section">
                         <h4>Fulfill Process:</h4>
                         <ol>
-                            <li>Book your Standard package plan</li>
-                            <li>Provide kwacha transaction receipt via WhatsApp</li>
-                            <li>Join a 10-minute theme styling call</li>
-                            <li>Your customized page goes live in 48 hours for review</li>
+                            <li>Choose your style and complete Kwacha payment</li>
+                            <li>Share transaction confirmation screenshot on WhatsApp</li>
+                            <li>Send event photos, music audio, and schedule details</li>
+                            <li>Portal goes live within 24-48 hours for review</li>
                         </ol>
                     </div>
                 </div>
             </div>
 
-            <div className={`popup-overlay ${activePopup === 'customPlusPackage' ? 'active' : ''}`} id="customPlusPackagePopup" onClick={(e) => e.target.id === 'customPlusPackagePopup' && closePopup()}>
+            {/* Gold Package Modal */}
+            <div className={`popup-overlay ${activePopup === 'goldPackage' ? 'active' : ''}`} id="goldPackagePopup" onClick={(e) => e.target.id === 'goldPackagePopup' && closePopup()}>
                 <div className="popup-content package-popup">
                     <button className="popup-close" onClick={closePopup}>&times;</button>
-                    <h3>Premium Plan Specs</h3>
-                    <p className="package-tagline">Bespoke Luxury. Unforgettable Experiences.</p>
-                    <p className="package-description">Curated for high-profile weddings, large events, and luxury celebrations that want a complete multi-page custom portal with advanced entry protections.</p>
+                    <h3>Gold Package Specs</h3>
+                    <p className="package-tagline">Tailored Customization. Unlimited Revisions.</p>
+                    <p className="package-description">Our best-value plan for weddings and events up to 350 guests. Offers complete layout styling and registries.</p>
                     <div className="package-section">
                         <h4>What You Get:</h4>
                         <ul>
-                            <li>Bespoke multi-page digital invitation website</li>
-                            <li>Unlimited guest slots and RSVP tracking</li>
-                            <li>Tailored domain wireframing layout</li>
-                            <li>Google Maps integration and custom directions</li>
-                            <li>Advanced Family Group RSVPs and individual list restrictions</li>
-                            <li>Secure unique QR code check-in cards for gate entry</li>
-                            <li>Full dedicated support and edit cycles</li>
+                            <li>Everything in Silver Package</li>
+                            <li>Fully customized RSVP submission form</li>
+                            <li>Guest lists categorization (VIP, Family, Friends)</li>
+                            <li>Interactive gift registry section with links</li>
+                            <li>Unlimited package design revisions</li>
                         </ul>
                     </div>
                     <div className="package-section">
                         <h4>Fulfill Process:</h4>
                         <ol>
-                            <li>Confirm Premium Package Booking</li>
-                            <li>Settle payment transaction via FNB or MoMo and send proof</li>
-                            <li>Join design review call with your project planner</li>
-                            <li>Complete portal goes live in 48-72 hours</li>
+                            <li>Book the Gold plan and transfer package fee</li>
+                            <li>Provide payment receipt and design guide suggestions</li>
+                            <li>Our designer creates your bespoke layout draft</li>
+                            <li>Revision feedback is processed immediately with unlimited edits</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            {/* Platinum Package Modal */}
+            <div className={`popup-overlay ${activePopup === 'platinumPackage' ? 'active' : ''}`} id="platinumPackagePopup" onClick={(e) => e.target.id === 'platinumPackagePopup' && closePopup()}>
+                <div className="popup-content package-popup">
+                    <button className="popup-close" onClick={closePopup}>&times;</button>
+                    <h3>Platinum Package Specs</h3>
+                    <p className="package-tagline">Bespoke Luxury. Security gate check-ins.</p>
+                    <p className="package-description">Curated for high-profile weddings, large events, and elite celebrations up to 500 guests with unique QR Code tickets.</p>
+                    <div className="package-section">
+                        <h4>What You Get:</h4>
+                        <ul>
+                            <li>Everything in Gold Package</li>
+                            <li>Personalized guest invitation sheets</li>
+                            <li>Secure QR Code tickets generated for gate entry</li>
+                            <li>Premium customized animations & visual layouts</li>
+                            <li>Priority planning support & dedicated coordination desk</li>
+                            <li>Advanced VIP guest management features</li>
+                        </ul>
+                    </div>
+                    <div className="package-section">
+                        <h4>Fulfill Process:</h4>
+                        <ol>
+                            <li>Book Platinum Package and complete FNB or MoMo transfer</li>
+                            <li>Send proof via WhatsApp and connect with your dedicated designer</li>
+                            <li>Provide guest list database for QR code generation</li>
+                            <li>Luxury portal goes live in 48-72 hours with VIP features</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            {/* Corporate Package Modal */}
+            <div className={`popup-overlay ${activePopup === 'corporatePackage' ? 'active' : ''}`} id="corporatePackagePopup" onClick={(e) => e.target.id === 'corporatePackagePopup' && closePopup()}>
+                <div className="popup-content package-popup">
+                    <button className="popup-close" onClick={closePopup}>&times;</button>
+                    <h3>Corporate Package Specs</h3>
+                    <p className="package-tagline">Professional Branding. Robust Event Analytics.</p>
+                    <p className="package-description">A custom-built solution for corporate summits, product launches, banquets, and seminars.</p>
+                    <div className="package-section">
+                        <h4>What You Get:</h4>
+                        <ul>
+                            <li>Custom-branded event invitation portal</li>
+                            <li>Complete corporate color scheme and identity assets</li>
+                            <li>Multiple RSVP categories (VIP, general, media, speakers)</li>
+                            <li>Advanced event registration analytics dashboard</li>
+                            <li>Dedicated project manager & priority SLA support</li>
+                            <li>Custom feature additions based on conference goals</li>
+                        </ul>
+                    </div>
+                    <div className="package-section">
+                        <h4>Fulfill Process:</h4>
+                        <ol>
+                            <li>Submit business requirements via email or WhatsApp</li>
+                            <li>Receive a custom project quote and statement of work</li>
+                            <li>Review prototype wireframes with branding assets</li>
+                            <li>Live deployment with direct coordination dashboard access</li>
                         </ol>
                     </div>
                 </div>

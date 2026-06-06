@@ -3877,3 +3877,36 @@
     padding: 24px;
   }
 }
+
+/* ===== Pricing Promo Highlights & Slogan ===== */
+.home-page .pricing-promo-highlights {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin: 24px 0 16px;
+}
+
+.home-page .pricing-promo-highlights span {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--dark);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.home-page .pricing-promo-highlights i {
+  color: var(--primary);
+}
+
+.home-page .pricing-slogan {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--primary);
+  margin-top: 10px;
+  margin-bottom: 40px;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  text-align: center;
+}

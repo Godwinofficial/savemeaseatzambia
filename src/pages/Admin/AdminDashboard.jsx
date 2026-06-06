@@ -13,7 +13,7 @@ const DashboardCharts = ({ weddings, birthdays, bridalShowers }) => {
 
     // 1. Data Prep for Area Trend (Weddings and their RSVPs)
     const chartData = weddings.slice(0, 6).reverse().map((w, idx) => ({
-        label: w.groom_name ? `${w.groom_name.substring(0, 5)}&${w.bride_name.substring(0, 5)}` : `Evt#${idx+1}`,
+        label: w.groom_name ? `${w.groom_name.substring(0, 5)}&${w.bride_name.substring(0, 5)}` : `Evt#${idx + 1}`,
         value: w.rsvp_count || 0,
         fullName: `${w.groom_name} & ${w.bride_name}`,
         views: w.views || 0,
@@ -24,7 +24,7 @@ const DashboardCharts = ({ weddings, birthdays, bridalShowers }) => {
     const width = 500;
     const height = 220;
     const padding = 35;
-    
+
     // Compute SVG Points
     const maxVal = Math.max(...chartData.map(d => d.value), 10);
     const getX = (index) => padding + (index * (width - padding * 2)) / Math.max(chartData.length - 1, 1);
@@ -36,14 +36,14 @@ const DashboardCharts = ({ weddings, birthdays, bridalShowers }) => {
     if (chartData.length > 0) {
         pathD = `M ${getX(0)} ${getY(chartData[0].value)}`;
         areaD = `M ${getX(0)} ${height - padding} L ${getX(0)} ${getY(chartData[0].value)}`;
-        
+
         for (let i = 1; i < chartData.length; i++) {
             const x = getX(i);
             const y = getY(chartData[i].value);
             pathD += ` L ${x} ${y}`;
             areaD += ` L ${x} ${y}`;
         }
-        
+
         areaD += ` L ${getX(chartData.length - 1)} ${height - padding} Z`;
     }
 
@@ -57,7 +57,7 @@ const DashboardCharts = ({ weddings, birthdays, bridalShowers }) => {
     const radius = 50;
     const strokeWidth = 14;
     const circumference = 2 * Math.PI * radius;
-    
+
     const wDashOffset = circumference - (wPercent / 100) * circumference;
 
     return (
@@ -76,7 +76,7 @@ const DashboardCharts = ({ weddings, birthdays, bridalShowers }) => {
                         </div>
                     </div>
                 </div>
-                
+
                 <div style={{ position: 'relative', width: '100%' }}>
                     <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} style={{ overflow: 'visible' }}>
                         <defs>
@@ -94,15 +94,15 @@ const DashboardCharts = ({ weddings, birthdays, bridalShowers }) => {
                         {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => {
                             const y = padding + pct * (height - padding * 2);
                             return (
-                                <line 
-                                    key={i} 
-                                    x1={padding} 
-                                    y1={y} 
-                                    x2={width - padding} 
-                                    y2={y} 
-                                    stroke="var(--border-color)" 
-                                    strokeWidth="1" 
-                                    strokeDasharray="4 4" 
+                                <line
+                                    key={i}
+                                    x1={padding}
+                                    y1={y}
+                                    x2={width - padding}
+                                    y2={y}
+                                    stroke="var(--border-color)"
+                                    strokeWidth="1"
+                                    strokeDasharray="4 4"
                                 />
                             );
                         })}
@@ -112,7 +112,7 @@ const DashboardCharts = ({ weddings, birthdays, bridalShowers }) => {
                             <>
                                 <path d={areaD} fill="url(#areaGrad)" />
                                 <path d={pathD} fill="none" stroke="url(#curveGrad)" strokeWidth="3" strokeLinecap="round" />
-                                
+
                                 {/* Points & Interaction */}
                                 {chartData.map((d, i) => {
                                     const cx = getX(i);
@@ -196,11 +196,11 @@ const DashboardCharts = ({ weddings, birthdays, bridalShowers }) => {
                         <svg width="100%" height="100%" viewBox="0 0 120 120">
                             {/* Empty background ring */}
                             <circle cx="60" cy="60" r={radius} fill="transparent" stroke="var(--bg-surface-elevated)" strokeWidth={strokeWidth} />
-                            
+
                             {/* Weddings Segment (Emerald Green) */}
-                            <circle cx="60" cy="60" r={radius} fill="transparent" 
-                                stroke="var(--primary)" strokeWidth={strokeWidth} 
-                                strokeDasharray={circumference} strokeDashoffset={wDashOffset} 
+                            <circle cx="60" cy="60" r={radius} fill="transparent"
+                                stroke="var(--primary)" strokeWidth={strokeWidth}
+                                strokeDasharray={circumference} strokeDashoffset={wDashOffset}
                                 transform="rotate(-90 60 60)" strokeLinecap="round"
                                 style={{ transition: 'stroke-dashoffset 0.6s ease' }}
                             />
@@ -266,6 +266,16 @@ const AdminDashboard = () => {
     const [bridalShowers, setBridalShowers] = useState([]);
     const [bridalShowerLoading, setBridalShowerLoading] = useState(false);
 
+    // Vendor states
+    const [vendors, setVendors] = useState([]);
+    const [vendorLoading, setVendorLoading] = useState(false);
+    const [showVendorModal, setShowVendorModal] = useState(false);
+    const [editingVendor, setEditingVendor] = useState(null);
+    const [vendorForm, setVendorForm] = useState({ name: '', category: 'Makeup', city: 'Lusaka', image: '', rating: '5.0 Verified', description: '', portfolio: [] });
+    const [uploadingCover, setUploadingCover] = useState(false);
+    const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
+    const [vendorUploadProgress, setVendorUploadProgress] = useState({});
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -273,6 +283,7 @@ const AdminDashboard = () => {
         fetchWeddings();
         fetchBirthdays();
         fetchBridalShowers();
+        fetchVendors();
     }, []);
 
     useEffect(() => {
@@ -398,6 +409,206 @@ const AdminDashboard = () => {
         } finally {
             setBridalShowerLoading(false);
         }
+    };
+
+    const fetchVendors = async () => {
+        setVendorLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('vendors')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            setVendors(data || []);
+        } catch (err) {
+            console.error('Error fetching vendors:', err);
+        } finally {
+            setVendorLoading(false);
+        }
+    };
+
+    const uploadVendorFile = async (file, path, id) => {
+        if (!file) return null;
+        try {
+            setVendorUploadProgress(prev => ({ ...prev, [id]: 0 }));
+
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+            const filePath = `${path}/${fileName}`;
+
+            const progressInterval = setInterval(() => {
+                setVendorUploadProgress(prev => {
+                    const current = prev[id] || 0;
+                    if (current < 90) {
+                        return { ...prev, [id]: current + 10 };
+                    }
+                    clearInterval(progressInterval);
+                    return prev;
+                });
+            }, 100);
+
+            const { error: uploadError } = await supabase.storage
+                .from('wedding-uploads')
+                .upload(filePath, file);
+
+            clearInterval(progressInterval);
+            setVendorUploadProgress(prev => ({ ...prev, [id]: 100 }));
+
+            if (uploadError) {
+                if (uploadError.message.includes("row-level security")) {
+                    alert("Supabase Security Error: You need to run the policies in SUPABASE_SETUP.sql to allow uploads.");
+                }
+                throw uploadError;
+            }
+
+            const { data } = supabase.storage.from('wedding-uploads').getPublicUrl(filePath);
+
+            setTimeout(() => {
+                setVendorUploadProgress(prev => {
+                    const newProgress = { ...prev };
+                    delete newProgress[id];
+                    return newProgress;
+                });
+            }, 500);
+
+            return data.publicUrl;
+        } catch (error) {
+            console.error('Error uploading vendor file:', error);
+            setVendorUploadProgress(prev => {
+                const newProgress = { ...prev };
+                delete newProgress[id];
+                return newProgress;
+            });
+            alert('Upload failed: ' + error.message);
+            return null;
+        }
+    };
+
+    const handleCoverUploadChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            alert("Cover image file size should be less than 5MB");
+            return;
+        }
+        setUploadingCover(true);
+        const uploadId = `cover-${Date.now()}`;
+        const url = await uploadVendorFile(file, 'vendors/covers', uploadId);
+        if (url) {
+            setVendorForm(prev => ({ ...prev, image: url }));
+        }
+        setUploadingCover(false);
+    };
+
+    const handlePortfolioUploadChange = async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        setUploadingPortfolio(true);
+        const uploadedItems = [];
+
+        for (const file of files) {
+            const isVideo = file.type.startsWith('video/');
+            const limit = isVideo ? 20 * 1024 * 1024 : 5 * 1024 * 1024;
+            if (file.size > limit) {
+                alert(`File "${file.name}" exceeds the size limit (${isVideo ? '20MB' : '5MB'}).`);
+                continue;
+            }
+
+            const uploadId = `port-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+            const path = isVideo ? 'vendors/portfolios/videos' : 'vendors/portfolios/images';
+            const url = await uploadVendorFile(file, path, uploadId);
+
+            if (url) {
+                uploadedItems.push({
+                    url,
+                    type: isVideo ? 'video' : 'image'
+                });
+            }
+        }
+
+        if (uploadedItems.length > 0) {
+            setVendorForm(prev => ({
+                ...prev,
+                portfolio: [...(prev.portfolio || []), ...uploadedItems]
+            }));
+        }
+        setUploadingPortfolio(false);
+    };
+
+    const handleSaveVendor = async (e) => {
+        e.preventDefault();
+        try {
+            if (editingVendor) {
+                // Update
+                const { error } = await supabase
+                    .from('vendors')
+                    .update({
+                        name: vendorForm.name,
+                        category: vendorForm.category,
+                        city: vendorForm.city,
+                        image: vendorForm.image,
+                        rating: vendorForm.rating,
+                        description: vendorForm.description,
+                        portfolio: vendorForm.portfolio || []
+                    })
+                    .eq('id', editingVendor.id);
+                if (error) throw error;
+                alert('Vendor updated successfully!');
+            } else {
+                // Insert
+                const { error } = await supabase
+                    .from('vendors')
+                    .insert([{
+                        name: vendorForm.name,
+                        category: vendorForm.category,
+                        city: vendorForm.city,
+                        image: vendorForm.image,
+                        rating: vendorForm.rating,
+                        description: vendorForm.description,
+                        portfolio: vendorForm.portfolio || []
+                    }]);
+                if (error) throw error;
+                alert('Vendor created successfully!');
+            }
+            setShowVendorModal(false);
+            setEditingVendor(null);
+            setVendorForm({ name: '', category: 'Makeup', city: 'Lusaka', image: '', rating: '5.0 Verified', description: '', portfolio: [] });
+            fetchVendors();
+        } catch (err) {
+            alert('Error saving vendor: ' + err.message);
+        }
+    };
+
+    const handleDeleteVendor = async (id, name) => {
+        if (!window.confirm(`Delete event vendor "${name}"? This cannot be undone.`)) return;
+        try {
+            const { error } = await supabase.from('vendors').delete().eq('id', id);
+            if (error) throw error;
+            setVendors(vendors.filter(v => v.id !== id));
+        } catch (err) {
+            alert('Error deleting vendor: ' + err.message);
+        }
+    };
+
+    const openAddVendor = () => {
+        setEditingVendor(null);
+        setVendorForm({ name: '', category: 'Makeup', city: 'Lusaka', image: '', rating: '5.0 Verified', description: '', portfolio: [] });
+        setShowVendorModal(true);
+    };
+
+    const openEditVendor = (vendor) => {
+        setEditingVendor(vendor);
+        setVendorForm({
+            name: vendor.name,
+            category: vendor.category,
+            city: vendor.city,
+            image: vendor.image || '',
+            rating: vendor.rating || '5.0 Verified',
+            description: vendor.description || '',
+            portfolio: vendor.portfolio || []
+        });
+        setShowVendorModal(true);
     };
 
     const downloadBridalShowerRSVPs = async (eventId, brideName) => {
@@ -784,6 +995,15 @@ const AdminDashboard = () => {
         );
     };
 
+    const activeWeddings = filteredWeddings.filter(w => getWeddingStatus(w.date) !== 'past');
+    const archivedWeddings = weddings.filter(w => getWeddingStatus(w.date) === 'past');
+
+    const activeBirthdays = birthdays.filter(b => getWeddingStatus(b.date) !== 'past');
+    const archivedBirthdays = birthdays.filter(b => getWeddingStatus(b.date) === 'past');
+
+    const activeBridalShowers = bridalShowers.filter(bs => getWeddingStatus(bs.date) !== 'past');
+    const archivedBridalShowers = bridalShowers.filter(bs => getWeddingStatus(bs.date) === 'past');
+
     return (
         <div className="admin-page admin-dashboard">
             {/* Forced Clean Light-Mode Styles Overrides */}
@@ -876,7 +1096,11 @@ const AdminDashboard = () => {
                                 <i className="fas fa-gift"></i>
                                 Create Bridal Shower
                             </Link>
-                            <button className="mobile-nav-item" onClick={() => { handleLogout(); setShowMobileMenu(false); }}>
+                            <button className="mobile-nav-item" style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => { setActiveTab('vendors'); setShowMobileMenu(false); }}>
+                                <i className="fas fa-store"></i>
+                                Manage Ecosystem Vendors
+                            </button>
+                            <button className="mobile-nav-item" style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => { handleLogout(); setShowMobileMenu(false); }}>
                                 <i className="fas fa-sign-out-alt"></i>
                                 Logout
                             </button>
@@ -955,7 +1179,7 @@ const AdminDashboard = () => {
                             >
                                 {processingReminders ? 'Sending...' : 'Send Reminders Now'}
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setShowRemindersAlert(false)}
                                 style={{
                                     background: 'var(--bg-surface-elevated)',
@@ -1014,6 +1238,22 @@ const AdminDashboard = () => {
                     >
                         <i className="fas fa-envelope"></i>
                         Email Marketing
+                    </button>
+                    <button
+                        className={`tab-btn ${activeTab === 'vendors' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('vendors')}
+                        style={activeTab === 'vendors' ? { borderBottomColor: '#10b981', color: '#10b981' } : {}}
+                    >
+                        <i className="fas fa-store"></i>
+                        Ecosystem Vendors
+                    </button>
+                    <button
+                        className={`tab-btn ${activeTab === 'archives' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('archives')}
+                        style={activeTab === 'archives' ? { borderBottomColor: '#6b7280', color: '#6b7280' } : {}}
+                    >
+                        <i className="fas fa-archive"></i>
+                        Archives
                     </button>
                 </div>
             </section>
@@ -1083,7 +1323,7 @@ const AdminDashboard = () => {
                                 </div>
                                 <div className="header-right">
                                     <div className="results-info">
-                                        <span className="results-count">{filteredWeddings.length}</span>
+                                        <span className="results-count">{activeWeddings.length}</span>
                                         <span className="results-text">of {weddings.length} weddings</span>
                                     </div>
                                     <div className="sort-options">
@@ -1107,7 +1347,7 @@ const AdminDashboard = () => {
                                     </div>
                                     <p className="loading-text">Loading your weddings...</p>
                                 </div>
-                            ) : filteredWeddings.length === 0 ? (
+                            ) : activeWeddings.length === 0 ? (
                                 <div className="empty-state">
                                     <div className="empty-icon">
                                         <i className="fas fa-heart"></i>
@@ -1130,7 +1370,7 @@ const AdminDashboard = () => {
                                 </div>
                             ) : (
                                 <div className="weddings-list" style={{ display: 'flex', flexDirection: 'column' }}>
-                                    {filteredWeddings.map((wedding) => (
+                                    {activeWeddings.map((wedding) => (
                                         <div key={wedding.id} className="app-row-item">
                                             {/* Avatar badge with initials */}
                                             <div style={{
@@ -1140,7 +1380,7 @@ const AdminDashboard = () => {
                                                 color: '#ffffff', fontWeight: 800, fontSize: '0.95rem', marginRight: '1.25rem',
                                                 boxShadow: '0 4px 12px rgba(255, 123, 0, 0.3)'
                                             }}>
-                                                {wedding.groom_name?.substring(0,1)}{wedding.bride_name?.substring(0,1)}
+                                                {wedding.groom_name?.substring(0, 1)}{wedding.bride_name?.substring(0, 1)}
                                             </div>
 
                                             {/* Content details */}
@@ -1223,7 +1463,7 @@ const AdminDashboard = () => {
                                 <div className="loading-spinner"><div className="spinner-ring" /><div className="spinner-ring" /><div className="spinner-ring" /><div className="spinner-ring" /></div>
                                 <p className="loading-text">Loading birthday events…</p>
                             </div>
-                        ) : birthdays.length === 0 ? (
+                        ) : activeBirthdays.length === 0 ? (
                             <div className="empty-state">
                                 <div className="empty-icon"><i className="fas fa-birthday-cake" /></div>
                                 <h3 className="empty-title">No birthday events yet</h3>
@@ -1233,8 +1473,8 @@ const AdminDashboard = () => {
                                 </Link>
                             </div>
                         ) : (
-                                <div className="birthdays-list" style={{ display: 'flex', flexDirection: 'column' }}>
-                                {birthdays.map((bdEvent) => (
+                            <div className="birthdays-list" style={{ display: 'flex', flexDirection: 'column' }}>
+                                {activeBirthdays.map((bdEvent) => (
                                     <div key={bdEvent.id} className="app-row-item" style={{ borderLeft: '4px solid #c44569' }}>
                                         {/* Avatar badge with cake icon */}
                                         <div style={{
@@ -1315,15 +1555,15 @@ const AdminDashboard = () => {
 
                         {bridalShowerLoading ? (
                             <div className="loading-container"><p>Loading bridal showers...</p></div>
-                        ) : bridalShowers.length === 0 ? (
+                        ) : activeBridalShowers.length === 0 ? (
                             <div className="empty-state">
                                 <div className="empty-icon"><i className="fas fa-gift"></i></div>
                                 <h3 className="empty-title">No bridal showers yet</h3>
                                 <Link to="/addBridalShower" className="empty-action"><i className="fas fa-plus"></i> Create Bridal Shower</Link>
                             </div>
                         ) : (
-                                <div className="bridal-showers-list" style={{ display: 'flex', flexDirection: 'column' }}>
-                                {bridalShowers.map((bs) => (
+                            <div className="bridal-showers-list" style={{ display: 'flex', flexDirection: 'column' }}>
+                                {activeBridalShowers.map((bs) => (
                                     <div key={bs.id} className="app-row-item" style={{ borderLeft: '4px solid #c5a059' }}>
                                         {/* Avatar badge with gift icon */}
                                         <div style={{
@@ -1385,6 +1625,287 @@ const AdminDashboard = () => {
                 </main>
             )}
 
+            {/* Archives Tab Content */}
+            {activeTab === 'archives' && (
+                <main className="main-content">
+                    <div className="content-container">
+                        <div className="content-header">
+                            <div className="header-left">
+                                <h2 className="section-title">Archives</h2>
+                                <p className="section-subtitle">Past events automatically moved here</p>
+                            </div>
+                        </div>
+
+                        <div className="archives-list" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                            {archivedWeddings.length > 0 && (
+                                <div>
+                                    <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>Archived Weddings</h3>
+                                    {archivedWeddings.map((wedding) => (
+                                        <div key={wedding.id} className="app-row-item" style={{ opacity: 0.8 }}>
+                                            <div style={{
+                                                width: 52, height: 52, borderRadius: '50%',
+                                                background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                color: '#ffffff', fontWeight: 800, fontSize: '0.95rem', marginRight: '1.25rem',
+                                                boxShadow: '0 4px 12px rgba(255, 123, 0, 0.3)'
+                                            }}>
+                                                {wedding.groom_name?.substring(0, 1)}{wedding.bride_name?.substring(0, 1)}
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                                                    {wedding.groom_name} & {wedding.bride_name}
+                                                </h4>
+                                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.15rem' }}>
+                                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                                        <i className="far fa-calendar"></i> {wedding.date ? new Date(wedding.date).toLocaleDateString() : 'TBD'}
+                                                    </span>
+                                                    <StatusBadge date={wedding.date} />
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.4rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                                                    <span><i className="fas fa-users" style={{ color: 'var(--primary)' }}></i> RSVPs: <strong style={{ color: 'var(--text-main)' }}>{wedding.rsvp_count || 0}</strong></span>
+                                                    <span><i className="fas fa-link" style={{ color: 'var(--primary)' }}></i> Slug: <strong style={{ color: 'var(--text-main)' }}>/{wedding.slug}</strong></span>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => setActiveActionSheet({
+                                                    type: 'wedding',
+                                                    title: `${wedding.groom_name} & ${wedding.bride_name}`,
+                                                    subtitle: `Date: ${wedding.date ? new Date(wedding.date).toLocaleDateString() : 'TBD'}`,
+                                                    url: `/${wedding.slug}`,
+                                                    slug: wedding.slug,
+                                                    copyType: 'preview',
+                                                    rawEvent: wedding,
+                                                    reportUrl: `/report/${wedding.slug}`,
+                                                    onDownload: () => downloadRSVPs(wedding.id, `${wedding.groom_name}_${wedding.bride_name}`),
+                                                    onDelete: () => handleDelete(wedding.id, `${wedding.groom_name} & ${wedding.bride_name}`)
+                                                })}
+                                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', padding: '0.5rem', marginLeft: '0.5rem' }}
+                                            >
+                                                <i className="fas fa-ellipsis-v"></i>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {archivedBirthdays.length > 0 && (
+                                <div>
+                                    <h3 style={{ marginBottom: '1rem', color: '#c44569', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>Archived Birthdays</h3>
+                                    {archivedBirthdays.map((bdEvent) => (
+                                        <div key={bdEvent.id} className="app-row-item" style={{ borderLeft: '4px solid #c44569', opacity: 0.8 }}>
+                                            <div style={{
+                                                width: 52, height: 52, borderRadius: '50%',
+                                                background: 'linear-gradient(135deg, #ff6b9d 0%, #c44569 100%)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                color: '#ffffff', fontWeight: 800, fontSize: '1rem', marginRight: '1.25rem',
+                                            }}>
+                                                <i className="fas fa-birthday-cake" style={{ fontSize: '1rem' }}></i>
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                                                    {bdEvent.child_name}'s Birthday
+                                                </h4>
+                                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.15rem' }}>
+                                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                                        <i className="far fa-calendar"></i> {bdEvent.date ? new Date(bdEvent.date).toLocaleDateString() : 'TBD'}
+                                                    </span>
+                                                    <StatusBadge date={bdEvent.date} />
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.4rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                                                    <span><i className="fas fa-users" style={{ color: '#c44569' }}></i> RSVPs: <strong style={{ color: 'var(--text-main)' }}>{bdEvent.rsvp_count || 0}</strong></span>
+                                                    <span><i className="fas fa-link" style={{ color: '#c44569' }}></i> Slug: <strong style={{ color: 'var(--text-main)' }}>/{bdEvent.slug}</strong></span>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => setActiveActionSheet({
+                                                    type: 'birthday',
+                                                    title: `${bdEvent.child_name}'s Birthday`,
+                                                    subtitle: `Date: ${bdEvent.date ? new Date(bdEvent.date).toLocaleDateString() : 'TBD'}`,
+                                                    url: `/b/${bdEvent.slug}`,
+                                                    slug: bdEvent.slug,
+                                                    copyType: 'preview-bd',
+                                                    editUrl: `/editBirthday/${bdEvent.id}`,
+                                                    reportUrl: `/b-report/${bdEvent.slug}`,
+                                                    onDownload: () => downloadBirthdayRSVPs(bdEvent.id, bdEvent.child_name),
+                                                    onDelete: () => handleDeleteBirthday(bdEvent.id, `${bdEvent.child_name}'s Birthday`)
+                                                })}
+                                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', padding: '0.5rem', marginLeft: '0.5rem' }}
+                                            >
+                                                <i className="fas fa-ellipsis-v"></i>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {archivedBridalShowers.length > 0 && (
+                                <div>
+                                    <h3 style={{ marginBottom: '1rem', color: '#c5a059', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>Archived Bridal Showers</h3>
+                                    {archivedBridalShowers.map((bs) => (
+                                        <div key={bs.id} className="app-row-item" style={{ borderLeft: '4px solid #c5a059', opacity: 0.8 }}>
+                                            <div style={{
+                                                width: 52, height: 52, borderRadius: '50%',
+                                                background: 'linear-gradient(135deg, #dfc28c 0%, #c5a059 100%)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                color: '#ffffff', fontWeight: 800, fontSize: '1rem', marginRight: '1.25rem',
+                                            }}>
+                                                <i className="fas fa-gift" style={{ fontSize: '1rem' }}></i>
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                                                    {bs.bride_name}'s Bridal Shower
+                                                </h4>
+                                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.15rem' }}>
+                                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                                        <i className="far fa-calendar"></i> {bs.date ? new Date(bs.date).toLocaleDateString() : 'TBD'}
+                                                    </span>
+                                                    <StatusBadge date={bs.date} />
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.4rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                                                    <span><i className="fas fa-users" style={{ color: '#c5a059' }}></i> RSVPs: <strong style={{ color: 'var(--text-main)' }}>{bs.rsvp_count || 0}</strong></span>
+                                                    <span><i className="fas fa-link" style={{ color: '#c5a059' }}></i> Slug: <strong style={{ color: 'var(--text-main)' }}>/{bs.slug}</strong></span>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => setActiveActionSheet({
+                                                    type: 'bridal_shower',
+                                                    title: `${bs.bride_name}'s Bridal Shower`,
+                                                    subtitle: `Date: ${bs.date ? new Date(bs.date).toLocaleDateString() : 'TBD'}`,
+                                                    url: `/bridal-shower/${bs.slug}`,
+                                                    slug: bs.slug,
+                                                    copyType: 'bridal-shower',
+                                                    editUrl: `/editBridalShower/${bs.id}`,
+                                                    reportUrl: `/bs-report/${bs.slug}`,
+                                                    onDownload: () => downloadBridalShowerRSVPs(bs.id, bs.bride_name),
+                                                    onDelete: () => handleDeleteBridalShower(bs.id, `${bs.bride_name}'s Bridal Shower`)
+                                                })}
+                                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', padding: '0.5rem', marginLeft: '0.5rem' }}
+                                            >
+                                                <i className="fas fa-ellipsis-v"></i>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {archivedWeddings.length === 0 && archivedBirthdays.length === 0 && archivedBridalShowers.length === 0 && (
+                                <div className="empty-state">
+                                    <div className="empty-icon"><i className="fas fa-archive"></i></div>
+                                    <h3 className="empty-title">No archived events</h3>
+                                    <p className="empty-description">Events that have passed will automatically appear here</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </main>
+            )}
+
+            {/* Vendors Tab Content */}
+            {activeTab === 'vendors' && (
+                <main className="main-content">
+                    <div className="content-container">
+                        <div className="content-header">
+                            <div className="header-left">
+                                <h2 className="section-title">Supporting Platform Ecosystem</h2>
+                                <p className="section-subtitle">Manage service vendors shown on the website directory</p>
+                            </div>
+                            <div className="header-right">
+                                <button className="nav-btn primary" onClick={openAddVendor} style={{ background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, color: '#ffffff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}>
+                                    <i className="fas fa-plus" />
+                                    New Vendor
+                                </button>
+                            </div>
+                        </div>
+
+                        {vendorLoading ? (
+                            <div className="loading-container">
+                                <div className="loading-spinner"><div className="spinner-ring" /><div className="spinner-ring" /><div className="spinner-ring" /><div className="spinner-ring" /></div>
+                                <p className="loading-text">Loading platform vendors…</p>
+                            </div>
+                        ) : vendors.length === 0 ? (
+                            <div className="empty-state">
+                                <div className="empty-icon"><i className="fas fa-store" /></div>
+                                <h3 className="empty-title">No vendors listed yet</h3>
+                                <p className="empty-description">Create your first directory vendor</p>
+                                <button className="empty-action" onClick={openAddVendor} style={{ border: 'none', cursor: 'pointer' }}>
+                                    <i className="fas fa-plus" /> Create First Vendor
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="vendors-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {vendors.map((vendor) => (
+                                    <div key={vendor.id} className="app-row-item" style={{ borderLeft: '4px solid #10b981' }}>
+                                        {/* Avatar preview */}
+                                        <div style={{
+                                            width: 52, height: 52, borderRadius: '50%',
+                                            backgroundImage: `url(${vendor.image || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=600&q=80'})`,
+                                            backgroundSize: 'cover',
+                                            backgroundPosition: 'center',
+                                            marginRight: '1.25rem',
+                                            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
+                                            flexShrink: 0
+                                        }}>
+                                        </div>
+
+                                        {/* Content details */}
+                                        <div style={{ flex: 1 }}>
+                                            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                                                {vendor.name}
+                                            </h4>
+                                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.15rem', flexWrap: 'wrap' }}>
+                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                    <i className="fas fa-map-marker-alt" style={{ color: '#10b981' }}></i> {vendor.city}
+                                                </span>
+                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                    <i className="fas fa-tag" style={{ color: '#10b981' }}></i> {vendor.category}
+                                                </span>
+                                                <span className="status-badge" style={{ backgroundColor: '#10b981', color: '#ffffff' }}>
+                                                    <i className="fas fa-star" style={{ fontSize: '0.7rem' }}></i> {vendor.rating || '5.0 Verified'}
+                                                </span>
+                                            </div>
+                                            {vendor.description && (
+                                                <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                                                    {vendor.description}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {/* Actions panel */}
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button
+                                                onClick={() => openEditVendor(vendor)}
+                                                style={{
+                                                    background: 'none', border: 'none', color: 'var(--text-muted)',
+                                                    cursor: 'pointer', fontSize: '1rem', padding: '0.5rem',
+                                                    transition: 'color 0.2s'
+                                                }}
+                                                title="Edit Vendor"
+                                                onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                                                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                                            >
+                                                <i className="fas fa-edit"></i>
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteVendor(vendor.id, vendor.name)}
+                                                style={{
+                                                    background: 'none', border: 'none', color: 'var(--text-muted)',
+                                                    cursor: 'pointer', fontSize: '1rem', padding: '0.5rem',
+                                                    transition: 'color 0.2s'
+                                                }}
+                                                title="Delete Vendor"
+                                                onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
+                                                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                                            >
+                                                <i className="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </main>
+            )}
             {/* Floating Action Button for Mobile */}
             <Link to={activeTab === 'birthdays' ? '/addBirthday' : '/addWedding'} className="fab">
                 <i className="fas fa-plus"></i>
@@ -1401,22 +1922,250 @@ const AdminDashboard = () => {
                 />
             )}
 
+            {showVendorModal && (
+                <div className="popup-overlay active" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+                    <div className="popup-content" style={{ maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', width: '90%', background: 'var(--bg-surface)', padding: '2rem', borderRadius: '1rem', border: '1px solid var(--border-color)', position: 'relative' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                                {editingVendor ? 'Edit Platform Vendor' : 'Add New Platform Vendor'}
+                            </h3>
+                            <button onClick={() => { setShowVendorModal(false); setEditingVendor(null); }} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                                &times;
+                            </button>
+                        </div>
+                        <form onSubmit={handleSaveVendor} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', textAlign: 'left' }}>Vendor Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className="form-control"
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-surface-elevated)', color: 'var(--text-main)' }}
+                                    placeholder="e.g. Glow by Sarah M."
+                                    value={vendorForm.name}
+                                    onChange={e => setVendorForm({ ...vendorForm, name: e.target.value })}
+                                />
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', textAlign: 'left' }}>Category / Service</label>
+                                    <select
+                                        className="form-control"
+                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-surface-elevated)', color: 'var(--text-main)' }}
+                                        value={vendorForm.category}
+                                        onChange={e => setVendorForm({ ...vendorForm, category: e.target.value })}
+                                    >
+                                        <option value="Makeup">Makeup</option>
+                                        <option value="Photography">Photography</option>
+                                        <option value="Decor">Decor</option>
+                                        <option value="Catering">Catering</option>
+                                        <option value="Venues">Venues</option>
+                                        <option value="DJ/Sound">DJ/Sound</option>
+                                        <option value="Planning">Planning</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', textAlign: 'left' }}>Location / City</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        className="form-control"
+                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-surface-elevated)', color: 'var(--text-main)' }}
+                                        placeholder="e.g. Lusaka"
+                                        value={vendorForm.city}
+                                        onChange={e => setVendorForm({ ...vendorForm, city: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', textAlign: 'left' }}>Cover Photo</label>
+                                <input
+                                    type="file"
+                                    id="vendor-cover-upload"
+                                    accept="image/*"
+                                    onChange={handleCoverUploadChange}
+                                    style={{ display: 'none' }}
+                                />
+                                <div
+                                    onClick={() => document.getElementById('vendor-cover-upload').click()}
+                                    style={{
+                                        border: '2px dashed var(--border-color)',
+                                        borderRadius: '12px',
+                                        padding: '1rem',
+                                        textAlign: 'center',
+                                        cursor: 'pointer',
+                                        background: 'var(--bg-surface-elevated)',
+                                        position: 'relative',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        minHeight: '120px'
+                                    }}
+                                >
+                                    {uploadingCover ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                                            <i className="fas fa-spinner fa-spin" style={{ fontSize: '1.5rem', color: '#10b981' }}></i>
+                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Uploading Cover Photo...</span>
+                                        </div>
+                                    ) : vendorForm.image ? (
+                                        <div style={{ width: '100%', position: 'relative' }}>
+                                            <img src={vendorForm.image} alt="Cover" style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '8px' }} />
+                                            <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); setVendorForm({ ...vendorForm, image: '' }); }}
+                                                style={{
+                                                    position: 'absolute', top: '8px', right: '8px',
+                                                    background: 'rgba(239, 68, 68, 0.9)', border: 'none', borderRadius: '50%',
+                                                    width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    color: '#fff', cursor: 'pointer', zIndex: 10
+                                                }}
+                                            >
+                                                <i className="fas fa-trash" style={{ fontSize: '0.8rem' }}></i>
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                                            <i className="fas fa-cloud-upload-alt" style={{ fontSize: '1.8rem', color: 'var(--text-muted)' }}></i>
+                                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>Upload Cover Photo</span>
+                                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>PNG, JPG up to 5MB</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', textAlign: 'left' }}>Portfolio Gallery (Videos & Pictures of Work)</label>
+                                <input
+                                    type="file"
+                                    id="vendor-portfolio-upload"
+                                    accept="image/*,video/*"
+                                    multiple
+                                    onChange={handlePortfolioUploadChange}
+                                    style={{ display: 'none' }}
+                                />
+                                <div
+                                    onClick={() => document.getElementById('vendor-portfolio-upload').click()}
+                                    style={{
+                                        border: '2px dashed var(--border-color)',
+                                        borderRadius: '12px',
+                                        padding: '1rem',
+                                        textAlign: 'center',
+                                        cursor: 'pointer',
+                                        background: 'var(--bg-surface-elevated)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        minHeight: '100px'
+                                    }}
+                                >
+                                    {uploadingPortfolio ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                                            <i className="fas fa-spinner fa-spin" style={{ fontSize: '1.5rem', color: '#10b981' }}></i>
+                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Uploading Portfolio...</span>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                                            <i className="fas fa-images" style={{ fontSize: '1.8rem', color: 'var(--text-muted)' }}></i>
+                                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>Upload Work Gallery Items</span>
+                                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Multi-select images & videos up to 20MB</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {vendorForm.portfolio && vendorForm.portfolio.length > 0 && (
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                        {vendorForm.portfolio.map((item, index) => (
+                                            <div key={index} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', height: '65px', border: '1px solid var(--border-color)', background: '#000' }}>
+                                                {item.type === 'video' ? (
+                                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <video src={item.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted playsInline />
+                                                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                            <i className="fas fa-play" style={{ color: '#fff', fontSize: '0.8rem' }}></i>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <img src={item.url} alt="Work item" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const updated = [...vendorForm.portfolio];
+                                                        updated.splice(index, 1);
+                                                        setVendorForm({ ...vendorForm, portfolio: updated });
+                                                    }}
+                                                    style={{
+                                                        position: 'absolute', top: '2px', right: '2px',
+                                                        background: 'rgba(239, 68, 68, 0.9)', border: 'none', borderRadius: '50%',
+                                                        width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        color: '#fff', cursor: 'pointer', zIndex: 10
+                                                    }}
+                                                >
+                                                    <i className="fas fa-times" style={{ fontSize: '0.55rem' }}></i>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', textAlign: 'left' }}>Rating & Verification Status</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-surface-elevated)', color: 'var(--text-main)' }}
+                                    placeholder="e.g. 5.0 Verified"
+                                    value={vendorForm.rating}
+                                    onChange={e => setVendorForm({ ...vendorForm, rating: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', textAlign: 'left' }}>Short Description</label>
+                                <textarea
+                                    className="form-control"
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-surface-elevated)', color: 'var(--text-main)', height: '80px', resize: 'vertical' }}
+                                    placeholder="e.g. Top-rated makeup professional. One simple search."
+                                    value={vendorForm.description}
+                                    onChange={e => setVendorForm({ ...vendorForm, description: e.target.value })}
+                                />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                                <button type="button" onClick={() => { setShowVendorModal(false); setEditingVendor(null); }} className="nav-btn outline" style={{ flex: 1, padding: '10px 18px', cursor: 'pointer' }}>
+                                    Cancel
+                                </button>
+                                <button type="submit" className="nav-btn primary" disabled={uploadingCover || uploadingPortfolio} style={{ flex: 1, padding: '10px 18px', cursor: 'pointer', background: 'var(--primary)', color: '#ffffff', border: 'none', opacity: (uploadingCover || uploadingPortfolio) ? 0.6 : 1 }}>
+                                    {(uploadingCover || uploadingPortfolio) ? 'Uploading Files...' : 'Save Vendor'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {activeActionSheet && (
                 <div className="bottom-sheet-overlay" onClick={() => setActiveActionSheet(null)}>
                     <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
                         <div className="bottom-sheet-drag-handle"></div>
-                        
+
                         <div className="bottom-sheet-header">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                 <div className="bottom-sheet-avatar">
                                     <i className={
                                         activeActionSheet.type === 'wedding' ? 'fas fa-glass-cheers' :
-                                        activeActionSheet.type === 'birthday' ? 'fas fa-birthday-cake' :
-                                        'fas fa-gift'
+                                            activeActionSheet.type === 'birthday' ? 'fas fa-birthday-cake' :
+                                                'fas fa-gift'
                                     } style={{
                                         color: activeActionSheet.type === 'wedding' ? 'var(--primary)' :
-                                               activeActionSheet.type === 'birthday' ? '#c44569' :
-                                               '#c5a059'
+                                            activeActionSheet.type === 'birthday' ? '#c44569' :
+                                                '#c5a059'
                                     }}></i>
                                 </div>
                                 <div>
@@ -1428,7 +2177,7 @@ const AdminDashboard = () => {
                                 <i className="fas fa-times"></i>
                             </button>
                         </div>
-                        
+
                         <div className="bottom-sheet-actions">
                             {/* View Site */}
                             {activeActionSheet.type === 'wedding' && (
@@ -1455,7 +2204,7 @@ const AdminDashboard = () => {
                                 <i className="fab fa-whatsapp" style={{ color: '#25D366' }}></i>
                                 <span>Copy Link for WhatsApp</span>
                             </button>
-                            
+
                             {/* RSVP Report */}
                             <Link to={activeActionSheet.reportUrl} target="_blank" className="bottom-sheet-action-btn">
                                 <i className="fas fa-chart-bar" style={{ color: '#3b82f6' }}></i>
@@ -1470,10 +2219,10 @@ const AdminDashboard = () => {
 
                             {/* Manage Reminder Modal (Weddings only) */}
                             {activeActionSheet.type === 'wedding' && (
-                                <button onClick={() => { 
-                                    setSelectedWeddingForReminder(activeActionSheet.rawEvent); 
-                                    setShowReminderModal(true); 
-                                    setActiveActionSheet(null); 
+                                <button onClick={() => {
+                                    setSelectedWeddingForReminder(activeActionSheet.rawEvent);
+                                    setShowReminderModal(true);
+                                    setActiveActionSheet(null);
                                 }} className="bottom-sheet-action-btn">
                                     <i className="fas fa-bell" style={{ color: 'var(--primary)' }}></i>
                                     <span>Manage Reminders</span>
