@@ -21,30 +21,30 @@ const playSuccessBeep = () => {
         if (audioCtx.state === 'suspended') {
             audioCtx.resume();
         }
-        
+
         // Synthesizing a crisp digital chime scan sound
         const osc1 = audioCtx.createOscillator();
         const osc2 = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
-        
+
         osc1.type = 'sine';
         osc1.frequency.setValueAtTime(880, audioCtx.currentTime); // Pitch high A
         osc1.frequency.exponentialRampToValueAtTime(1320, audioCtx.currentTime + 0.08); // Sweep up to E
-        
+
         osc2.type = 'sine';
         osc2.frequency.setValueAtTime(1046.5, audioCtx.currentTime); // Pitch C6
         osc2.frequency.exponentialRampToValueAtTime(1568, audioCtx.currentTime + 0.08); // Sweep up to G6
-        
+
         gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.16); // Sharp decay
-        
+
         osc1.connect(gainNode);
         osc2.connect(gainNode);
         gainNode.connect(audioCtx.destination);
-        
+
         osc1.start();
         osc2.start();
-        
+
         osc1.stop(audioCtx.currentTime + 0.16);
         osc2.stop(audioCtx.currentTime + 0.16);
     } catch (err) {
@@ -120,7 +120,7 @@ const Hero = () => {
     return (
         <section className="hero modern-hero">
             <div className="hero-mesh-bg"></div>
-            
+
             <div className="container hero-container-layout">
                 {/* Left Content Area */}
                 <div className="hero-content">
@@ -128,7 +128,7 @@ const Hero = () => {
                         Create The <br />
                         <span className="highlight-text">Perfect Invitation</span>
                     </h1>
-                    
+
                     <p className="hero-description animate-fade-in-up delay-2">
                         Create unforgettable digital invitations with seamless guest management for weddings, birthdays, bridal showers, and corporate events.
                     </p>
@@ -141,7 +141,7 @@ const Hero = () => {
                             <span className="btn-inline-line"></span>VIEW DEMO
                         </a>
                     </div>
-                    
+
                     <div className="hero-social-proof animate-fade-in-up delay-3">
                         <div className="avatar-group">
                             <img src="https://i.pravatar.cc/100?img=1" alt="User" className="avatar-img" />
@@ -163,7 +163,7 @@ const Hero = () => {
                         <img src={weddingInvitationCardImg} alt="Wedding Invitation" className="float-card card-main" />
                         <img src={corporateImg} alt="Corporate Event" className="float-card card-side card-left" />
                         <img src={birthdayImg} alt="Birthday Card" className="float-card card-side card-right" />
-                        
+
                     </div>
                 </div>
             </div>
@@ -329,7 +329,7 @@ const TemplateShowcase = ({ onSelectTemplate }) => {
                     <span className="sub-title">BESPOKE COLLECTION</span>
                     <h2>Interactive Invitation Showcase</h2>
                     <p className="section-desc">
-                        Explore our high-fidelity layout archetypes. Click on any design below to open the **Mobile View Simulator** and interact with our live RSVP portal system.
+                        Explore our high-fidelity layout archetypes. Click on any design below to open the Mobile View Simulator and interact with our live RSVP portal system.
                     </p>
                 </div>
 
@@ -503,7 +503,7 @@ const MobileSimulatorModal = ({ template, onClose }) => {
                                 {/* RSVP Interactive Form */}
                                 <div className="mobile-section-card rsvp-section-bg" style={{ borderColor: template.accentColor }}>
                                     <h4 className="card-lbl-title" style={{ color: template.accentColor }}><i className="fas fa-envelope-open"></i> GUEST RSVP GATEWAY</h4>
-                                    
+
                                     {!rsvped ? (
                                         <form onSubmit={handleMockSubmit} className="mobile-rsvp-form">
                                             <div className="mobile-form-group">
@@ -832,7 +832,7 @@ const EntryGateway = () => {
                 { time: timeString, ...randomGuest },
                 ...prev.slice(0, 4) // Keep last 5 scans
             ]);
-            
+
             setScanResult(randomGuest);
             setScanSuccess(true);
             setIsScanning(false);
@@ -865,15 +865,15 @@ const EntryGateway = () => {
                         <div className="scanner-mock-inner">
                             <div className="scanner-phone-header">
                                 <span className="scanner-app-header">GATE CHECKPOINT</span>
-                                <button 
-                                    className="scanner-mute-btn" 
+                                <button
+                                    className="scanner-mute-btn"
                                     onClick={() => setIsMuted(!isMuted)}
                                     title={isMuted ? "Unmute Scanner Sound" : "Mute Scanner Sound"}
                                 >
                                     <i className={`fas ${isMuted ? 'fa-volume-mute' : 'fa-volume-up'}`}></i>
                                 </button>
                             </div>
-                            
+
                             <div className={`scanner-aiming-reticle ${scanSuccess ? 'success-flash' : ''}`}>
                                 <div className={`scanner-laser-line ${isScanning ? 'scanning' : ''}`}></div>
                                 {scanSuccess && scanResult ? (
@@ -896,7 +896,7 @@ const EntryGateway = () => {
                                     </>
                                 )}
                             </div>
-                            
+
                             <button
                                 className="scan-simulator-action-btn"
                                 onClick={simulateDoorScan}
@@ -1417,7 +1417,7 @@ const VendorDirectory = () => {
                                     <h3>{vendor.name}</h3>
                                     <p>{vendor.description || `Top-rated ${vendor.category.toLowerCase()} professional. One simple search.`}</p>
                                 </div>
-                                
+
                                 <div className="vhc-pill-bar">
                                     <div className="vhc-segment">
                                         <i className="fas fa-map-marker-alt"></i>
@@ -1426,9 +1426,9 @@ const VendorDirectory = () => {
                                             <span className="vhc-value">{vendor.city}</span>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="vhc-divider"></div>
-                                    
+
                                     <div className="vhc-segment">
                                         <i className={catIcon}></i>
                                         <div className="vhc-seg-text">
@@ -1456,14 +1456,14 @@ const VendorDirectory = () => {
             </div>
 
             {activeVendor && (
-                <div 
-                    className="popup-overlay active" 
+                <div
+                    className="popup-overlay active"
                     onClick={() => setActiveVendor(null)}
-                    style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        zIndex: 3000, 
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 3000,
                         background: 'rgba(8, 8, 10, 0.8)',
                         backdropFilter: 'blur(12px)',
                         padding: '1.5rem',
@@ -1471,17 +1471,17 @@ const VendorDirectory = () => {
                         top: 0, left: 0, right: 0, bottom: 0
                     }}
                 >
-                    <div 
-                        className="popup-content" 
-                        onClick={(e) => e.stopPropagation()} 
-                        style={{ 
-                            maxWidth: '600px', 
-                            width: '100%', 
+                    <div
+                        className="popup-content"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            maxWidth: '600px',
+                            width: '100%',
                             maxHeight: '85vh',
                             overflowY: 'auto',
-                            background: 'var(--bg-surface)', 
-                            borderRadius: '24px', 
-                            border: '1px solid var(--border-color)', 
+                            background: 'var(--bg-surface)',
+                            borderRadius: '24px',
+                            border: '1px solid var(--border-color)',
                             position: 'relative',
                             boxShadow: '0 30px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
                             display: 'flex',
@@ -1512,25 +1512,25 @@ const VendorDirectory = () => {
 
                         {/* Modal Header Cover */}
                         <div style={{ position: 'relative', width: '100%', height: '220px', background: '#000', overflow: 'hidden', borderTopLeftRadius: '24px', borderTopRightRadius: '24px' }}>
-                            <img 
-                                src={activeVendor.image || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80'} 
-                                alt={activeVendor.name} 
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                            <img
+                                src={activeVendor.image || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80'}
+                                alt={activeVendor.name}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                             />
-                            <div style={{ 
-                                position: 'absolute', bottom: 0, left: 0, right: 0, 
+                            <div style={{
+                                position: 'absolute', bottom: 0, left: 0, right: 0,
                                 background: 'linear-gradient(to top, var(--bg-surface), transparent)',
                                 height: '120px'
                             }}></div>
-                            <button 
-                                onClick={() => setActiveVendor(null)} 
-                                style={{ 
-                                    position: 'absolute', top: '15px', right: '15px', 
-                                    background: 'rgba(15, 23, 42, 0.6)', 
+                            <button
+                                onClick={() => setActiveVendor(null)}
+                                style={{
+                                    position: 'absolute', top: '15px', right: '15px',
+                                    background: 'rgba(15, 23, 42, 0.6)',
                                     backdropFilter: 'blur(8px)',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)', 
-                                    fontSize: '1rem', 
-                                    cursor: 'pointer', 
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    fontSize: '1rem',
+                                    cursor: 'pointer',
                                     color: '#ffffff',
                                     width: '32px', height: '32px',
                                     borderRadius: '50%',
@@ -1552,22 +1552,22 @@ const VendorDirectory = () => {
                                     {activeVendor.name}
                                 </h3>
                                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                                    <span style={{ 
-                                        fontSize: '0.75rem', color: '#10b981', background: 'rgba(16, 185, 129, 0.08)', 
-                                        padding: '4px 10px', borderRadius: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' 
+                                    <span style={{
+                                        fontSize: '0.75rem', color: '#10b981', background: 'rgba(16, 185, 129, 0.08)',
+                                        padding: '4px 10px', borderRadius: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem'
                                     }}>
                                         <i className="fas fa-tag"></i> {activeVendor.category}
                                     </span>
-                                    <span style={{ 
-                                        fontSize: '0.75rem', color: 'var(--text-muted)', background: 'var(--bg-surface-elevated)', 
+                                    <span style={{
+                                        fontSize: '0.75rem', color: 'var(--text-muted)', background: 'var(--bg-surface-elevated)',
                                         padding: '4px 10px', borderRadius: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
                                         border: '1px solid var(--border-color)'
                                     }}>
                                         <i className="fas fa-map-marker-alt"></i> {activeVendor.city}
                                     </span>
-                                    <span style={{ 
-                                        fontSize: '0.75rem', color: '#eab308', background: 'rgba(234, 179, 8, 0.08)', 
-                                        padding: '4px 10px', borderRadius: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' 
+                                    <span style={{
+                                        fontSize: '0.75rem', color: '#eab308', background: 'rgba(234, 179, 8, 0.08)',
+                                        padding: '4px 10px', borderRadius: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem'
                                     }}>
                                         <i className="fas fa-star"></i> {activeVendor.rating || '5.0 Verified'}
                                     </span>
@@ -1589,15 +1589,15 @@ const VendorDirectory = () => {
                                 {activeVendor.portfolio && activeVendor.portfolio.length > 0 ? (
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.75rem' }}>
                                         {activeVendor.portfolio.map((item, idx) => (
-                                            <div 
-                                                key={idx} 
+                                            <div
+                                                key={idx}
                                                 onClick={() => setLightboxIndex(idx)}
-                                                style={{ 
-                                                    position: 'relative', 
-                                                    borderRadius: '12px', 
-                                                    overflow: 'hidden', 
-                                                    aspectRatio: '4 / 3', 
-                                                    border: '1px solid var(--border-color)', 
+                                                style={{
+                                                    position: 'relative',
+                                                    borderRadius: '12px',
+                                                    overflow: 'hidden',
+                                                    aspectRatio: '4 / 3',
+                                                    border: '1px solid var(--border-color)',
                                                     background: '#0a0a0c',
                                                     cursor: 'pointer',
                                                     boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
@@ -1606,15 +1606,15 @@ const VendorDirectory = () => {
                                             >
                                                 {item.type === 'video' ? (
                                                     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-                                                        <video 
-                                                            src={item.url} 
-                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                                                            muted 
-                                                            playsInline 
+                                                        <video
+                                                            src={item.url}
+                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                            muted
+                                                            playsInline
                                                             preload="metadata"
                                                         />
-                                                        <div style={{ 
-                                                            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 
+                                                        <div style={{
+                                                            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
                                                             background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                             zIndex: 2
                                                         }}>
@@ -1631,9 +1631,9 @@ const VendorDirectory = () => {
                                                 ) : (
                                                     <img src={item.url} alt={`Work ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 )}
-                                                <span style={{ 
-                                                    position: 'absolute', bottom: '6px', left: '6px', 
-                                                    background: 'rgba(15, 23, 42, 0.75)', color: '#fff', fontSize: '0.55rem', 
+                                                <span style={{
+                                                    position: 'absolute', bottom: '6px', left: '6px',
+                                                    background: 'rgba(15, 23, 42, 0.75)', color: '#fff', fontSize: '0.55rem',
                                                     padding: '2px 6px', borderRadius: '4px', fontWeight: 800, textTransform: 'uppercase',
                                                     zIndex: 5, letterSpacing: '0.05em'
                                                 }}>
@@ -1643,10 +1643,10 @@ const VendorDirectory = () => {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div style={{ 
-                                        padding: '1.5rem', 
-                                        border: '1px dashed var(--border-color)', 
-                                        borderRadius: '12px', 
+                                    <div style={{
+                                        padding: '1.5rem',
+                                        border: '1px dashed var(--border-color)',
+                                        borderRadius: '12px',
                                         textAlign: 'center',
                                         background: 'var(--bg-surface-elevated)'
                                     }}>
@@ -1662,25 +1662,25 @@ const VendorDirectory = () => {
 
             {/* Lightbox Slider for Images & Videos */}
             {lightboxIndex !== null && activeVendor && activeVendor.portfolio && activeVendor.portfolio[lightboxIndex] && (
-                <div 
+                <div
                     onClick={() => setLightboxIndex(null)}
-                    style={{ 
-                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
-                        background: 'rgba(10, 10, 12, 0.95)', 
+                    style={{
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(10, 10, 12, 0.95)',
                         backdropFilter: 'blur(15px)',
-                        zIndex: 4000, 
-                        display: 'flex', 
-                        alignItems: 'center', 
+                        zIndex: 4000,
+                        display: 'flex',
+                        alignItems: 'center',
                         justifyContent: 'center',
                         padding: '1.5rem',
                         userSelect: 'none'
                     }}
                 >
-                    <button 
-                        onClick={() => setLightboxIndex(null)} 
-                        style={{ 
-                            position: 'absolute', top: '25px', right: '25px', 
-                            background: 'rgba(255,255,255,0.1)', border: 'none', fontSize: '1.25rem', 
+                    <button
+                        onClick={() => setLightboxIndex(null)}
+                        style={{
+                            position: 'absolute', top: '25px', right: '25px',
+                            background: 'rgba(255,255,255,0.1)', border: 'none', fontSize: '1.25rem',
                             color: '#fff', cursor: 'pointer', width: '44px', height: '44px', borderRadius: '50%',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10,
                             transition: 'all 0.2s'
@@ -1693,14 +1693,14 @@ const VendorDirectory = () => {
 
                     {/* Previous Button */}
                     {activeVendor.portfolio.length > 1 && (
-                        <button 
-                            onClick={(e) => { 
-                                e.stopPropagation(); 
-                                setLightboxIndex(prev => prev > 0 ? prev - 1 : activeVendor.portfolio.length - 1); 
-                            }} 
-                            style={{ 
-                                position: 'absolute', left: '25px', 
-                                background: 'rgba(255,255,255,0.1)', border: 'none', fontSize: '1.25rem', 
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setLightboxIndex(prev => prev > 0 ? prev - 1 : activeVendor.portfolio.length - 1);
+                            }}
+                            style={{
+                                position: 'absolute', left: '25px',
+                                background: 'rgba(255,255,255,0.1)', border: 'none', fontSize: '1.25rem',
                                 color: '#fff', cursor: 'pointer', width: '50px', height: '50px', borderRadius: '50%',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10,
                                 transition: 'all 0.2s'
@@ -1713,44 +1713,44 @@ const VendorDirectory = () => {
                     )}
 
                     {/* Main Content Item */}
-                    <div 
-                        onClick={(e) => e.stopPropagation()} 
-                        style={{ 
-                            maxWidth: '90%', 
-                            maxHeight: '80vh', 
-                            display: 'flex', 
-                            alignItems: 'center', 
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            maxWidth: '90%',
+                            maxHeight: '80vh',
+                            display: 'flex',
+                            alignItems: 'center',
                             justifyContent: 'center',
                             position: 'relative'
                         }}
                     >
                         {activeVendor.portfolio[lightboxIndex].type === 'video' ? (
-                            <video 
-                                src={activeVendor.portfolio[lightboxIndex].url} 
-                                controls 
+                            <video
+                                src={activeVendor.portfolio[lightboxIndex].url}
+                                controls
                                 autoPlay
                                 playsInline
-                                style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }} 
+                                style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}
                             />
                         ) : (
-                            <img 
-                                src={activeVendor.portfolio[lightboxIndex].url} 
-                                alt={`Work preview ${lightboxIndex}`} 
-                                style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }} 
+                            <img
+                                src={activeVendor.portfolio[lightboxIndex].url}
+                                alt={`Work preview ${lightboxIndex}`}
+                                style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}
                             />
                         )}
                     </div>
 
                     {/* Next Button */}
                     {activeVendor.portfolio.length > 1 && (
-                        <button 
-                            onClick={(e) => { 
-                                e.stopPropagation(); 
-                                setLightboxIndex(prev => prev < activeVendor.portfolio.length - 1 ? prev + 1 : 0); 
-                            }} 
-                            style={{ 
-                                position: 'absolute', right: '25px', 
-                                background: 'rgba(255,255,255,0.1)', border: 'none', fontSize: '1.25rem', 
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setLightboxIndex(prev => prev < activeVendor.portfolio.length - 1 ? prev + 1 : 0);
+                            }}
+                            style={{
+                                position: 'absolute', right: '25px',
+                                background: 'rgba(255,255,255,0.1)', border: 'none', fontSize: '1.25rem',
                                 color: '#fff', cursor: 'pointer', width: '50px', height: '50px', borderRadius: '50%',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10,
                                 transition: 'all 0.2s'
@@ -1763,9 +1763,9 @@ const VendorDirectory = () => {
                     )}
 
                     {/* Navigation Counter */}
-                    <div style={{ 
-                        position: 'absolute', bottom: '30px', 
-                        background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '0.85rem', 
+                    <div style={{
+                        position: 'absolute', bottom: '30px',
+                        background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '0.85rem',
                         padding: '6px 14px', borderRadius: '20px', fontWeight: 600,
                         border: '1px solid rgba(255,255,255,0.1)'
                     }}>
@@ -2232,9 +2232,9 @@ function App() {
 
             {/* Live Template Mobile Preview Simulator Modal */}
             {selectedTemplate && (
-                <MobileSimulatorModal 
-                    template={selectedTemplate} 
-                    onClose={() => setSelectedTemplate(null)} 
+                <MobileSimulatorModal
+                    template={selectedTemplate}
+                    onClose={() => setSelectedTemplate(null)}
                 />
             )}
 
