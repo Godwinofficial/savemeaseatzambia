@@ -451,6 +451,7 @@
   margin-left: -12px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
   object-fit: cover;
+  flex-shrink: 0;
 }
 
 .home-page .avatar-img:first-child {
@@ -472,6 +473,7 @@
   color: var(--dark);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
   z-index: 4;
+  flex-shrink: 0;
 }
 
 .home-page .social-proof-text {
@@ -1505,82 +1507,6 @@
 .home-page .pricing-card-spec.popular .spec-cta-btn:hover {
   background: var(--primary-dark);
   border-color: var(--primary-dark);
-}
-
-/* ===== Control Center Feature Matrix ===== */
-.home-page .specs-matrix {
-  background: var(--white);
-  border-top: 1px solid var(--light-gray);
-}
-
-.home-page .matrix-table-container {
-  overflow-x: auto;
-  border: 1px solid var(--light-gray);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
-  margin-top: 40px;
-}
-
-.home-page .specs-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: center;
-}
-
-.home-page .specs-table th {
-  background: var(--light);
-  padding: 20px 24px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--gray);
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--light-gray);
-}
-
-.home-page .specs-table th:first-child {
-  text-align: left;
-}
-
-.home-page .specs-table td {
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--light-gray);
-  font-size: 0.95rem;
-  color: var(--dark);
-  font-weight: 500;
-}
-
-.home-page .specs-table td.spec-name {
-  text-align: left;
-  font-weight: 700;
-  color: var(--dark);
-}
-
-.home-page .specs-table tr:hover td {
-  background: rgba(15, 23, 42, 0.015);
-}
-
-.home-page .specs-table tr:last-child td {
-  border-bottom: none;
-}
-
-.home-page .check-icon {
-  color: #10b981;
-  font-size: 1.1rem;
-}
-
-.home-page .cross-icon {
-  color: var(--light-gray);
-  font-size: 1.1rem;
-}
-
-.home-page .spec-text {
-  font-size: 0.85rem;
-  font-weight: 700;
-  background: var(--light);
-  color: var(--gray);
-  padding: 4px 10px;
-  border-radius: 4px;
 }
 
 /* ===== Payment Secure Gateway ===== */
@@ -3860,9 +3786,9 @@
   }
 
   .home-page .hero-social-proof {
-    flex-direction: row;
-    align-items: center;
-    gap: 20px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 
   .home-page .avatar-overflow {
@@ -3870,6 +3796,7 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    flex-shrink: 0 !important;
   }
 
   .home-page .social-links-row,

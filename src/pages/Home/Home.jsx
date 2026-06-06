@@ -150,10 +150,10 @@ const Hero = () => {
                             <img src={avatar1} alt="User" className="avatar-img" />
                             <img src={avatar2} alt="User" className="avatar-img" />
                             <img src={avatar3} alt="User" className="avatar-img" />
-                            <div className="avatar-overflow">+2k</div>
+                            <div className="avatar-overflow">+2h</div>
                         </div>
                         <div className="social-proof-text">
-                            <strong>Trusted by 10,000+</strong> hosts and planners across Zambia.
+                            <strong>Trusted by 200+</strong> hosts and planners across Zambia.
                         </div>
                     </div>
                 </div>
@@ -1088,83 +1088,6 @@ const Pricing = ({ onOpenPackage }) => {
                     {plans.map((plan, index) => (
                         <PricingCard key={index} {...plan} onOpenPackage={onOpenPackage} />
                     ))}
-                </div>
-            </div>
-        </section>
-    );
-};
-
-// Control Center Feature Matrix
-const SpecsMatrix = () => {
-    const specs = [
-        { name: 'RSVP Submission Form', starter: true, standard: true, premium: true },
-        { name: 'Custom Domain Slug URL', starter: true, standard: true, premium: true },
-        { name: 'Real-time Google Sheet Sync', starter: true, standard: true, premium: true },
-        { name: 'Photo Gallery Panel', starter: false, standard: 'Up to 10 Photos', premium: 'Unlimited Photos' },
-        { name: 'Group RSVP Connections', starter: false, standard: true, premium: true },
-        { name: 'Verification Access Codes', starter: false, standard: 'Basic Codes', premium: 'Unique Family Codes' },
-        { name: 'QR Gate Entry Tickets', starter: false, standard: false, premium: true },
-        { name: 'Dress Code Guideline Cards', starter: false, standard: true, premium: true },
-        { name: 'Registry sync and PDF link', starter: false, standard: true, premium: true },
-        { name: 'Bespoke Wireframe Layout', starter: false, standard: false, premium: true }
-    ];
-
-    return (
-        <section className="specs-matrix" id="specs-matrix">
-            <div className="container">
-                <div className="section-title-wrap">
-                    <span className="sub-title">DETAILED MATRIX</span>
-                    <h2>Control Center Specifications</h2>
-                    <p className="section-desc">
-                        A detailed breakdown comparing our custom administrative invitation portal capabilities.
-                    </p>
-                </div>
-
-                <div className="matrix-table-container">
-                    <table className="specs-table">
-                        <thead>
-                            <tr>
-                                <th>Portal Capability</th>
-                                <th>Starter Package</th>
-                                <th>Standard Package</th>
-                                <th>Premium Package</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {specs.map((spec, idx) => (
-                                <tr key={idx}>
-                                    <td className="spec-name">{spec.name}</td>
-                                    <td>
-                                        {spec.starter === true ? (
-                                            <i className="fas fa-check-circle check-icon"></i>
-                                        ) : spec.starter === false ? (
-                                            <i className="fas fa-times-circle cross-icon"></i>
-                                        ) : (
-                                            <span className="spec-text">{spec.starter}</span>
-                                        )}
-                                    </td>
-                                    <td>
-                                        {spec.standard === true ? (
-                                            <i className="fas fa-check-circle check-icon"></i>
-                                        ) : spec.standard === false ? (
-                                            <i className="fas fa-times-circle cross-icon"></i>
-                                        ) : (
-                                            <span className="spec-text">{spec.standard}</span>
-                                        )}
-                                    </td>
-                                    <td>
-                                        {spec.premium === true ? (
-                                            <i className="fas fa-check-circle check-icon"></i>
-                                        ) : spec.premium === false ? (
-                                            <i className="fas fa-times-circle cross-icon"></i>
-                                        ) : (
-                                            <span className="spec-text">{spec.premium}</span>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
                 </div>
             </div>
         </section>
@@ -2223,7 +2146,6 @@ function App() {
             <HowItWorks />
             <EntryGateway />
             <Pricing onOpenPackage={openPackagePopup} />
-            <SpecsMatrix />
             <Payment />
 
             <VendorDirectory />
