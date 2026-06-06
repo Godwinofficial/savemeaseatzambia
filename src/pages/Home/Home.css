@@ -3859,6 +3859,19 @@
     height: 400px;
   }
 
+  .home-page .hero-social-proof {
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .home-page .avatar-overflow {
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
   .home-page .social-links-row,
   .home-page .social-links-footer {
     display: none !important;
