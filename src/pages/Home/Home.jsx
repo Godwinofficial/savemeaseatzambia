@@ -13,6 +13,9 @@ import birthdayImg from '/src/assets/images/Birthday Greeting Card.png';
 import weddingInvitationCardImg from '/src/assets/images/Wedding Invitation Card.png';
 import bridalShowerImg from '../../assets/images/Bridal Shower Invitation.png';
 import GlobalAIAgentWidget from '../../components/GlobalAIAgentWidget';
+import avatar1 from '/src/assets/images/avatars/avatar1.png';
+import avatar2 from '/src/assets/images/avatars/avatar2.png';
+import avatar3 from '/src/assets/images/avatars/avatar3.png';
 
 // Synthetic Beep Sound Generator using Web Audio API
 const playSuccessBeep = () => {
@@ -144,9 +147,9 @@ const Hero = () => {
 
                     <div className="hero-social-proof animate-fade-in-up delay-3">
                         <div className="avatar-group">
-                            <img src="https://i.pravatar.cc/100?img=1" alt="User" className="avatar-img" />
-                            <img src="https://i.pravatar.cc/100?img=2" alt="User" className="avatar-img" />
-                            <img src="https://i.pravatar.cc/100?img=3" alt="User" className="avatar-img" />
+                            <img src={avatar1} alt="User" className="avatar-img" />
+                            <img src={avatar2} alt="User" className="avatar-img" />
+                            <img src={avatar3} alt="User" className="avatar-img" />
                             <div className="avatar-overflow">+2k</div>
                         </div>
                         <div className="social-proof-text">
