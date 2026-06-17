@@ -1408,7 +1408,7 @@ const AdminDashboard = () => {
                                                     subtitle: `Wedding Date: ${formatDate(wedding.date)}`,
                                                     url: `/w/${wedding.slug}`,
                                                     slug: wedding.slug,
-                                                    copyType: 'website',
+                                                    copyType: 'preview',
                                                     editUrl: `/editWedding/${wedding.id}`,
                                                     rawEvent: wedding,
                                                     reportUrl: `/report/${wedding.slug}`,
