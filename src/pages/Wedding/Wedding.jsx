@@ -1749,281 +1749,160 @@ const WeddingTemplate = () => {
       font-weight: 600;
     }
 
-    .details-container {
-      max-width: 700px;
-      margin: 0 auto;
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 35px;
+      max-width: 1000px;
+      margin: 40px auto 0;
       padding: 0 20px;
-      text-align: center;
     }
 
-    .event-item {
+    .details-card {
       background: var(--white);
-      border-left: 3px solid var(--accent-color);
-      padding: 45px 40px;
-      margin-bottom: 35px;
-      border-radius: 4px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
-      transition: var(--transition);
+      border: 1px solid rgba(166, 138, 100, 0.2);
+      padding: 40px 30px;
+      border-radius: 8px;
       position: relative;
-      overflow: hidden;
-    }
-
-    .event-item::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 120px;
-      height: 120px;
-      background: radial-gradient(circle, rgba(166, 138, 100, 0.08) 0%, transparent 70%);
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.6s ease;
-    }
-
-    .event-item:hover {
-      transform: translateX(8px);
-      box-shadow: 0 12px 32px rgba(166, 138, 100, 0.15);
-    }
-
-    .event-item:hover::before {
-      opacity: 1;
-    }
-
-    .event-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 25px;
-      padding-bottom: 20px;
-    }
-
-    .event-header h3 {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 2rem;
-      font-weight: 400;
-      color: var(--text-color);
-      margin: 0;
-      letter-spacing: 0.5px;
-      flex: 1;
-    }
-
-    .event-date {
-      font-family: 'Montserrat', sans-serif;
-      font-size: 0.9rem;
-      color: var(--accent-color);
-      text-transform: uppercase;
-      letter-spacing: 0.15em;
-      font-weight: 500;
-      white-space: nowrap;
-      margin-left: 40px;
-    }
-
-    .event-info {
+      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
-      gap: 18px;
-      position: relative;
-      z-index: 1;
+      align-items: center;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
     }
 
-    .event-info p {
-      color: var(--light-text);
-      font-size: 0.95rem;
-      margin: 0;
-      line-height: 1.8;
-      letter-spacing: 0.3px;
+    .details-card::after {
+      content: '';
+      position: absolute;
+      inset: 12px;
+      border: 1px solid rgba(166, 138, 100, 0.1);
+      border-radius: 6px;
+      pointer-events: none;
+      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .event-info p strong {
-      color: var(--text-color);
-      font-weight: 600;
-      margin-right: 6px;
+    .details-card:hover {
+      transform: translateY(-8px);
+      border-color: var(--accent-color);
+      box-shadow: 0 16px 35px rgba(166, 138, 100, 0.12);
     }
 
-    .event-info .address {
+    .details-card:hover::after {
+      inset: 8px;
+      border-color: rgba(166, 138, 100, 0.3);
+    }
+
+    .details-card-icon {
+      font-size: 2rem;
       color: var(--accent-color);
+      margin-bottom: 20px;
+      transition: transform 0.5s ease;
+    }
+
+    .details-card:hover .details-card-icon {
+      transform: scale(1.1) rotate(5deg);
+    }
+
+    .details-card h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.8rem;
+      font-weight: 500;
+      color: var(--text-color);
+      margin-bottom: 15px;
+      letter-spacing: 0.5px;
+    }
+
+    .details-card-divider {
+      width: 50px;
+      height: 1px;
+      background: var(--accent-color);
+      margin: 15px 0;
+      opacity: 0.4;
+    }
+
+    .details-card-date {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent-color);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .details-card-time {
+      font-family: 'Cormorant Garamond', serif;
       font-style: italic;
-      font-size: 0.88rem;
-      margin-top: 8px;
+      font-size: 1.1rem;
+      color: var(--light-text);
+      margin-bottom: 15px;
+    }
+
+    .details-card-venue {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.2rem;
+      color: var(--text-color);
+      line-height: 1.4;
+      font-weight: 500;
+    }
+
+    .details-card-address {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.75rem;
+      color: var(--light-text);
+      margin-top: 5px;
+      letter-spacing: 0.05em;
     }
 
     /* Gifts Section */
-    #gifts-section .info-cards {
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
-      max-width: 960px;
-      margin: 40px auto 0;
-      padding: 0 10px;
-    }
-
-    #gifts-section .info-card {
-      padding: 20px 16px;
-      border-radius: 10px;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-      transition: transform 0.25s ease, box-shadow 0.25s ease;
-      align-items: center;
-      text-align: center;
-      background: var(--white);
-      border: 1px solid rgba(166, 138, 100, 0.1);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    #gifts-section .info-card:hover {
-      transform: translateY(-12px);
-      border-color: var(--accent-color);
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.1);
-    }
-
-    #gifts-section .info-card h4 {
-      font-size: 1.05rem;
-      margin-bottom: 8px;
-      font-family: 'Cormorant Garamond', serif;
-      color: var(--text-color);
-      font-weight: 400;
-    }
-
-    #gifts-section .info-card p {
-      font-size: 0.95rem;
-      margin-bottom: 6px;
-      color: var(--light-text);
-    }
-
-    #gifts-section .info-icon {
-      width: 48px;
-      height: 48px;
-      font-size: 20px;
-      margin-bottom: 12px;
-      background: linear-gradient(135deg, rgba(166, 138, 100, 0.1) 0%, rgba(166, 138, 100, 0.05) 100%);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 12px;
+    .btn-luxury-sm {
+      padding: 10px 24px;
+      background: transparent;
+      border: 1px solid rgba(166, 138, 100, 0.4);
       color: var(--accent-color);
-      border: 2px solid rgba(166, 138, 100, 0.2);
-      transition: var(--transition);
-    }
-
-    #gifts-section .info-card:hover .info-icon {
-      background: linear-gradient(135deg, var(--accent-color) 0%, #b38b5d 100%);
-      color: var(--white);
-      border-color: var(--accent-color);
-      transform: scale(1.1);
-    }
-
-    #gifts-section .btn.copy-account-btn {
-      padding: 8px 18px;
-      font-size: 0.8rem;
-      border-radius: 6px;
-      max-width: 190px;
-      background: var(--accent-color);
-      color: white;
-      border: none;
+      text-transform: uppercase;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600;
+      transition: all 0.4s ease;
       cursor: pointer;
-      transition: all 0.3s ease;
+      margin-top: 15px;
+      border-radius: 4px;
+      display: inline-block;
+      outline: none;
     }
 
-    #gifts-section .btn.copy-account-btn:hover {
-      background: #b38b5d;
-    }
-
-    .info-cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 30px;
-      margin: 80px auto 0;
-      max-width: 1200px;
-    }
-
-    .info-card {
-      background: var(--white);
-      border-radius: 12px;
-      padding: 45px 35px;
-      text-align: center;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-      transition: var(--transition);
-      border: 1px solid rgba(166, 138, 100, 0.1);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .info-card:hover {
-      transform: translateY(-12px);
-      border-color: var(--accent-color);
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.1);
-    }
-
-    .info-icon {
-      width: 70px;
-      height: 70px;
-      background: linear-gradient(135deg, rgba(166, 138, 100, 0.1) 0%, rgba(166, 138, 100, 0.05) 100%);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 25px;
-      color: var(--accent-color);
-      font-size: 28px;
-      border: 2px solid rgba(166, 138, 100, 0.2);
-      transition: var(--transition);
-    }
-
-    .info-card:hover .info-icon {
-      background: linear-gradient(135deg, var(--accent-color) 0%, #b38b5d 100%);
+    .btn-luxury-sm:hover {
+      background: var(--accent-color);
       color: var(--white);
       border-color: var(--accent-color);
-      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(166, 138, 100, 0.25);
     }
 
-    .info-card h4 {
-      font-family: 'Cormorant Garamond', serif;
-      color: var(--text-color);
-      font-size: 1.5rem;
-      margin-bottom: 15px;
-      font-weight: 400;
-    }
-
-    .info-card p {
-      color: var(--light-text);
-      margin-bottom: 8px;
-      line-height: 1.6;
-      font-size: 0.95rem;
-    }
-
-    .info-card .hint {
-      font-size: 0.85rem;
-      color: var(--accent-color);
-      font-style: italic;
-      margin-top: 10px;
-    }
-
-    .info-link {
+    .details-card-link {
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       color: var(--accent-color);
       text-decoration: none;
-      font-size: 0.9rem;
-      margin-top: 15px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-    }
-
-    .info-link i {
-      margin-left: 8px;
       font-size: 0.8rem;
-      transition: transform 0.3s ease;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600;
+      margin-top: 15px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      transition: color 0.3s ease;
     }
 
-    .info-link:hover {
+    .details-card-link i {
+      margin-left: 6px;
+      font-size: 0.75rem;
+    }
+
+    .details-card-link:hover {
       color: #b38b5d;
-    }
-
-    .info-link:hover i {
-      transform: translateX(4px);
     }
 
     /* Location Map Section */
@@ -2097,8 +1976,8 @@ const WeddingTemplate = () => {
 
     /* RSVP Section */
     .rsvp {
-      background: #1c1917;
-      padding: 120px 0;
+      background: #151312;
+      padding: 80px 0;
       color: var(--white);
       position: relative;
     }
@@ -2110,7 +1989,8 @@ const WeddingTemplate = () => {
       left: 0;
       right: 0;
       bottom: 0;
-      background: radial-gradient(circle at center, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
+      background: radial-gradient(circle at center, rgba(166, 138, 100, 0.05) 0%, transparent 85%),
+                  radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.01) 0%, transparent 40%);
       pointer-events: none;
     }
 
@@ -2119,87 +1999,132 @@ const WeddingTemplate = () => {
     }
 
     .rsvp .section-title p {
-      color: rgba(255, 255, 255, 0.7);
+      color: rgba(255, 255, 255, 0.6);
+      letter-spacing: 0.1em;
     }
 
     .rsvp-form {
-      max-width: 600px;
+      max-width: 550px;
       margin: 0 auto;
-      background: rgba(255, 255, 255, 0.03);
-      padding: 60px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.015);
+      padding: 55px 45px;
+      border: 1px solid rgba(166, 138, 100, 0.15);
       position: relative;
       z-index: 2;
       display: flex;
       flex-direction: column;
       align-items: center;
-      backdrop-filter: blur(10px);
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(12px);
+      border-radius: 8px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    .rsvp-form::after {
+      content: '';
+      position: absolute;
+      inset: 12px;
+      border: 1px solid rgba(166, 138, 100, 0.08);
+      border-radius: 4px;
+      pointer-events: none;
     }
 
     .form-group {
       width: 100%;
-      margin-bottom: 20px;
+      margin-bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
     }
 
     .form-group label {
       display: block;
       margin-bottom: 8px;
-      color: rgba(255, 255, 255, 0.8);
-      font-size: 0.9rem;
+      color: var(--accent-color);
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600;
+      transition: color 0.3s ease;
+    }
+
+    .form-group:focus-within label {
+      color: var(--white);
     }
 
     .form-control {
       background: transparent;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 15px 20px;
+      border: none;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 12px 5px;
       font-size: 1rem;
-      transition: var(--transition);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
       width: 100%;
-      border-radius: 10px;
+      border-radius: 0;
       color: #ffffff !important;
+      font-family: 'Cormorant Garamond', serif;
+      letter-spacing: 0.02em;
     }
 
     .form-control:focus {
       outline: none;
       border-color: var(--accent-color);
-      box-shadow: 0 0 10px rgba(166, 138, 100, 0.3);
+      box-shadow: none;
+      background: rgba(255, 255, 255, 0.01);
     }
 
     .form-control::placeholder {
-      color: rgba(255, 255, 255, 0.7) !important;
+      color: rgba(255, 255, 255, 0.3) !important;
+      font-style: italic;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.05rem;
+    }
+
+    select.form-control {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23A68A64' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: calc(100% - 10px) center;
+      padding-right: 30px;
     }
 
     select.form-control option {
-      background-color: #333;
+      background-color: #1a1817;
       color: #ffffff !important;
+      padding: 15px;
+      font-family: 'Cormorant Garamond', serif;
     }
 
-    .btn {
-      background: linear-gradient(90deg, var(--accent-color) 0%, #b38b5d 100%);
-      color: var(--white);
+    .rsvp-form .btn-submit {
+      background: transparent;
       border: 1px solid var(--accent-color);
-      padding: 18px 45px;
-      letter-spacing: 0.2rem;
-      font-size: 0.9rem;
-      margin-top: 30px;
+      color: var(--white);
+      padding: 16px 45px;
+      letter-spacing: 0.3em;
+      font-size: 0.75rem;
+      margin-top: 15px;
       width: auto;
-      max-width: 300px;
-      transition: var(--transition);
+      min-width: 220px;
+      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
       cursor: pointer;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      display: block;
-      margin: 30px auto;
+      border-radius: 4px;
+      text-transform: uppercase;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 500;
+      outline: none;
     }
 
-    .btn:hover {
-      background: linear-gradient(90deg, #b38b5d 0%, var(--accent-color) 100%);
-      border-color: var(--white);
+    .rsvp-form .btn-submit:hover {
+      background: var(--accent-color);
       color: var(--white);
+      border-color: var(--accent-color);
       transform: translateY(-3px);
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 10px 25px rgba(166, 138, 100, 0.25);
+    }
+
+    .rsvp-form .btn-submit:active {
+      transform: translateY(-1px);
     }
 
     /* Gallery Section */
@@ -2334,17 +2259,7 @@ const WeddingTemplate = () => {
         gap: 50px;
       }
 
-      .event-date {
-        flex-direction: row;
-        justify-content: center;
-        padding: 30px 20px;
-        min-width: 100%;
-      }
 
-      .event-date .date {
-        margin: 0 15px 0 0;
-        font-size: 2.5rem;
-      }
 
       .map-overlay {
         bottom: 20px;
@@ -2575,39 +2490,14 @@ const WeddingTemplate = () => {
         flex-direction: column;
       }
 
-      .event-date {
-        flex-direction: row;
-        justify-content: center;
-        padding: 20px 15px;
-        min-width: 100%;
+      .details-grid {
+        grid-template-columns: 1fr !important;
+        gap: 25px !important;
+        padding: 0 15px !important;
       }
 
-      .event-date .date {
-        margin: 0 15px 0 0;
-        font-size: 2rem;
-      }
-
-      .event-details {
-        padding: 25px;
-      }
-
-      .event-header {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .event-date {
-        margin-left: 0;
-        margin-top: 12px;
-      }
-
-      .event-header h3 {
-        font-size: 1.5rem;
-      }
-
-      .event-item {
-        padding: 35px 25px;
-        margin-bottom: 25px;
+      .details-card {
+        padding: 35px 25px !important;
       }
 
       .map-container {
@@ -2739,18 +2629,7 @@ const WeddingTemplate = () => {
         gap: 30px;
       }
 
-      #gifts-section .info-cards {
-        gap: 14px;
-      }
 
-      #gifts-section .info-card {
-        padding: 14px 12px;
-      }
-
-      #gifts-section .info-icon {
-        width: 44px;
-        height: 44px;
-      }
     }
   `;
 
@@ -3035,42 +2914,50 @@ const WeddingTemplate = () => {
               <h2>Wedding Details</h2>
             </div>
 
-            <div className="details-container" id="wedding-details-container">
+            <div className="details-grid" id="wedding-details-grid">
               {weddingData.ceremony.date && (
-                <div className="event-item" id="ceremony-item">
-                  <div className="event-header">
-                    <h3>Marriage Blessings</h3>
-                    <span className="event-date" id="ceremony-date">{formatDate(weddingData.ceremony.date)}</span>
+                <div className="details-card" id="ceremony-item">
+                  <div className="details-card-icon">
+                    <i className="fas fa-church"></i>
                   </div>
-                  <div className="event-info" id="ceremony-details">
-                    <p className="time"><strong>Time:</strong> <span id="ceremony-time">{weddingData.ceremony.time}</span></p>
-                    <p className="venue"><strong>Venue:</strong> <span id="ceremony-venue">{weddingData.ceremony.venue}</span></p>
-                  </div>
+                  <h3>Marriage Blessings</h3>
+                  <span className="details-card-date">{formatDate(weddingData.ceremony.date)}</span>
+                  <span className="details-card-time">{weddingData.ceremony.time}</span>
+                  <div className="details-card-divider"></div>
+                  <div className="details-card-venue">{weddingData.ceremony.venue}</div>
                 </div>
               )}
 
               {weddingData.reception.date && (
-                <div className="event-item" id="reception-item">
-                  <div className="event-header">
-                    <h3>Reception</h3>
-                    <span className="event-date" id="reception-date">{formatDate(weddingData.reception.date)}</span>
+                <div className="details-card" id="reception-item">
+                  <div className="details-card-icon">
+                    <i className="fas fa-glass-cheers"></i>
                   </div>
-                  <div className="event-info" id="reception-details">
-                    <p className="time"><strong>Time:</strong> <span id="reception-time">{weddingData.reception.time}</span></p>
-                    <p className="venue"><strong>Venue:</strong> <span id="reception-venue">{weddingData.reception.venue}</span></p>
-                    <p className="address" id="reception-address">{weddingData.reception.address}</p>
-                  </div>
+                  <h3>The Reception</h3>
+                  <span className="details-card-date">{formatDate(weddingData.reception.date)}</span>
+                  <span className="details-card-time">{weddingData.reception.time}</span>
+                  <div className="details-card-divider"></div>
+                  <div className="details-card-venue">{weddingData.reception.venue}</div>
+                  {weddingData.reception.address && (
+                    <p className="details-card-address">{weddingData.reception.address}</p>
+                  )}
                 </div>
               )}
 
-              <div className="event-item" id="dress-code-item">
-                <div className="event-header">
-                  <h3>Dress Code</h3>
+              <div className="details-card" id="dress-code-item">
+                <div className="details-card-icon">
+                  <i className="fas fa-user-tie"></i>
                 </div>
-                <div className="event-info" id="dress-code-details">
-                  <p id="dress-code-text">{weddingData.dressCode}</p>
-                  {weddingData.dressCodeDescription && <p>{weddingData.dressCodeDescription}</p>}
+                <h3>Dress Code</h3>
+                <span className="details-card-date">Attire</span>
+                <span className="details-card-time">Guidelines</span>
+                <div className="details-card-divider"></div>
+                <div className="details-card-venue" id="dress-code-text">
+                  {weddingData.dressCode || "Formal / Black Tie Optional"}
                 </div>
+                {weddingData.dressCodeDescription && (
+                  <p className="details-card-address">{weddingData.dressCodeDescription}</p>
+                )}
               </div>
             </div>
           </div>
@@ -3085,19 +2972,23 @@ const WeddingTemplate = () => {
               <span className="subtitle">The Celebration</span>
               <h2>Event Details</h2>
             </div>
-            <div className="details-container">
+            <div className="details-grid">
               {weddingData.otherEvents.map((event, index) => (
-                <div className="event-item" key={index}>
-                  <div className="event-header">
-                    <h3>{event.name}</h3>
-                    <span className="event-date">{formatDate(event.date)}</span>
+                <div className="details-card" key={index}>
+                  <div className="details-card-icon">
+                    <i className="fas fa-calendar-alt"></i>
                   </div>
-                  <div className="event-info">
-                    <p className="time"><strong>Time:</strong> <span>{formatTime(event.time)}</span></p>
-                    <p className="venue"><strong>Venue:</strong> <span>{event.venue}</span></p>
-                    {event.address && <p className="address"><strong>Address:</strong> {event.address}</p>}
-                    {event.dress_code && <p className="address"><strong>Dress Code:</strong> {event.dress_code}</p>}
-                  </div>
+                  <h3>{event.name}</h3>
+                  <span className="details-card-date">{formatDate(event.date)}</span>
+                  <span className="details-card-time">{formatTime(event.time)}</span>
+                  <div className="details-card-divider"></div>
+                  <div className="details-card-venue">{event.venue}</div>
+                  {event.address && (
+                    <p className="details-card-address"><strong>Address:</strong> {event.address}</p>
+                  )}
+                  {event.dress_code && (
+                    <p className="details-card-address"><strong>Dress Code:</strong> {event.dress_code}</p>
+                  )}
                 </div>
               ))}
             </div>
@@ -3114,31 +3005,42 @@ const WeddingTemplate = () => {
               <p>We are grateful for your love — if you'd like to contribute.</p>
             </div>
 
-            <div id="gifts-list" className="info-cards" aria-live="polite">
+            <div id="gifts-list" className="details-grid" aria-live="polite">
               {weddingData.gifts.map((gift, index) => (
-                <div key={index} className="info-card">
-                  <div className="info-icon"><i className="fas fa-gift"></i></div>
-                  <h4>{gift.provider} {gift.giftType ? `(${gift.giftType})` : ''}</h4>
-                  {gift.accountName && <p><strong>{gift.accountName}</strong></p>}
-                  {gift.accountNumber && <p style={{ letterSpacing: "0.05em" }}>{gift.accountNumber}</p>}
-                  {gift.instructions && <p className="hint">{gift.instructions}</p>}
-                  {gift.url && (
-                    <p>
-                      <a href={gift.url} target="_blank" rel="noopener noreferrer" className="info-link">
-                        Open payment link <i className="fas fa-external-link-alt"></i>
-                      </a>
-                    </p>
-                  )}
-                  <div style={{ marginTop: "12px", display: "flex", justifyContent: "center", gap: "10px" }}>
-                    {gift.accountNumber && (
-                      <button
-                        className="btn copy-account-btn"
-                        onClick={() => handleCopyAccount(gift.accountNumber)}
-                      >
-                        Copy Account
-                      </button>
-                    )}
+                <div key={index} className="details-card">
+                  <div className="details-card-icon">
+                    <i className="fas fa-gift"></i>
                   </div>
+                  <h3>{gift.provider} {gift.giftType ? `(${gift.giftType})` : ''}</h3>
+                  {gift.accountName && (
+                    <span className="details-card-date" style={{ color: 'var(--text-color)', fontWeight: 600 }}>
+                      {gift.accountName}
+                    </span>
+                  )}
+                  {gift.accountNumber && (
+                    <span className="details-card-time" style={{ fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em', fontSize: '0.95rem', fontWeight: 500, margin: '5px 0 10px' }}>
+                      {gift.accountNumber}
+                    </span>
+                  )}
+                  <div className="details-card-divider"></div>
+                  {gift.instructions && (
+                    <div className="details-card-venue" style={{ fontSize: '0.95rem', color: 'var(--light-text)', fontStyle: 'italic' }}>
+                      {gift.instructions}
+                    </div>
+                  )}
+                  {gift.url && (
+                    <a href={gift.url} target="_blank" rel="noopener noreferrer" className="details-card-link">
+                      Open payment link <i className="fas fa-external-link-alt"></i>
+                    </a>
+                  )}
+                  {gift.accountNumber && (
+                    <button
+                      className="btn-luxury-sm"
+                      onClick={() => handleCopyAccount(gift.accountNumber)}
+                    >
+                      Copy Account
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -3199,10 +3101,11 @@ const WeddingTemplate = () => {
             <div className="rsvp-closed-message" style={{
               textAlign: 'center',
               padding: '40px 20px',
-              background: 'rgba(166, 138, 100, 0.05)',
-              border: '1px solid var(--accent-color)',
-              borderRadius: '12px',
-              marginTop: '20px'
+              background: 'rgba(255, 255, 255, 0.015)',
+              border: '1px solid rgba(166, 138, 100, 0.2)',
+              borderRadius: '8px',
+              marginTop: '20px',
+              position: 'relative'
             }}>
               <i className="fas fa-calendar-times" style={{ fontSize: '3rem', color: 'var(--accent-color)', marginBottom: '20px', display: 'block' }}></i>
               <h3 style={{ marginBottom: '10px' }}>RSVP has Closed</h3>
@@ -3285,7 +3188,7 @@ const WeddingTemplate = () => {
                   <option value="no" style={{ color: '#1a1a1a' }}>Regretfully, no</option>
                 </select>
               </div>
-              <button type="submit" className="btn" disabled={isSubmitting}>
+              <button type="submit" className="btn-submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Submitting...' : 'Submit Response'}
               </button>
             </form>
