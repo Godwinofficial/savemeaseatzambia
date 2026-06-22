@@ -204,7 +204,8 @@ const WeddingTemplate = () => {
           // Using RPC is safer than update for counters to avoid race conditions
           // If RPC doesn't exist yet, we can try a direct update but RPC is preferred
           try {
-            await supabase.rpc('increment_views', { row_id: dbData.id });
+            const { error: rpcError } = await supabase.rpc('increment_views', { row_id: dbData.id });
+            if (rpcError) throw rpcError;
           } catch (viewErr) {
             console.error("Error incrementing views:", viewErr);
             // Fallback: direct update (less safe for concurrency but works)
@@ -261,36 +262,9 @@ const WeddingTemplate = () => {
               highlight: dbData.story_highlight,
               part2: dbData.story_part2
             },
-            sliderImages: (() => {
-              const raw = dbData.slider_images;
-              if (!raw) return initialWeddingData.sliderImages;
-              try {
-                const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-                return Array.isArray(parsed) ? parsed : [];
-              } catch (e) {
-                return [];
-              }
-            })(),
-            bridesmaids: (() => {
-              const raw = dbData.bridesmaids;
-              if (!raw) return [];
-              try {
-                const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-                return Array.isArray(parsed) ? parsed : [];
-              } catch (e) {
-                return [];
-              }
-            })(),
-            groomsmen: (() => {
-              const raw = dbData.groomsmen;
-              if (!raw) return [];
-              try {
-                const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-                return Array.isArray(parsed) ? parsed : [];
-              } catch (e) {
-                return [];
-              }
-            })(),
+            sliderImages: dbData.slider_images || initialWeddingData.sliderImages,
+            bridesmaids: dbData.bridesmaids || [],
+            groomsmen: dbData.groomsmen || [],
             ceremony: {
               date: formatDate(dbData.ceremony_date),
               rawDate: dbData.ceremony_date, // Store raw ISO
@@ -306,26 +280,8 @@ const WeddingTemplate = () => {
             },
             dressCode: dbData.dress_code,
             dressCodeDescription: dbData.dress_code_desc,
-            gifts: (() => {
-              const raw = dbData.gifts;
-              if (!raw) return [];
-              try {
-                const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-                return Array.isArray(parsed) ? parsed : [];
-              } catch (e) {
-                return [];
-              }
-            })(),
-            galleryImages: (() => {
-              const raw = dbData.gallery_images;
-              if (!raw) return [];
-              try {
-                const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-                return Array.isArray(parsed) ? parsed : [];
-              } catch (e) {
-                return [];
-              }
-            })(),
+            gifts: dbData.gifts || [],
+            galleryImages: dbData.gallery_images || [],
             mapLocation: dbData.map_location,
             rsvpDeadline: dbData.rsvp_deadline,
             coverImage: dbData.cover_image,
@@ -2458,6 +2414,12 @@ const WeddingTemplate = () => {
         min-width: 70px;
       }
 
+      .fade-in-section, .party-member, .couple, .gallery-item {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+      }
+
       .party-container {
         gap: 40px;
       }
@@ -3098,7 +3060,7 @@ const WeddingTemplate = () => {
         <div className="map-container">
           <iframe
             id="location-map-iframe"
-            src={weddingData.mapLocation}
+            src={weddingData.mapLocation || null}
             width="100%"
             height="500"
             style={{ border: 0 }}

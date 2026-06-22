@@ -194,7 +194,8 @@ const WeddingTemplate = () => {
           // Using RPC is safer than update for counters to avoid race conditions
           // If RPC doesn't exist yet, we can try a direct update but RPC is preferred
           try {
-            await supabase.rpc('increment_views', { row_id: dbData.id });
+            const { error: rpcError } = await supabase.rpc('increment_views', { row_id: dbData.id });
+            if (rpcError) throw rpcError;
           } catch (viewErr) {
             console.error("Error incrementing views:", viewErr);
             // Fallback: direct update (less safe for concurrency but works)
@@ -2331,6 +2332,12 @@ const WeddingTemplate = () => {
         min-width: 70px;
       }
 
+      .fade-in-section, .party-member, .couple, .gallery-item {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+      }
+
       .party-container {
         gap: 40px;
       }
@@ -2901,7 +2908,7 @@ const WeddingTemplate = () => {
         <div className="map-container">
           <iframe
             id="location-map-iframe"
-            src={weddingData.mapLocation}
+            src={weddingData.mapLocation || null}
             width="100%"
             height="500"
             style={{ border: 0 }}
