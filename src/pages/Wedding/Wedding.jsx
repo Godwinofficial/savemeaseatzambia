@@ -68,6 +68,7 @@ const WeddingTemplate = () => {
   });
   const [showAdmissionCard, setShowAdmissionCard] = useState(false);
   const [submittedRSVP, setSubmittedRSVP] = useState(null);
+  const [cdnLoaded, setCdnLoaded] = useState(false);
 
 
   const handleChange = (e) => {
@@ -323,6 +324,39 @@ const WeddingTemplate = () => {
     window.scrollTo(0, 0);
   }, [slug]);
 
+  // Load Tailwind CDN for bridal shower-style mobile menu classes
+  useEffect(() => {
+    window.tailwind = window.tailwind || {};
+    window.tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            bsPrimary: '#2d3a3a',
+            bsBg: '#fdfbf7',
+            bsText: '#1a1a1a',
+            bsWhite: '#ffffff',
+            bsAccent: '#c5a059'
+          },
+          fontFamily: {
+            outfit: ['Outfit', 'sans-serif'],
+            cormorant: ['Cormorant Garamond', 'serif']
+          }
+        }
+      }
+    };
+
+    if (!document.getElementById('tailwind-cdn')) {
+      const script = document.createElement('script');
+      script.id = 'tailwind-cdn';
+      script.src = 'https://cdn.tailwindcss.com';
+      script.onload = () => setCdnLoaded(true);
+      document.head.appendChild(script);
+    } else {
+      setCdnLoaded(true);
+    }
+  }, []);
+
   // Sync default guests count when wedding data is loaded
   useEffect(() => {
     if (dataFetched && weddingData.allowedGuests.length > 0) {
@@ -389,19 +423,6 @@ const WeddingTemplate = () => {
         prompt("Copy this account number:", text);
       }
     }
-  };
-
-  const handleNavClick = (e) => {
-    e.preventDefault();
-    const targetId = e.target.getAttribute('href');
-    const targetElement = document.querySelector(targetId);
-    if (targetElement) {
-      window.scrollTo({
-        top: targetElement.offsetTop - 80,
-        behavior: 'smooth'
-      });
-    }
-    setIsMenuOpen(false);
   };
 
   // Slider Functions
@@ -659,6 +680,19 @@ const WeddingTemplate = () => {
     };
   }, [dataFetched, weddingData]); // Re-run when data is fetched and DOM is present
 
+  const getFormattedHeroDate = () => {
+    if (weddingData.rawDate) {
+      const d = new Date(weddingData.rawDate);
+      if (!isNaN(d.getTime())) {
+        const day = d.getDate();
+        const month = d.toLocaleDateString('en-US', { month: 'long' });
+        const year = d.getFullYear();
+        return `${day} ${month} ${year}`;
+      }
+    }
+    return weddingData.date;
+  };
+
   // Inline Styles
   const styles = `
     :root {
@@ -716,8 +750,9 @@ const WeddingTemplate = () => {
     }
 
     section {
-      padding: 120px 0;
+      padding: 80px 0;
       position: relative;
+      scroll-margin-top: 110px;
     }
 
     /* Page Loader */
@@ -916,9 +951,10 @@ const WeddingTemplate = () => {
       color: var(--text-color);
     }
 
-    /* Hero Section - Modern Editorial Luxe */
+    /* Hero Section - Editorial Wedding Layout */
     .hero {
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       position: relative;
@@ -926,6 +962,7 @@ const WeddingTemplate = () => {
       min-height: 100vh;
       width: 100%;
       background: #080808;
+      padding: 0;
     }
 
     .hero-slider {
@@ -961,26 +998,13 @@ const WeddingTemplate = () => {
       width: 100%;
       height: 100%;
       background: linear-gradient(
-        45deg,
-        rgba(0,0,0,0.7) 0%,
-        rgba(0,0,0,0.2) 50%,
-        rgba(0,0,0,0.5) 100%
+        180deg,
+        rgba(0,0,0,0.35) 0%,
+        rgba(0,0,0,0.15) 40%,
+        rgba(0,0,0,0.4) 80%,
+        rgba(0,0,0,0.85) 100%
       );
       z-index: 1;
-    }
-
-    /* Ambient Glow */
-    .hero::before {
-      content: '';
-      position: absolute;
-      width: 40vw;
-      height: 40vw;
-      background: radial-gradient(circle, rgba(166, 138, 100, 0.15) 0%, transparent 70%);
-      top: 10%;
-      right: 5%;
-      z-index: 2;
-      pointer-events: none;
-      filter: blur(50px);
     }
 
     .hero-content {
@@ -992,167 +1016,156 @@ const WeddingTemplate = () => {
       display: flex;
       flex-direction: column;
       align-items: center;
-      mix-blend-mode: normal;
+      text-align: center;
+      margin-top: 40px;
     }
 
-    .hero-subtitle {
+    /* Tagline at the very top */
+    .hero-tagline-top {
       font-family: 'Montserrat', sans-serif;
       font-size: 0.75rem;
-      letter-spacing: 0.6em;
+      letter-spacing: 0.35em;
       text-transform: uppercase;
       color: var(--accent-color);
-      margin-bottom: 2rem;
-      opacity: 0;
-      transform: translateY(20px);
-      animation: fadeInUp 1s ease-out 0.5s forwards;
-      font-weight: 600;
-    }
-
-    .hero-title-container {
-      position: relative;
-      margin-bottom: 3rem;
+      font-weight: 500;
+      margin-bottom: 2.5rem;
       text-align: center;
+      animation: fadeInUp 1s ease-out 0.5s forwards;
+      opacity: 0;
     }
 
-    .hero-title {
+    /* Names and Ampersand Layout */
+    .hero-names-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+
+    .hero-name-title {
       font-family: 'Cormorant Garamond', serif;
-      font-size: clamp(2.8rem, 8vw, 5.5rem);
-      line-height: 1.1;
+      font-size: clamp(3rem, 9vw, 5.5rem);
+      line-height: 1;
       font-weight: 300;
       color: var(--white);
       text-transform: capitalize;
       opacity: 0;
-      animation: heroTitleReveal 2s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards;
-      letter-spacing: -0.01em;
+      animation: heroTitleReveal 2s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards;
+      letter-spacing: 0.02em;
     }
 
-    .hero-title .ampersand {
-      display: block;
-      font-size: 0.35em;
-      font-style: italic;
-      color: var(--accent-color);
-      margin: 15px 0;
-      position: relative;
+    .hero-ampersand-divider {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      margin: 1.5rem 0;
+      opacity: 0;
+      animation: fadeInUp 1.2s ease-out 0.9s forwards;
     }
 
-    .hero-title .ampersand::before,
-    .hero-title .ampersand::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      width: 60px;
+    .hero-ampersand-line {
+      width: 40px;
       height: 1px;
-      background: rgba(166, 138, 100, 0.3);
+      background: rgba(255, 255, 255, 0.25);
     }
 
-    .hero-title .ampersand::before { right: 58%; }
-    .hero-title .ampersand::after { left: 58%; }
+    .hero-ampersand-text {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.8rem;
+      font-style: italic;
+      color: rgba(255, 255, 255, 0.5);
+      line-height: 1;
+    }
 
+    /* Horizontal line under names */
+    .hero-details-divider {
+      width: 100%;
+      max-width: 320px;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.2);
+      margin: 2.5rem auto 2rem;
+      opacity: 0;
+      animation: fadeIn 1.2s ease-out 1.2s forwards;
+    }
+
+    /* Date and Location row */
     .hero-details-row {
       display: flex;
-      justify-content: center;
       align-items: center;
-      gap: 30px;
+      justify-content: center;
+      width: 100%;
+      max-width: 500px;
+      margin: 0 auto 3rem;
       opacity: 0;
-      animation: fadeInUp 1.2s ease-out 1.5s forwards;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      padding-top: 2rem;
-      width: auto;
-      min-width: 300px;
-      margin: 0 auto;
+      animation: fadeInUp 1.2s ease-out 1.4s forwards;
     }
 
-    .hero-detail-item {
+    .hero-details-col {
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 8px;
-      text-align: center;
+      padding: 0 15px;
     }
 
-    .hero-detail-label {
-      font-size: clamp(0.5rem, 1.2vw, 0.6rem);
+    .hero-details-separator {
+      width: 1px;
+      height: 40px;
+      background: var(--accent-color);
+      opacity: 0.6;
+    }
+
+    .hero-details-label {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.65rem;
       text-transform: uppercase;
       letter-spacing: 0.3em;
-      color: rgba(255,255,255,0.5);
+      color: var(--white);
       font-weight: 600;
     }
 
-    .hero-detail-value {
+    .hero-details-value {
       font-family: 'Cormorant Garamond', serif;
-      font-size: clamp(1rem, 3.5vw, 1.4rem);
+      font-size: 1.2rem;
       color: var(--white);
+      font-weight: 400;
       font-style: italic;
       line-height: 1.2;
+      white-space: nowrap;
     }
 
-    .hero-detail-divider {
-      width: 1px;
-      height: clamp(30px, 5vw, 40px);
-      background: rgba(255, 255, 255, 0.3);
-    }
-
+    /* CTA Button */
     .hero-cta {
-      margin-top: 4rem;
       opacity: 0;
-      animation: fadeIn 1s ease-out 2s forwards;
+      animation: fadeIn 1s ease-out 1.7s forwards;
+      margin-top: 1rem;
     }
 
     .btn-luxury {
-      padding: 18px 45px;
+      padding: 18px 50px;
       background: transparent;
-      border: 1px solid var(--white);
+      border: 1px solid rgba(255, 255, 255, 0.7);
       color: var(--white);
       text-transform: uppercase;
       font-size: 0.7rem;
-      letter-spacing: 0.4em;
+      letter-spacing: 0.35em;
       transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
       position: relative;
       overflow: hidden;
       cursor: pointer;
       text-decoration: none;
       display: inline-block;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 500;
     }
 
     .btn-luxury:hover {
       background: var(--white);
       color: var(--black);
-      padding-left: 55px;
-      padding-right: 35px;
-    }
-
-    .btn-luxury i {
-      margin-left: 10px;
-      font-size: 0.8rem;
-    }
-
-    /* Scroll Down Indicator */
-    .scroll-down-wrap {
-      position: absolute;
-      bottom: 50px;
-      left: 50%;
-      transform: translateX(-50%);
-      opacity: 0;
-      animation: fadeIn 1s ease-out 2.5s forwards;
-    }
-
-    .scroll-line {
-      width: 1px;
-      height: 80px;
-      background: linear-gradient(to bottom, var(--accent-color), transparent);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .scroll-line::after {
-      content: '';
-      position: absolute;
-      top: -100%;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: var(--white);
-      animation: scrollAnim 2.5s infinite;
+      border-color: var(--white);
     }
 
     @keyframes scrollAnim {
@@ -1324,7 +1337,7 @@ const WeddingTemplate = () => {
     /* Countdown Section */
     .countdown-section {
       background-color: var(--primary-color);
-      padding: 120px 0;
+      padding: 80px 0;
       text-align: center;
     }
 
@@ -1465,19 +1478,34 @@ const WeddingTemplate = () => {
       transform: translateY(0);
     }
 
-    .couple-img {
-      width: 300px;
-      height: 300px;
-      aspect-ratio: 1/1;
-      object-fit: cover;
+    .couple-img-container {
+      position: relative;
+      width: 320px;
+      height: 400px;
       margin: 0 auto 30px;
+      overflow: hidden;
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+      border-radius: 2px;
+    }
+
+    .couple-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
       transition: var(--transition);
-      border-radius: 50%;
-      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
+    }
+
+    .couple-img-border {
+      position: absolute;
+      inset: 15px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      pointer-events: none;
+      z-index: 2;
+      border-radius: 1px;
     }
 
     .couple:hover .couple-img {
-      transform: scale(1.02);
+      transform: scale(1.05);
     }
 
     .couple h3 {
@@ -1590,50 +1618,99 @@ const WeddingTemplate = () => {
       transform: translateY(0);
     }
 
+    .member-img-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 3/4;
+      overflow: hidden;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+      border-radius: 2px;
+      margin-bottom: 20px;
+    }
+
     .member-img {
-      width: 250px;
-      height: 250px;
-      aspect-ratio: 1/1;
+      width: 100%;
+      height: 100%;
       object-fit: cover;
-      margin: 0 auto 20px;
-      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
       transition: var(--transition);
-      border-radius: 50%;
+    }
+
+    .member-img-border {
+      position: absolute;
+      inset: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      pointer-events: none;
+      z-index: 2;
+      border-radius: 1px;
     }
 
     .party-member:hover .member-img {
-      transform: scale(1.02);
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
+      transform: scale(1.05);
     }
 
-    .member-role {
-      font-size: 0.75rem;
+    .member-details-card {
+      text-align: left;
+      padding: 0 5px;
+    }
+
+    .member-info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .member-meta-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      text-align: left;
+    }
+
+    .member-meta-left h4 {
+      margin: 0 !important;
+      font-size: 1.3rem !important;
+      font-weight: 500;
+      color: var(--text-color);
+      line-height: 1.2;
+    }
+
+    .member-meta-left .member-role {
+      margin: 0 !important;
+      font-size: 0.75rem !important;
       color: var(--accent-color);
       text-transform: uppercase;
-      letter-spacing: 0.15em;
-      margin-bottom: 8px;
+      letter-spacing: 0.12em;
       font-weight: 600;
       display: block;
     }
 
-    .party-member h4 {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.4rem;
-      margin-bottom: 5px;
-      font-weight: 400;
-      color: var(--text-color);
+    .member-icon-right {
+      font-size: 1.2rem;
+      color: var(--accent-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+    }
+
+    .party-member:hover .member-icon-right {
+      transform: scale(1.15);
     }
 
     .party-member p {
       color: var(--light-text);
       font-size: 0.85rem;
-      margin-bottom: 15px;
+      margin-top: 8px;
+      margin-bottom: 12px;
+      line-height: 1.6;
       font-family: 'Montserrat', sans-serif;
+      text-align: left;
     }
 
     .member-social {
       display: flex;
-      justify-content: center;
+      justify-content: flex-start;
       gap: 15px;
       opacity: 0;
       transition: var(--transition);
@@ -2348,26 +2425,52 @@ const WeddingTemplate = () => {
       }
 
       .nav-links {
-        display: none;
-        position: absolute;
-        top: 70px;
-        left: 0;
-        width: 100%;
+        display: flex;
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 80%;
+        max-width: 320px;
+        height: 100vh;
         background-color: var(--white);
         flex-direction: column;
-        padding: 30px 0;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        justify-content: center;
+        align-items: center;
+        gap: 2rem;
+        padding: 2rem 1.5rem;
+        box-shadow: -10px 0 30px rgba(0, 0, 0, 0.12);
         text-align: center;
-        border-top: 1px solid rgba(0,0,0,0.05);
+        transition: right 0.35s ease, opacity 0.35s ease;
+        opacity: 0;
+        z-index: 10000;
       }
 
       .nav-links.active {
-        display: flex !important;
+        right: 0;
+        opacity: 1;
       }
 
       .nav-links li {
-        margin: 15px 0;
+        margin: 0;
+        width: 100%;
+      }
+
+      .mobile-menu-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.35);
+        opacity: 0;
+        transition: opacity 0.35s ease;
+        z-index: 9999;
+      }
+
+      .mobile-menu-overlay.active {
         display: block;
+        opacity: 1;
       }
 
       .section-title h2 {
@@ -2404,7 +2507,7 @@ const WeddingTemplate = () => {
       }
 
       .hero {
-        padding-top: 0;
+        padding: 0;
       }
 
       .hero-content {
@@ -2511,45 +2614,95 @@ const WeddingTemplate = () => {
         height: 400px;
       }
 
+      section {
+        padding: 60px 0 !important;
+      }
+
+      .countdown-section {
+        padding: 60px 0 !important;
+      }
+
       /* Hero Mobile Adjustments */
       .hero-content {
         padding: 0 15px !important;
+        margin-top: 20px !important;
       }
 
-      .hero-title {
-        font-size: clamp(2.2rem, 11vw, 3.8rem) !important;
-        line-height: 1.1 !important;
-        margin-bottom: 2rem !important;
+      .hero-tagline-top {
+        font-size: 0.65rem !important;
+        letter-spacing: 0.25em !important;
+        margin-bottom: 1.5rem !important;
       }
 
-      .hero-title .ampersand {
-        margin: 8px 0 !important;
+      .hero-name-title {
+        font-size: 3.5rem !important;
+        line-height: 1 !important;
       }
 
-      .hero-title .ampersand::before,
-      .hero-title .ampersand::after {
-        width: 35px !important;
+      .hero-ampersand-divider {
+        margin: 1rem 0 !important;
+      }
+
+      .hero-ampersand-text {
+        font-size: 1.5rem !important;
+      }
+
+      .hero-ampersand-line {
+        width: 30px !important;
+      }
+
+      .hero-details-divider {
+        margin: 2rem auto 1.5rem !important;
+        max-width: 280px !important;
       }
 
       .hero-details-row {
-        gap: 12px !important;
-        padding-top: 1.2rem !important;
-        max-width: 100% !important;
+        margin-bottom: 2rem !important;
+        max-width: 320px !important;
       }
 
-      .hero-detail-value {
-        font-size: clamp(0.9rem, 4vw, 1.1rem) !important;
+      .hero-details-col {
+        padding: 0 10px !important;
+        gap: 4px !important;
       }
 
-      .hero-detail-divider {
+      .hero-details-label {
+        font-size: 0.55rem !important;
+        letter-spacing: 0.2em !important;
+      }
+
+      .hero-details-value {
+        font-size: 1rem !important;
+      }
+
+      .hero-details-separator {
         height: 30px !important;
+      }
+
+      .btn-luxury {
+        padding: 14px 40px !important;
+        font-size: 0.65rem !important;
+        letter-spacing: 0.25em !important;
+        width: 100% !important;
+        max-width: 280px !important;
+      }
+
+      .hero .slider-dots {
+        display: none !important;
       }
     }
 
     @media (max-width: 576px) {
+      .couple-img-container {
+        width: 240px;
+        height: 300px;
+        margin-bottom: 20px;
+      }
+
       .couple-img {
-        width: 180px;
-        height: 180px;
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
       }
 
       .countdown {
@@ -2568,12 +2721,17 @@ const WeddingTemplate = () => {
         font-size: 0.8rem;
       }
 
+      .member-img-container {
+        aspect-ratio: 3/4;
+        margin-bottom: 15px;
+      }
+
       .member-img {
-        width: 150px;
-        height: 150px;
-        aspect-ratio: 1/1;
-        max-width: 200px;
-        border-radius: 50%;
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        border-radius: 0;
+        aspect-ratio: auto;
       }
 
       .party-members {
@@ -2621,19 +2779,19 @@ const WeddingTemplate = () => {
         <div className="container">
           <nav className="navbar">
             <a href="#" className="logonobold" id="couple-initials" onClick={(e) => e.preventDefault()}>
-              {weddingData.couple.bride.name?.charAt(0)} & {weddingData.couple.groom.name?.charAt(0)}
+              {weddingData.couple.groom.name?.charAt(0)} & {weddingData.couple.bride.name?.charAt(0)}
             </a>
-            <button className="mobile-menu-btn" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+            <button className="mobile-menu-btn" aria-label="Toggle navigation menu" onClick={() => setIsMenuOpen(!isMenuOpen)}>
               <i className={isMenuOpen ? "fas fa-times" : "fas fa-bars"}></i>
             </button>
-            <ul className={`nav-links ${isMenuOpen ? 'active' : ''}`}>
-              <li><a href="#home" onClick={handleNavClick}>Home</a></li>
-              <li><a href="#about" onClick={handleNavClick}>Story</a></li>
-              <li><a href="#party" onClick={handleNavClick}>Party</a></li>
-              <li><a href="#details" onClick={handleNavClick}>Details</a></li>
-              <li><a href="#gallery" onClick={handleNavClick}>Gallery</a></li>
-              <li><a href="#rsvp" onClick={handleNavClick}>RSVP</a></li>
-            </ul>
+            <div className={`flex flex-col lg:flex-row gap-8 lg:gap-10 items-center fixed lg:relative top-0 ${isMenuOpen ? 'right-0' : '-right-full'} lg:right-0 w-[80%] lg:w-auto h-screen lg:h-auto bg-white lg:bg-transparent shadow-2xl lg:shadow-none justify-center lg:justify-end transition-all duration-500 z-[1000] lg:z-auto`}>
+              <a href="#home" className="uppercase text-sm tracking-widest font-medium hover:text-black transition-colors" onClick={() => setIsMenuOpen(false)}>Home</a>
+              <a href="#about" className="uppercase text-sm tracking-widest font-medium hover:text-black transition-colors" onClick={() => setIsMenuOpen(false)}>Our Story</a>
+              <a href="#party" className="uppercase text-sm tracking-widest font-medium hover:text-black transition-colors" onClick={() => setIsMenuOpen(false)}>Wedding Party</a>
+              <a href="#details" className="uppercase text-sm tracking-widest font-medium hover:text-black transition-colors" onClick={() => setIsMenuOpen(false)}>Details</a>
+              <a href="#location-map" className="uppercase text-sm tracking-widest font-medium hover:text-black transition-colors" onClick={() => setIsMenuOpen(false)}>Location</a>
+              <a href="#rsvp" className="bg-black text-white px-8 py-3 rounded-sm uppercase text-xs tracking-widest font-medium hover:bg-opacity-90 transition-all" onClick={() => setIsMenuOpen(false)}>RSVP</a>
+            </div>
           </nav>
         </div>
       </header>
@@ -2654,52 +2812,47 @@ const WeddingTemplate = () => {
           )}
         </div>
 
-        <div className="slider-pagination">
-          {weddingData.sliderImages.map((_, index) => (
-            <div key={index} className={`pagination-item ${index === currentSlide ? 'active' : ''}`}></div>
-          ))}
-        </div>
-
         <div className="hero-content">
-          <div className="hero-subtitle">{weddingData.tagline}</div>
-          <div className="hero-title-container">
-            <h1 className="hero-title">
-              {weddingData.couple.bride.name?.split(' ')[0]}
-              <span className="ampersand">&</span>
+          <div className="hero-tagline-top">
+            {(weddingData.tagline || "WE ARE GETTING MARRIED").toUpperCase()}
+          </div>
+
+          <div className="hero-names-container">
+            <h1 className="hero-name-title">
               {weddingData.couple.groom.name?.split(' ')[0]}
+            </h1>
+            <div className="hero-ampersand-divider">
+              <span className="hero-ampersand-line"></span>
+              <span className="hero-ampersand-text">&</span>
+              <span className="hero-ampersand-line"></span>
+            </div>
+            <h1 className="hero-name-title">
+              {weddingData.couple.bride.name?.split(' ')[0]}
             </h1>
           </div>
 
+          <div className="hero-details-divider"></div>
+
           <div className="hero-details-row">
-            <div className="hero-detail-item">
-              <span className="hero-detail-label">Date</span>
-              <span className="hero-detail-value">
-                {weddingData.rawDate ? new Date(weddingData.rawDate).toLocaleDateString('en-GB', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric'
-                }) : weddingData.date}
-              </span>
+            <div className="hero-details-col">
+              <span className="hero-details-label">DATE</span>
+              <span className="hero-details-value">{getFormattedHeroDate()}</span>
             </div>
-
-            <div className="hero-detail-divider"></div>
-
-            <div className="hero-detail-item">
-              <span className="hero-detail-label">Location</span>
-              <span className="hero-detail-value">{weddingData.location}</span>
+            <div className="hero-details-separator"></div>
+            <div className="hero-details-col">
+              <span className="hero-details-label">LOCATION</span>
+              <span className="hero-details-value">
+                {weddingData.venue?.name || weddingData.location?.split(',')[0] || 'TBA'}
+              </span>
             </div>
           </div>
 
           <div className="hero-cta">
             <a href="#about" className="btn-luxury">
-              Our Journey
+              OUR JOURNEY
             </a>
           </div>
         </div>
-
-        {/* <div className="scroll-down-wrap">
-          <div className="scroll-line"></div>
-        </div> */}
       </section>
 
       {/* Countdown Section */}
@@ -2742,7 +2895,10 @@ const WeddingTemplate = () => {
               ref={el => coupleRefs.current[0] = el}
             >
               {weddingData.couple.bride.image && (
-                <img src={weddingData.couple.bride.image} alt="Bride" className="couple-img bride-image" />
+                <div className="couple-img-container">
+                  <img src={weddingData.couple.bride.image} alt="Bride" className="couple-img bride-image" />
+                  <div className="couple-img-border"></div>
+                </div>
               )}
               <h3 className="bride-name">{weddingData.couple.bride.name}</h3>
               <p className="bride-description">{weddingData.couple.bride.description}</p>
@@ -2753,7 +2909,10 @@ const WeddingTemplate = () => {
               ref={el => coupleRefs.current[1] = el}
             >
               {weddingData.couple.groom.image && (
-                <img src={weddingData.couple.groom.image} alt="Groom" className="couple-img groom-image" />
+                <div className="couple-img-container">
+                  <img src={weddingData.couple.groom.image} alt="Groom" className="couple-img groom-image" />
+                  <div className="couple-img-border"></div>
+                </div>
               )}
               <h3 className="groom-name">{weddingData.couple.groom.name}</h3>
               <p className="groom-description">{weddingData.couple.groom.description}</p>
@@ -2785,21 +2944,33 @@ const WeddingTemplate = () => {
                         className="party-member"
                         ref={el => memberRefs.current[index] = el}
                       >
-                        <img
-                          src={member.photo || member.image || 'https://via.placeholder.com/150'}
-                          alt={member.name}
-                          className="member-img"
-                        />
-                        <div className="member-role">{member.role}</div>
-                        <h4>{member.name}</h4>
-                        <p>{member.description}</p>
-                        {member.instagram && (
-                          <div className="member-social">
-                            <a href={member.instagram} target="_blank" rel="noopener noreferrer">
-                              <i className="fab fa-instagram"></i>
-                            </a>
+                        <div className="member-img-container">
+                          <img
+                            src={member.photo || member.image || 'https://via.placeholder.com/150'}
+                            alt={member.name}
+                            className="member-img"
+                          />
+                          <div className="member-img-border"></div>
+                        </div>
+                        <div className="member-details-card">
+                          <div className="member-info-row">
+                            <div className="member-meta-left">
+                              <h4>{member.name}</h4>
+                              <div className="member-role">{member.role}</div>
+                            </div>
+                            <div className="member-icon-right">
+                              <i className="fas fa-heart"></i>
+                            </div>
                           </div>
-                        )}
+                          {member.description && <p>{member.description}</p>}
+                          {member.instagram && (
+                            <div className="member-social">
+                              <a href={member.instagram} target="_blank" rel="noopener noreferrer">
+                                <i className="fab fa-instagram"></i>
+                              </a>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -2817,21 +2988,33 @@ const WeddingTemplate = () => {
                         className="party-member"
                         ref={el => memberRefs.current[weddingData.bridesmaids.length + index] = el}
                       >
-                        <img
-                          src={member.photo || member.image || 'https://via.placeholder.com/150'}
-                          alt={member.name}
-                          className="member-img"
-                        />
-                        <div className="member-role">{member.role}</div>
-                        <h4>{member.name}</h4>
-                        <p>{member.description}</p>
-                        {member.instagram && (
-                          <div className="member-social">
-                            <a href={member.instagram} target="_blank" rel="noopener noreferrer">
-                              <i className="fab fa-instagram"></i>
-                            </a>
+                        <div className="member-img-container">
+                          <img
+                            src={member.photo || member.image || 'https://via.placeholder.com/150'}
+                            alt={member.name}
+                            className="member-img"
+                          />
+                          <div className="member-img-border"></div>
+                        </div>
+                        <div className="member-details-card">
+                          <div className="member-info-row">
+                            <div className="member-meta-left">
+                              <h4>{member.name}</h4>
+                              <div className="member-role">{member.role}</div>
+                            </div>
+                            <div className="member-icon-right">
+                              <i className="fas fa-crown"></i>
+                            </div>
                           </div>
-                        )}
+                          {member.description && <p>{member.description}</p>}
+                          {member.instagram && (
+                            <div className="member-social">
+                              <a href={member.instagram} target="_blank" rel="noopener noreferrer">
+                                <i className="fab fa-instagram"></i>
+                              </a>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
