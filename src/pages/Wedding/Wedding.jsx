@@ -261,9 +261,36 @@ const WeddingTemplate = () => {
               highlight: dbData.story_highlight,
               part2: dbData.story_part2
             },
-            sliderImages: dbData.slider_images || initialWeddingData.sliderImages,
-            bridesmaids: dbData.bridesmaids || [],
-            groomsmen: dbData.groomsmen || [],
+            sliderImages: (() => {
+              const raw = dbData.slider_images;
+              if (!raw) return initialWeddingData.sliderImages;
+              try {
+                const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                return Array.isArray(parsed) ? parsed : [];
+              } catch (e) {
+                return [];
+              }
+            })(),
+            bridesmaids: (() => {
+              const raw = dbData.bridesmaids;
+              if (!raw) return [];
+              try {
+                const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                return Array.isArray(parsed) ? parsed : [];
+              } catch (e) {
+                return [];
+              }
+            })(),
+            groomsmen: (() => {
+              const raw = dbData.groomsmen;
+              if (!raw) return [];
+              try {
+                const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                return Array.isArray(parsed) ? parsed : [];
+              } catch (e) {
+                return [];
+              }
+            })(),
             ceremony: {
               date: formatDate(dbData.ceremony_date),
               rawDate: dbData.ceremony_date, // Store raw ISO
@@ -279,8 +306,26 @@ const WeddingTemplate = () => {
             },
             dressCode: dbData.dress_code,
             dressCodeDescription: dbData.dress_code_desc,
-            gifts: dbData.gifts || [],
-            galleryImages: dbData.gallery_images || [],
+            gifts: (() => {
+              const raw = dbData.gifts;
+              if (!raw) return [];
+              try {
+                const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                return Array.isArray(parsed) ? parsed : [];
+              } catch (e) {
+                return [];
+              }
+            })(),
+            galleryImages: (() => {
+              const raw = dbData.gallery_images;
+              if (!raw) return [];
+              try {
+                const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                return Array.isArray(parsed) ? parsed : [];
+              } catch (e) {
+                return [];
+              }
+            })(),
             mapLocation: dbData.map_location,
             rsvpDeadline: dbData.rsvp_deadline,
             coverImage: dbData.cover_image,
