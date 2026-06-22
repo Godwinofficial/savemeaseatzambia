@@ -693,6 +693,20 @@ const WeddingTemplate = () => {
     return weddingData.date;
   };
 
+  const heroImage1 = weddingData.sliderImages?.[0] || weddingData.couple.groom.image || "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=2070";
+  const heroImage2 = weddingData.sliderImages?.[1] || weddingData.couple.bride.image || heroImage1;
+
+  const getFormattedSplitDate = () => {
+    let dateStr = weddingData.rawDate || weddingData.date;
+    if (dateStr) {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('en-US', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, ' . ');
+      }
+    }
+    return dateStr || "";
+  };
+
   // Inline Styles
   const styles = `
     :root {
@@ -951,385 +965,187 @@ const WeddingTemplate = () => {
       color: var(--text-color);
     }
 
-    /* Hero Section - Editorial Wedding Layout */
-    .hero {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      overflow: hidden;
+    /* Hero Split Layout */
+    .hero-split {
       min-height: 100vh;
-      width: 100%;
-      background: #080808;
-      padding: 0;
-    }
-
-    .hero-slider {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 0;
-    }
-
-    .hero-slide {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      opacity: 0;
-      transform: scale(1.1);
-      transition: opacity 2s ease-in-out, transform 10s ease-out;
-      background-size: cover;
-      background-position: center;
-    }
-
-    .hero-slide.active {
-      opacity: 1;
-      transform: scale(1);
-    }
-
-    .hero-slide::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(
-        180deg,
-        rgba(0,0,0,0.35) 0%,
-        rgba(0,0,0,0.15) 40%,
-        rgba(0,0,0,0.4) 80%,
-        rgba(0,0,0,0.85) 100%
-      );
-      z-index: 1;
-    }
-
-    .hero-content {
-      position: relative;
-      z-index: 10;
-      width: 100%;
-      max-width: 1200px;
-      padding: 0 40px;
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: center;
-      text-align: center;
-      margin-top: 40px;
-    }
-
-    /* Tagline at the very top */
-    .hero-tagline-top {
-      font-family: 'Montserrat', sans-serif;
-      font-size: 0.75rem;
-      letter-spacing: 0.35em;
-      text-transform: uppercase;
-      color: var(--accent-color);
-      font-weight: 500;
-      margin-bottom: 2.5rem;
-      text-align: center;
-      animation: fadeInUp 1s ease-out 0.5s forwards;
-      opacity: 0;
-    }
-
-    /* Names and Ampersand Layout */
-    .hero-names-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: 100%;
-      margin-bottom: 1rem;
-    }
-
-    .hero-name-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: clamp(3rem, 9vw, 5.5rem);
-      line-height: 1;
-      font-weight: 300;
-      color: var(--white);
-      text-transform: capitalize;
-      opacity: 0;
-      animation: heroTitleReveal 2s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards;
-      letter-spacing: 0.02em;
-    }
-
-    .hero-ampersand-divider {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 15px;
-      margin: 1.5rem 0;
-      opacity: 0;
-      animation: fadeInUp 1.2s ease-out 0.9s forwards;
-    }
-
-    .hero-ampersand-line {
-      width: 40px;
-      height: 1px;
-      background: rgba(255, 255, 255, 0.25);
-    }
-
-    .hero-ampersand-text {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.8rem;
-      font-style: italic;
-      color: rgba(255, 255, 255, 0.5);
-      line-height: 1;
-    }
-
-    /* Horizontal line under names */
-    .hero-details-divider {
-      width: 100%;
-      max-width: 320px;
-      height: 1px;
-      background: rgba(255, 255, 255, 0.2);
-      margin: 2.5rem auto 2rem;
-      opacity: 0;
-      animation: fadeIn 1.2s ease-out 1.2s forwards;
-    }
-
-    /* Date and Location row */
-    .hero-details-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      max-width: 500px;
-      margin: 0 auto 3rem;
-      opacity: 0;
-      animation: fadeInUp 1.2s ease-out 1.4s forwards;
-    }
-
-    .hero-details-col {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      padding: 0 15px;
-    }
-
-    .hero-details-separator {
-      width: 1px;
-      height: 40px;
-      background: var(--accent-color);
-      opacity: 0.6;
-    }
-
-    .hero-details-label {
-      font-family: 'Montserrat', sans-serif;
-      font-size: 0.65rem;
-      text-transform: uppercase;
-      letter-spacing: 0.3em;
-      color: var(--white);
-      font-weight: 600;
-    }
-
-    .hero-details-value {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.2rem;
-      color: var(--white);
-      font-weight: 400;
-      font-style: italic;
-      line-height: 1.2;
-      white-space: nowrap;
-    }
-
-    /* CTA Button */
-    .hero-cta {
-      opacity: 0;
-      animation: fadeIn 1s ease-out 1.7s forwards;
-      margin-top: 1rem;
-    }
-
-    .btn-luxury {
-      padding: 18px 50px;
-      background: transparent;
-      border: 1px solid rgba(255, 255, 255, 0.7);
-      color: var(--white);
-      text-transform: uppercase;
-      font-size: 0.7rem;
-      letter-spacing: 0.35em;
-      transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      padding: 120px 8% 60px;
+      gap: 5%;
+      background: radial-gradient(at 0% 0%, rgba(166, 138, 100, 0.04) 0px, transparent 50%),
+                  radial-gradient(at 100% 100%, rgba(41, 37, 36, 0.04) 0px, transparent 50%);
       position: relative;
       overflow: hidden;
+      width: 100%;
+    }
+
+    .hero-split-left {
+      flex: 1;
+      z-index: 10;
+      text-align: left;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .hero-split-tagline {
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      font-size: 0.8rem;
+      color: var(--accent-color);
+      margin-bottom: 1.5rem;
+      font-weight: 500;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .hero-split-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(3rem, 7.5vw, 6.5rem);
+      line-height: 0.9;
+      margin-bottom: 2rem;
+      font-weight: 300;
+      color: var(--text-color);
+      text-transform: capitalize;
+    }
+
+    .hero-split-subtitle {
+      font-size: 1.1rem;
+      color: var(--light-text);
+      margin-bottom: 1rem;
+      letter-spacing: 1px;
+    }
+
+    .hero-split-names {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      font-style: italic;
+      color: var(--text-color);
+      margin-bottom: 2rem;
+      font-weight: 400;
+      line-height: 1.2;
+    }
+
+    .hero-split-date {
+      font-size: clamp(1.1rem, 2vw, 1.5rem);
+      letter-spacing: 4px;
+      margin-bottom: 2.5rem;
+      color: var(--text-color);
+      font-weight: 500;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .hero-split-cta {
+      display: inline-block;
+      align-self: flex-start;
+      background: var(--text-color);
+      color: var(--white);
+      padding: 16px 45px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      font-size: 0.75rem;
+      border: 1px solid var(--text-color);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
       cursor: pointer;
       text-decoration: none;
-      display: inline-block;
       font-family: 'Montserrat', sans-serif;
       font-weight: 500;
     }
 
-    .btn-luxury:hover {
-      background: var(--white);
-      color: var(--black);
-      border-color: var(--white);
+    .hero-split-cta:hover {
+      background: transparent;
+      color: var(--text-color);
+      transform: translateY(-2px);
     }
 
-    @keyframes scrollAnim {
-      0% { top: -100%; }
-      50% { top: 0%; }
-      100% { top: 100%; }
-    }
-
-    @keyframes heroTitleReveal {
-      from { opacity: 0; transform: scale(1.05) translateY(30px); filter: blur(10px); }
-      to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
-    }
-
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    /* Slider Progress Overlay */
-    .slider-pagination {
-      position: absolute;
-      right: 60px;
-      top: 50%;
-      transform: translateY(-50%);
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      z-index: 10;
-    }
-
-    .pagination-item {
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.3);
-      transition: all 0.4s ease;
-      position: relative;
-    }
-
-    .pagination-item.active {
-      background: var(--accent-color);
-      transform: scale(2);
-    }
-
-    .pagination-item.active::after {
-      content: '';
-      position: absolute;
-      top: -6px;
-      left: -6px;
-      right: -6px;
-      bottom: -6px;
-      border: 1px solid var(--accent-color);
-      border-radius: 50%;
-      animation: pulsePagination 2s infinite;
-    }
-
-    @keyframes pulsePagination {
-      0% { transform: scale(0.6); opacity: 1; }
-      100% { transform: scale(1.5); opacity: 0; }
-    }
-
-    .hero .slider-dots {
-      position: absolute;
-      bottom: 50px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 12px;
-      z-index: 10;
-    }
-
-    .hero .slider-dot {
-      width: 40px;
-      height: 2px;
-      background: rgba(255, 255, 255, 0.3);
-      cursor: pointer;
-      transition: all 0.4s ease;
-      padding: 0;
-      border: none;
-      border-radius: 0;
-    }
-
-    .hero .slider-dot.active {
-      background: var(--white);
-      width: 60px;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-    }
-
-    .hero .slider-controls {
-      position: absolute;
-      top: 50%;
-      left: 0;
+    .hero-split-right {
+      flex: 1.3;
       width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 40px;
-      z-index: 5;
-      transform: translateY(-50%);
-      pointer-events: none;
-    }
-
-    .hero .slider-arrow-btn {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: var(--white);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      font-size: 0.8rem;
-      pointer-events: auto;
-      backdrop-filter: blur(4px);
-    }
-
-    .hero .slider-arrow-btn:hover {
-      background: var(--white);
-      color: var(--black);
-      border-color: var(--white);
-    }
-
-    .hero .slider-progress {
-      position: absolute;
-      bottom: 40px;
-      right: 40px;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      z-index: 10;
-    }
-
-    .hero .progress-text {
-      color: var(--white);
-      font-size: 0.8rem;
-      font-family: 'Montserrat', sans-serif;
-      letter-spacing: 0.2em;
-      font-weight: 500;
-    }
-
-    .hero .progress-line {
-      width: 100px;
-      height: 1px;
-      background: rgba(255, 255, 255, 0.2);
+      height: 75vh;
       position: relative;
+      display: flex;
+      gap: 20px;
+      align-items: stretch;
+      padding: 10px;
     }
 
-    .hero .progress-line::after {
-      content: '';
+    .hero-img-primary-container {
+      flex: 1.2;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .hero-img-primary {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 1px;
+      filter: grayscale(0.2);
+      transition: all 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .hero-img-primary-container:hover .hero-img-primary {
+      transform: scale(1.03);
+      filter: grayscale(0);
+    }
+
+    .hero-img-overlay-border {
+      position: absolute;
+      inset: 15px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 1px;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .hero-img-secondary-container {
+      flex: 0.8;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .hero-img-secondary {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 1px;
+      filter: grayscale(0.2);
+      transition: all 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .hero-img-secondary-container:hover .hero-img-secondary {
+      transform: scale(1.03);
+      filter: grayscale(0);
+    }
+
+    .hero-img-caption-tag {
       position: absolute;
       top: 0;
       left: 0;
-      height: 100%;
-      width: var(--progress, 0%);
-      background: var(--white);
-      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      background: rgba(255, 255, 255, 0.9);
+      padding: 8px 16px;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      font-weight: 500;
+      color: var(--text-color);
+      border-bottom-right-radius: 1px;
+      z-index: 2;
+    }
+
+    .hero-geometric-detail {
+      position: absolute;
+      z-index: -1;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 108%;
+      height: 108%;
+      border: 1px solid rgba(166, 138, 100, 0.12);
+      pointer-events: none;
     }
 
     /* Countdown Section */
@@ -2421,54 +2237,7 @@ const WeddingTemplate = () => {
         min-width: 100%;
       }
 
-      .hero {
-        padding: 0;
-      }
 
-      .hero-content {
-        padding: 40px 20px;
-        width: 100%;
-      }
-
-      .hero-title {
-        font-size: 3rem !important;
-        line-height: 0.9 !important;
-      }
-
-      .hero-title span {
-        margin: 5px 0;
-      }
-
-      .hero-tagline {
-        letter-spacing: 0.4em !important;
-        font-size: 0.65rem !important;
-      }
-
-      .hero-tagline::before,
-      .hero-tagline::after {
-        width: 15px;
-      }
-
-      .hero-meta {
-        padding-top: 2rem;
-        gap: 1.2rem;
-      }
-
-      .hero-location {
-        font-size: 2rem !important;
-      }
-
-      .hero .slider-dots {
-        bottom: 30px;
-      }
-
-      .hero .slider-controls {
-        display: none;
-      }
-
-      .hero .slider-progress {
-        display: none;
-      }
 
       .wedding-details {
         padding: 60px 0;
@@ -2512,73 +2281,69 @@ const WeddingTemplate = () => {
         padding: 60px 0 !important;
       }
 
-      /* Hero Mobile Adjustments */
-      .hero-content {
-        padding: 0 15px !important;
-        margin-top: 20px !important;
+      /* Hero Split Layout Mobile */
+      .hero-split {
+        flex-direction: column !important;
+        padding: 100px 20px 40px !important;
+        gap: 40px !important;
+        min-height: auto !important;
       }
 
-      .hero-tagline-top {
-        font-size: 0.65rem !important;
-        letter-spacing: 0.25em !important;
+      .hero-split-left {
+        text-align: center !important;
+        align-items: center !important;
+      }
+
+      .hero-split-tagline {
+        font-size: 0.7rem !important;
+        letter-spacing: 3px !important;
+        margin-bottom: 1rem !important;
+      }
+
+      .hero-split-title {
+        font-size: 3.5rem !important;
+        line-height: 1 !important;
         margin-bottom: 1.5rem !important;
       }
 
-      .hero-name-title {
-        font-size: 3.5rem !important;
-        line-height: 1 !important;
-      }
-
-      .hero-ampersand-divider {
-        margin: 1rem 0 !important;
-      }
-
-      .hero-ampersand-text {
-        font-size: 1.5rem !important;
-      }
-
-      .hero-ampersand-line {
-        width: 30px !important;
-      }
-
-      .hero-details-divider {
-        margin: 2rem auto 1.5rem !important;
-        max-width: 280px !important;
-      }
-
-      .hero-details-row {
-        margin-bottom: 2rem !important;
-        max-width: 320px !important;
-      }
-
-      .hero-details-col {
-        padding: 0 10px !important;
-        gap: 4px !important;
-      }
-
-      .hero-details-label {
-        font-size: 0.55rem !important;
-        letter-spacing: 0.2em !important;
-      }
-
-      .hero-details-value {
+      .hero-split-subtitle {
         font-size: 1rem !important;
+        margin-bottom: 0.5rem !important;
       }
 
-      .hero-details-separator {
-        height: 30px !important;
+      .hero-split-names {
+        font-size: 2.2rem !important;
+        margin-bottom: 1.5rem !important;
       }
 
-      .btn-luxury {
-        padding: 14px 40px !important;
-        font-size: 0.65rem !important;
-        letter-spacing: 0.25em !important;
+      .hero-split-date {
+        font-size: 1.1rem !important;
+        letter-spacing: 3px !important;
+        margin-bottom: 2rem !important;
+      }
+
+      .hero-split-cta {
+        align-self: center !important;
         width: 100% !important;
         max-width: 280px !important;
+        text-align: center !important;
+        padding: 14px 40px !important;
       }
 
-      .hero .slider-dots {
+      .hero-split-right {
+        height: 55vh !important;
+        flex: none !important;
+        width: 100% !important;
+        padding: 0 !important;
+      }
+
+      .hero-img-secondary-container {
         display: none !important;
+      }
+
+      .hero-geometric-detail {
+        width: 104% !important;
+        height: 104% !important;
       }
     }
 
@@ -2675,62 +2440,56 @@ const WeddingTemplate = () => {
         </div>
       </header>
 
-      {/* Hero Slider */}
-      <section className="hero" id="home">
-        <div className="hero-slider">
-          {weddingData.sliderImages && weddingData.sliderImages.length > 0 ? (
-            weddingData.sliderImages.map((image, index) => (
-              <div
-                key={index}
-                className={`hero-slide ${index === currentSlide ? 'active' : ''}`}
-                style={{ backgroundImage: `url('${image}')` }}
-              ></div>
-            ))
-          ) : (
-            <div className="hero-slide active" style={{ backgroundColor: '#1a1a1a' }}></div>
-          )}
-        </div>
-
-        <div className="hero-content">
-          <div className="hero-tagline-top">
+      {/* Hero Split Layout */}
+      <section className="hero-split" id="home">
+        <div className="hero-split-left">
+          <div className="hero-split-tagline">
             {(weddingData.tagline || "WE ARE GETTING MARRIED").toUpperCase()}
           </div>
-
-          <div className="hero-names-container">
-            <h1 className="hero-name-title">
-              {weddingData.couple.groom.name?.split(' ')[0]}
-            </h1>
-            <div className="hero-ampersand-divider">
-              <span className="hero-ampersand-line"></span>
-              <span className="hero-ampersand-text">&</span>
-              <span className="hero-ampersand-line"></span>
+          <h1 className="hero-split-title">
+            The <br />Wedding <br />Invitation
+          </h1>
+          <p className="hero-split-subtitle">Celebrating the union of</p>
+          <div className="hero-split-names">
+            {weddingData.couple.groom.name?.split(' ')[0]} & {weddingData.couple.bride.name?.split(' ')[0]}
+          </div>
+          {getFormattedSplitDate() && (
+            <div className="hero-split-date">
+              {getFormattedSplitDate()}
             </div>
-            <h1 className="hero-name-title">
-              {weddingData.couple.bride.name?.split(' ')[0]}
-            </h1>
+          )}
+          <a href="#rsvp" className="hero-split-cta">
+            Save Your Seat
+          </a>
+        </div>
+
+        <div className="hero-split-right">
+          {/* Primary Sharp Image */}
+          <div className="hero-img-primary-container">
+            <img
+              src={heroImage1}
+              alt="Groom & Bride"
+              className="hero-img-primary"
+            />
+            {/* Elegant overlay border */}
+            <div className="hero-img-overlay-border"></div>
           </div>
 
-          <div className="hero-details-divider"></div>
-
-          <div className="hero-details-row">
-            <div className="hero-details-col">
-              <span className="hero-details-label">DATE</span>
-              <span className="hero-details-value">{getFormattedHeroDate()}</span>
-            </div>
-            <div className="hero-details-separator"></div>
-            <div className="hero-details-col">
-              <span className="hero-details-label">LOCATION</span>
-              <span className="hero-details-value">
-                {weddingData.venue?.name || weddingData.location?.split(',')[0] || 'TBA'}
-              </span>
+          {/* Secondary Sharp Image */}
+          <div className="hero-img-secondary-container">
+            <img
+              src={heroImage2}
+              alt="Groom & Bride Portrait"
+              className="hero-img-secondary"
+            />
+            {/* Minimalist Caption tag */}
+            <div className="hero-img-caption-tag">
+              Portrait
             </div>
           </div>
 
-          <div className="hero-cta">
-            <a href="#about" className="btn-luxury">
-              OUR JOURNEY
-            </a>
-          </div>
+          {/* Geometric Detail */}
+          <div className="hero-geometric-detail"></div>
         </div>
       </section>
 
