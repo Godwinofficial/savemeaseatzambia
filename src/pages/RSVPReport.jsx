@@ -402,71 +402,13 @@ const RSVPReport = () => {
 
     if (error) {
         return (
-            <div className="report-error">
-                <i className="fas fa-exclamation-circle"></i>
-                <h2>Error Loading Report</h2>
-                <p>{error}</p>
-
-            </div>
-        );
-    }
-
-    return (
+return (
         <div className="rsvp-report">
             {successMessage && (
-                <div className="success-message-header">
+                <div className="success-toast">
                     <i className="fas fa-check-circle"></i> {successMessage}
                 </div>
             )}
-            {/* Header */}
-            <header className="report-header">
-                <div className="header-content">
-                    <div className="wedding-info">
-                        <h1>{wedding.groom_name} & {wedding.bride_name}</h1>
-                        <p className="wedding-date">
-                            <i className="far fa-calendar"></i>
-                            {new Date(wedding.date).toLocaleDateString('en-US', {
-                                weekday: 'long',
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                            })}
-                        </p>
-                        {wedding.venue_name && (
-                            <p className="wedding-venue">
-                                <i className="fas fa-map-marker-alt"></i>
-                                {wedding.venue_name}
-                            </p>
-                        )}
-                    </div>
-                    <div className="header-buttons">
-                        <button
-                            onClick={() => setShowReminderModal(true)}
-                            className="reminder-btn"
-                            title="Schedule Reminders"
-                        >
-                            <i className="fas fa-clock"></i>
-                            Schedule
-                        </button>
-                        <button
-                            onClick={handleSendRemindersNow}
-                            className="send-reminders-now-btn"
-                            disabled={sendingReminders}
-                            title="Send Reminders to All Approved Guests"
-                        >
-                            {sendingReminders ? (
-                                <><i className="fas fa-spinner fa-spin"></i> Sending...</>
-                            ) : (
-                                <><i className="fas fa-bell"></i> Send Reminders</>
-                            )}
-                        </button>
-                        <button onClick={downloadExcel} className="download-excel-btn">
-                            <i className="fas fa-file-excel"></i>
-                            Excel
-                        </button>
-                    </div>
-                </div>
-            </header>
 
             {showReminderModal && (
                 <ReminderModal
@@ -480,80 +422,95 @@ const RSVPReport = () => {
                 />
             )}
 
-            {/* Stats */}
-            <section className="report-stats">
-                <div className="stat-card">
-                    <div className="stat-icon">
-                        <i className="fas fa-users"></i>
+            {/* ── HEADER ── */}
+            <header className="rr-header">
+                <div className="rr-header-inner">
+                    <div className="rr-brand">
+                        <p className="rr-label">RSVP Report</p>
+                        <h1>{wedding.groom_name} <span>&</span> {wedding.bride_name}</h1>
+                        <div className="rr-meta-row">
+                            <span><i className="far fa-calendar"></i>
+                                {new Date(wedding.date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' })}
+                            </span>
+                            {wedding.venue_name && (
+                                <span><i className="fas fa-map-marker-alt"></i>{wedding.venue_name}</span>
+                            )}
+                        </div>
                     </div>
-                    <div className="stat-info">
-                        <h3>{guests.length}</h3>
-                        <p>Total RSVPs</p>
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-icon attending">
-                        <i className="fas fa-check-circle"></i>
-                    </div>
-                    <div className="stat-info">
-                        <h3>{guests.filter(g => g.attending?.toLowerCase() === 'yes' || g.attending?.toLowerCase() === 'attending').length}</h3>
-                        <p>Attending</p>
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-icon declined">
-                        <i className="fas fa-times-circle"></i>
-                    </div>
-                    <div className="stat-info">
-                        <h3>{guests.filter(g => g.attending?.toLowerCase() === 'no' || g.attending?.toLowerCase() === 'declined').length}</h3>
-                        <p>Declined</p>
+                    <div className="rr-header-actions">
+                        <button onClick={() => setShowReminderModal(true)} className="rr-btn rr-btn-ghost" title="Schedule Reminders">
+                            <i className="fas fa-clock"></i> Schedule
+                        </button>
+                        <button onClick={handleSendRemindersNow} className="rr-btn rr-btn-ghost" disabled={sendingReminders} title="Send Reminders">
+                            {sendingReminders ? <><i className="fas fa-spinner fa-spin"></i> Sending…</> : <><i className="fas fa-bell"></i> Reminders</>}
+                        </button>
+                        <button onClick={downloadExcel} className="rr-btn rr-btn-lime" title="Download Excel">
+                            <i className="fas fa-file-excel"></i> Export
+                        </button>
                     </div>
                 </div>
-                <div className="stat-card">
-                    <div className="stat-icon guests">
-                        <i className="fas fa-user-friends"></i>
+            </header>
+
+            {/* ── STATS ── */}
+            <section className="rr-stats">
+                <div className="rr-stat-card rr-stat-primary">
+                    <div className="rr-stat-icon"><i className="fas fa-users"></i></div>
+                    <div>
+                        <div className="rr-stat-num">{guests.length}</div>
+                        <div className="rr-stat-lbl">Total RSVPs</div>
                     </div>
-                    <div className="stat-info">
-                        <h3>{guests.reduce((sum, g) => sum + (parseInt(g.guests_count) || 0), 0)}</h3>
-                        <p>Total Guests</p>
+                </div>
+                <div className="rr-stat-card">
+                    <div className="rr-stat-icon rr-icon-green"><i className="fas fa-check-circle"></i></div>
+                    <div>
+                        <div className="rr-stat-num">{guests.filter(g => g.attending?.toLowerCase() === 'yes' || g.attending?.toLowerCase() === 'attending').length}</div>
+                        <div className="rr-stat-lbl">Attending</div>
+                    </div>
+                    <div className="rr-stat-trend green">
+                        <i className="fas fa-arrow-up"></i>
+                    </div>
+                </div>
+                <div className="rr-stat-card">
+                    <div className="rr-stat-icon rr-icon-red"><i className="fas fa-times-circle"></i></div>
+                    <div>
+                        <div className="rr-stat-num">{guests.filter(g => g.attending?.toLowerCase() === 'no' || g.attending?.toLowerCase() === 'declined').length}</div>
+                        <div className="rr-stat-lbl">Declined</div>
+                    </div>
+                </div>
+                <div className="rr-stat-card">
+                    <div className="rr-stat-icon rr-icon-amber"><i className="fas fa-user-friends"></i></div>
+                    <div>
+                        <div className="rr-stat-num">{guests.reduce((sum, g) => sum + (parseInt(g.guests_count) || 0), 0)}</div>
+                        <div className="rr-stat-lbl">Total Seats</div>
                     </div>
                 </div>
             </section>
 
-            {/* Guest List */}
-            <section className="guest-list-section">
-                <div className="section-header">
+            {/* ── GUEST LIST ── */}
+            <section className="rr-list">
+                <div className="rr-list-header">
                     <h2>Guest List</h2>
-                    <div className="header-actions">
-                        <div className="tabs">
-                            <button
-                                className={`tab-btn ${activeTab === 'approved' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('approved')}
-                            >
-                                Approved ({guests.length})
-                            </button>
-                            <button
-                                className={`tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('pending')}
-                            >
-                                Pending Requests ({pendingGuests.length})
-                                {pendingGuests.length > 0 && <span className="badge-dot"></span>}
-                            </button>
-                        </div>
+                    <div className="rr-tabs">
+                        <button className={`rr-tab ${activeTab === 'approved' ? 'rr-tab-active' : ''}`} onClick={() => setActiveTab('approved')}>
+                            Approved <span className="rr-count">{guests.length}</span>
+                        </button>
+                        <button className={`rr-tab ${activeTab === 'pending' ? 'rr-tab-active' : ''}`} onClick={() => setActiveTab('pending')}>
+                            Pending
+                            <span className={`rr-count ${pendingGuests.length > 0 ? 'rr-count-alert' : ''}`}>{pendingGuests.length}</span>
+                        </button>
                     </div>
                 </div>
 
                 {activeTab === 'pending' ? (
-                    /* Pending List View */
                     pendingGuests.length === 0 ? (
-                        <div className="empty-state">
+                        <div className="rr-empty">
                             <i className="fas fa-check-circle"></i>
                             <h3>No Pending Requests</h3>
                             <p>All RSVPs have been processed.</p>
                         </div>
                     ) : (
-                        <div className="table-container">
-                            <table className="guest-table">
+                        <div className="rr-table-wrap">
+                            <table className="rr-table">
                                 <thead>
                                     <tr>
                                         <th>Name</th>
@@ -566,40 +523,21 @@ const RSVPReport = () => {
                                 <tbody>
                                     {pendingGuests.map((guest) => (
                                         <tr key={guest.id}>
-                                            <td className="name-cell">{guest.name}</td>
-                                            <td className="email-cell">{guest.email}</td>
+                                            <td className="rr-name">{guest.name}</td>
+                                            <td className="rr-email">{guest.email}</td>
                                             <td>
-                                                <span className={`status-badge ${guest.attending?.toLowerCase() === 'yes' ? 'yes' : 'no'}`}>
+                                                <span className={`rr-badge ${guest.attending?.toLowerCase() === 'yes' ? 'rr-badge-yes' : 'rr-badge-no'}`}>
                                                     {guest.attending}
                                                 </span>
                                             </td>
-                                            <td className="guests-cell">{guest.guests_count}</td>
+                                            <td className="rr-center">{guest.guests_count}</td>
                                             <td>
-                                                <div className="action-buttons">
-                                                    <button
-                                                        onClick={() => handleApprove(guest)}
-                                                        className="save-btn"
-                                                        title="Approve & Add"
-                                                        style={{ width: 'auto', padding: '0 1rem', gap: '0.5rem' }}
-                                                        disabled={!!processingAction}
-                                                    >
-                                                        {processingAction === `${guest.id}-approve` ? (
-                                                            <i className="fas fa-spinner fa-spin"></i>
-                                                        ) : (
-                                                            <><i className="fas fa-check"></i> Approve</>
-                                                        )}
+                                                <div className="rr-actions">
+                                                    <button onClick={() => handleApprove(guest)} className="rr-act-approve" title="Approve" disabled={!!processingAction}>
+                                                        {processingAction === `${guest.id}-approve` ? <i className="fas fa-spinner fa-spin"></i> : <><i className="fas fa-check"></i> Approve</>}
                                                     </button>
-                                                    <button
-                                                        onClick={() => handleDelete(guest.id, guest.name, true)}
-                                                        className="delete-btn"
-                                                        title="Reject & Remove"
-                                                        disabled={!!processingAction}
-                                                    >
-                                                        {processingAction === `${guest.id}-delete` ? (
-                                                            <i className="fas fa-spinner fa-spin"></i>
-                                                        ) : (
-                                                            <i className="fas fa-times"></i>
-                                                        )}
+                                                    <button onClick={() => handleDelete(guest.id, guest.name, true)} className="rr-act-del" title="Reject" disabled={!!processingAction}>
+                                                        {processingAction === `${guest.id}-delete` ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-times"></i>}
                                                     </button>
                                                 </div>
                                             </td>
@@ -610,17 +548,15 @@ const RSVPReport = () => {
                         </div>
                     )
                 ) : (
-                    /* Approved List View (Existing Logic) */
                     guests.length === 0 ? (
-                        <div className="empty-state">
+                        <div className="rr-empty">
                             <i className="fas fa-inbox"></i>
                             <h3>No Approved Guests Yet</h3>
                             <p>Approve pending RSVPs to add them here.</p>
                         </div>
                     ) : (
-                        <div className="table-container">
-                            {/* Existing Table Logic... but ensuring handleDelete is updated */}
-                            <table className="guest-table">
+                        <div className="rr-table-wrap">
+                            <table className="rr-table">
                                 <thead>
                                     <tr>
                                         <th>Name</th>
@@ -634,122 +570,47 @@ const RSVPReport = () => {
                                 </thead>
                                 <tbody>
                                     {guests.map((guest) => (
-                                        <tr key={guest.id} className={editingId === guest.id ? 'editing' : ''}>
-                                            {/* ... (Existing Row Logic) ... */}
+                                        <tr key={guest.id} className={editingId === guest.id ? 'rr-editing' : ''}>
                                             {editingId === guest.id ? (
                                                 <>
-                                                    {/* Edit Mode cells same as before */}
+                                                    <td><input type="text" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="rr-input" /></td>
+                                                    <td><input type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="rr-input" /></td>
+                                                    <td><input type="text" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="rr-input" /></td>
                                                     <td>
-                                                        <input
-                                                            type="text"
-                                                            value={editForm.name}
-                                                            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                                                            className="edit-input"
-                                                        />
-                                                    </td>
-                                                    <td>
-                                                        <input
-                                                            type="email"
-                                                            value={editForm.email}
-                                                            onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                                                            className="edit-input"
-                                                        />
-                                                    </td>
-                                                    <td>
-                                                        <input
-                                                            type="text"
-                                                            value={editForm.phone}
-                                                            onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                                                            className="edit-input"
-                                                        />
-                                                    </td>
-                                                    <td>
-                                                        <select
-                                                            value={editForm.attending}
-                                                            onChange={(e) => setEditForm({ ...editForm, attending: e.target.value })}
-                                                            className="edit-select"
-                                                        >
+                                                        <select value={editForm.attending} onChange={(e) => setEditForm({ ...editForm, attending: e.target.value })} className="rr-select">
                                                             <option value="Yes">Yes</option>
                                                             <option value="No">No</option>
                                                         </select>
                                                     </td>
+                                                    <td><input type="number" value={editForm.guests_count} onChange={(e) => setEditForm({ ...editForm, guests_count: e.target.value })} className="rr-input" min="1" /></td>
+                                                    <td className="rr-date">{formatDate(guest.created_at)}</td>
                                                     <td>
-                                                        <input
-                                                            type="number"
-                                                            value={editForm.guests_count}
-                                                            onChange={(e) => setEditForm({ ...editForm, guests_count: e.target.value })}
-                                                            className="edit-input"
-                                                            min="1"
-                                                        />
-                                                    </td>
-                                                    <td className="date-cell">{formatDate(guest.created_at)}</td>
-                                                    <td>
-                                                        <div className="action-buttons">
-                                                            <button
-                                                                onClick={() => saveEdit(guest.id)}
-                                                                className="save-btn"
-                                                                title="Save"
-                                                            >
-                                                                <i className="fas fa-check"></i>
-                                                            </button>
-                                                            <button
-                                                                onClick={cancelEdit}
-                                                                className="cancel-btn"
-                                                                title="Cancel"
-                                                            >
-                                                                <i className="fas fa-times"></i>
-                                                            </button>
+                                                        <div className="rr-actions">
+                                                            <button onClick={() => saveEdit(guest.id)} className="rr-act-save" title="Save"><i className="fas fa-check"></i></button>
+                                                            <button onClick={cancelEdit} className="rr-act-cancel" title="Cancel"><i className="fas fa-times"></i></button>
                                                         </div>
                                                     </td>
                                                 </>
                                             ) : (
                                                 <>
-                                                    <td className="name-cell">{guest.name}</td>
-                                                    <td className="email-cell">{guest.email}</td>
-                                                    <td className="phone-cell">{guest.phone}</td>
+                                                    <td className="rr-name">{guest.name}</td>
+                                                    <td className="rr-email">{guest.email}</td>
+                                                    <td className="rr-phone">{guest.phone}</td>
                                                     <td>
-                                                        <span className={`status-badge ${guest.attending?.toLowerCase() === 'yes' || guest.attending?.toLowerCase() === 'attending' ? 'yes' : 'no'}`}>
-                                                            {guest.attending?.toLowerCase() === 'yes' || guest.attending?.toLowerCase() === 'attending' ? (
-                                                                <><i className="fas fa-check"></i> Attending</>
-                                                            ) : (
-                                                                <><i className="fas fa-times"></i> Declined</>
-                                                            )}
+                                                        <span className={`rr-badge ${guest.attending?.toLowerCase() === 'yes' || guest.attending?.toLowerCase() === 'attending' ? 'rr-badge-yes' : 'rr-badge-no'}`}>
+                                                            {guest.attending?.toLowerCase() === 'yes' || guest.attending?.toLowerCase() === 'attending' ? <><i className="fas fa-check"></i> Attending</> : <><i className="fas fa-times"></i> Declined</>}
                                                         </span>
                                                     </td>
-                                                    <td className="guests-cell">{guest.guests_count}</td>
-                                                    <td className="date-cell">{formatDate(guest.created_at)}</td>
+                                                    <td className="rr-center">{guest.guests_count}</td>
+                                                    <td className="rr-date">{formatDate(guest.created_at)}</td>
                                                     <td>
-                                                        <div className="action-buttons">
-                                                            <button
-                                                                onClick={() => startEdit(guest)}
-                                                                className="edit-btn"
-                                                                title="Edit"
-                                                            >
-                                                                <i className="fas fa-edit"></i>
+                                                        <div className="rr-actions">
+                                                            <button onClick={() => startEdit(guest)} className="rr-act-edit" title="Edit"><i className="fas fa-edit"></i></button>
+                                                            <button onClick={() => handleMoveToPending(guest)} className="rr-act-pending" title="Move to Pending" disabled={!!processingAction}>
+                                                                {processingAction === `${guest.id}-pending` ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-undo"></i>}
                                                             </button>
-                                                            <button
-                                                                onClick={() => handleMoveToPending(guest)}
-                                                                className="pending-btn"
-                                                                title="Move back to Pending"
-                                                                disabled={!!processingAction}
-                                                            >
-                                                                {processingAction === `${guest.id}-pending` ? (
-                                                                    <i className="fas fa-spinner fa-spin"></i>
-                                                                ) : (
-                                                                    <i className="fas fa-undo"></i>
-                                                                )}
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDelete(guest.id, guest.name, false)}
-                                                                className="delete-btn"
-                                                                title="Delete Guest"
-                                                                disabled={!!processingAction}
-                                                            >
-                                                                {processingAction === `${guest.id}-delete` ? (
-                                                                    <i className="fas fa-spinner fa-spin"></i>
-                                                                ) : (
-                                                                    <i className="fas fa-trash"></i>
-                                                                )}
+                                                            <button onClick={() => handleDelete(guest.id, guest.name, false)} className="rr-act-del" title="Delete" disabled={!!processingAction}>
+                                                                {processingAction === `${guest.id}-delete` ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-trash"></i>}
                                                             </button>
                                                         </div>
                                                     </td>
@@ -765,112 +626,69 @@ const RSVPReport = () => {
             </section>
 
             <style jsx>{`
-                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-                * {
-                    margin: 0;
-                    padding: 0;
-                    box-sizing: border-box;
-                }
+                *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+                /* ── PAGE ── */
                 .rsvp-report {
                     min-height: 100vh;
-                    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                    padding-bottom: 3rem;
+                    background: #f0f2f5;
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                    padding-bottom: 4rem;
+                    color: #0d0d14;
                 }
 
-                /* Success Message */
-                .success-message-header {
+                /* ── TOAST ── */
+                .success-toast {
                     position: fixed;
                     top: 20px;
                     left: 50%;
                     transform: translateX(-50%);
-                    background: #10b981;
-                    color: white;
-                    padding: 1rem 2rem;
-                    border-radius: 50px;
-                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+                    background: #0d0d14;
+                    color: #a3e635;
+                    padding: 0.85rem 2rem;
+                    border-radius: 999px;
+                    box-shadow: 0 12px 32px rgba(0,0,0,0.25);
                     z-index: 9999;
                     display: flex;
                     align-items: center;
                     gap: 10px;
                     font-weight: 600;
-                    animation: slideDown 0.3s ease-out;
+                    font-size: 0.9rem;
+                    animation: slideDown 0.35s cubic-bezier(0.34,1.56,0.64,1);
                 }
-
                 @keyframes slideDown {
-                    from { transform: translate(-50%, -100%); opacity: 0; }
-                    to { transform: translate(-50%, 0); opacity: 1; }
+                    from { transform: translate(-50%, -120%); opacity: 0; }
+                    to   { transform: translate(-50%, 0);    opacity: 1; }
                 }
 
-                /* Loading State */
-                .report-loading {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    min-height: 100vh;
-                    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                /* ── HEADER ── */
+                .rr-header {
+                    background: #0d0d14;
+                    padding: 2rem 0 2.2rem;
+                    position: relative;
+                    overflow: hidden;
                 }
-
-                .spinner {
-                    width: 50px;
-                    height: 50px;
-                    border: 4px solid rgba(99, 102, 241, 0.1);
-                    border-top: 4px solid #6366f1;
+                .rr-header::before {
+                    content: '';
+                    position: absolute;
+                    top: -80px; right: -80px;
+                    width: 280px; height: 280px;
                     border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                    margin-bottom: 1rem;
+                    background: radial-gradient(circle, rgba(163,230,53,0.14) 0%, transparent 70%);
+                    pointer-events: none;
                 }
-
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
+                .rr-header::after {
+                    content: '';
+                    position: absolute;
+                    bottom: -100px; left: 5%;
+                    width: 350px; height: 350px;
+                    border-radius: 50%;
+                    background: radial-gradient(circle, rgba(163,230,53,0.07) 0%, transparent 70%);
+                    pointer-events: none;
                 }
-
-                .report-loading p {
-                    color: #6b7280;
-                    font-size: 1rem;
-                }
-
-                /* Error State */
-                .report-error {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    min-height: 100vh;
-                    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-                    text-align: center;
-                    padding: 2rem;
-                }
-
-                .report-error i {
-                    font-size: 4rem;
-                    color: #ef4444;
-                    margin-bottom: 1rem;
-                }
-
-                .report-error h2 {
-                    color: #1f2937;
-                    margin-bottom: 0.5rem;
-                }
-
-                .report-error p {
-                    color: #6b7280;
-                }
-
-
-                /* Header */
-                .report-header {
-                    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-                    color: white;
-                    padding: 2rem 0;
-                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-                }
-
-                .header-content {
+                .rr-header-inner {
                     max-width: 1400px;
                     margin: 0 auto;
                     padding: 0 2rem;
@@ -879,500 +697,376 @@ const RSVPReport = () => {
                     justify-content: space-between;
                     flex-wrap: wrap;
                     gap: 1.5rem;
+                    position: relative;
+                    z-index: 1;
                 }
-
-                .header-buttons {
-                    display: flex;
-                    gap: 0.75rem;
-                    align-items: center;
-                }
-
-                .wedding-info {
-                    text-align: left;
-                    flex: 1;
-                }
-
-                .wedding-info h1 {
-                    font-size: 2rem;
+                .rr-label {
+                    font-size: 0.72rem;
                     font-weight: 700;
-                    margin-bottom: 0.5rem;
-                    background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    background-clip: text;
+                    letter-spacing: 0.14em;
+                    text-transform: uppercase;
+                    color: #a3e635;
+                    margin-bottom: 0.4rem;
                 }
-
-                .wedding-date, .wedding-venue {
-                    color: rgba(255, 255, 255, 0.8);
-                    font-size: 0.95rem;
+                .rr-brand h1 {
+                    font-size: 2.1rem;
+                    font-weight: 900;
+                    color: #fff;
+                    letter-spacing: -0.03em;
+                    line-height: 1.1;
+                    margin-bottom: 0.55rem;
+                }
+                .rr-brand h1 span { color: #a3e635; }
+                .rr-meta-row {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 1rem;
+                    align-items: center;
+                }
+                .rr-meta-row span {
                     display: flex;
                     align-items: center;
-                    justify-content: flex-start;
-                    gap: 0.5rem;
-                    margin-top: 0.25rem;
+                    gap: 0.4rem;
+                    font-size: 0.85rem;
+                    color: rgba(255,255,255,0.5);
+                    font-weight: 400;
                 }
+                .rr-meta-row span i { color: #a3e635; font-size: 0.75rem; }
 
-                .download-excel-btn, .send-reminders-now-btn, .reminder-btn {
-                    padding: 0.75rem 1.25rem;
-                    color: white;
+                /* Header buttons */
+                .rr-header-actions { display: flex; gap: 0.7rem; align-items: center; flex-wrap: wrap; }
+                .rr-btn {
+                    padding: 0.65rem 1.2rem;
                     border: none;
-                    border-radius: 0.75rem;
+                    border-radius: 10px;
                     font-weight: 600;
+                    font-size: 0.875rem;
                     cursor: pointer;
                     display: flex;
                     align-items: center;
-                    gap: 0.5rem;
-                    transition: all 0.2s;
-                    font-size: 0.9rem;
+                    gap: 0.45rem;
+                    transition: all 0.2s ease;
+                    font-family: inherit;
+                    letter-spacing: 0.01em;
                 }
-
-                .download-excel-btn {
-                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                .rr-btn-ghost {
+                    background: rgba(255,255,255,0.08);
+                    color: rgba(255,255,255,0.8);
+                    border: 1px solid rgba(255,255,255,0.12);
+                    backdrop-filter: blur(6px);
                 }
-
-                .send-reminders-now-btn {
-                    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-                }
-
-                .reminder-btn {
-                    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-                }
-
-                .download-excel-btn:hover, .send-reminders-now-btn:hover, .reminder-btn:hover {
+                .rr-btn-ghost:hover {
+                    background: rgba(255,255,255,0.15);
+                    color: #fff;
                     transform: translateY(-2px);
-                    filter: brightness(1.1);
-                    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
                 }
-
-                .send-reminders-now-btn:disabled {
-                    opacity: 0.6;
-                    cursor: not-allowed;
-                    transform: none;
+                .rr-btn-ghost:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+                .rr-btn-lime {
+                    background: #a3e635;
+                    color: #0d0d14;
                 }
-                    transition: all 0.3s ease;
-                    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
-                }
-
-                .download-excel-btn:hover {
+                .rr-btn-lime:hover {
+                    background: #bef264;
                     transform: translateY(-2px);
-                    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+                    box-shadow: 0 8px 20px rgba(163,230,53,0.4);
                 }
 
-                /* Stats */
-                .report-stats {
+                /* ── STATS ── */
+                .rr-stats {
                     max-width: 1400px;
                     margin: 2rem auto;
                     padding: 0 2rem;
                     display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                    gap: 1.5rem;
+                    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+                    gap: 1.2rem;
                 }
-
-                .stat-card {
-                    background: white;
-                    padding: 1.5rem;
-                    border-radius: 1rem;
+                .rr-stat-card {
+                    background: #fff;
+                    border-radius: 18px;
+                    padding: 1.6rem 1.5rem;
                     display: flex;
                     align-items: center;
-                    gap: 1rem;
-                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-                    transition: all 0.3s ease;
+                    gap: 1.1rem;
+                    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+                    border: 1px solid rgba(0,0,0,0.04);
+                    transition: transform 0.22s ease, box-shadow 0.22s ease;
+                    position: relative;
+                    overflow: hidden;
                 }
-
-                .stat-card:hover {
-                    transform: translateY(-4px);
-                    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+                .rr-stat-card::after {
+                    content: '';
+                    position: absolute;
+                    top: 0; right: 0;
+                    width: 90px; height: 90px;
+                    border-radius: 50%;
+                    background: radial-gradient(circle at top right, rgba(163,230,53,0.09), transparent 70%);
+                    pointer-events: none;
                 }
-
-                .stat-icon {
-                    width: 60px;
-                    height: 60px;
-                    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-                    border-radius: 1rem;
+                .rr-stat-primary { background: #0d0d14; }
+                .rr-stat-primary .rr-stat-num { color: #a3e635; }
+                .rr-stat-primary .rr-stat-lbl { color: rgba(255,255,255,0.45); }
+                .rr-stat-primary .rr-stat-icon { background: rgba(163,230,53,0.12); color: #a3e635; }
+                .rr-stat-card:hover { transform: translateY(-5px); box-shadow: 0 12px 32px rgba(0,0,0,0.1); }
+                .rr-stat-icon {
+                    width: 52px; height: 52px;
+                    background: #f0f2f5;
+                    border-radius: 13px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 1.5rem;
-                    color: white;
+                    font-size: 1.25rem;
+                    color: #0d0d14;
+                    flex-shrink: 0;
                 }
-
-                .stat-icon.attending {
-                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-                }
-
-                .stat-icon.declined {
-                    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-                }
-
-                .stat-icon.guests {
-                    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-                }
-
-                .stat-info h3 {
+                .rr-icon-green { background: #dcfce7; color: #166534; }
+                .rr-icon-red   { background: #fee2e2; color: #991b1b; }
+                .rr-icon-amber { background: #fef3c7; color: #92400e; }
+                .rr-stat-num {
                     font-size: 2rem;
+                    font-weight: 900;
+                    color: #0d0d14;
+                    letter-spacing: -0.04em;
+                    line-height: 1;
+                    margin-bottom: 0.2rem;
+                }
+                .rr-stat-lbl {
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    color: #9ca3af;
+                    text-transform: uppercase;
+                    letter-spacing: 0.07em;
+                }
+                .rr-stat-trend {
+                    margin-left: auto;
+                    font-size: 0.8rem;
                     font-weight: 700;
-                    color: #1f2937;
-                    margin-bottom: 0.25rem;
                 }
+                .rr-stat-trend.green { color: #22c55e; }
 
-                .stat-info p {
-                    color: #6b7280;
-                    font-size: 0.875rem;
-                    font-weight: 500;
-                }
-
-                /* Guest List Section */
-                .guest-list-section {
+                /* ── GUEST LIST ── */
+                .rr-list {
                     max-width: 1400px;
                     margin: 0 auto;
                     padding: 0 2rem;
                 }
-
-                .section-header {
+                .rr-list-header {
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
-                    margin-bottom: 1.5rem;
-                }
-
-                .section-header h2 {
-                    font-size: 1.75rem;
-                    font-weight: 700;
-                    color: #1f2937;
-                }
-
-                .header-actions {
-                    display: flex;
-                    align-items: center;
+                    margin-bottom: 1.2rem;
+                    flex-wrap: wrap;
                     gap: 1rem;
                 }
-                .tabs {
-                    display: flex;
-                    gap: 0.5rem;
-                    background: #f3f4f6;
-                    padding: 0.25rem;
-                    border-radius: 0.5rem;
+                .rr-list-header h2 {
+                    font-size: 1.45rem;
+                    font-weight: 800;
+                    color: #0d0d14;
+                    letter-spacing: -0.025em;
                 }
-                .tab-btn {
-                    padding: 0.5rem 1rem;
+                .rr-tabs {
+                    display: flex;
+                    gap: 0.35rem;
+                    background: #e4e6ed;
+                    padding: 0.28rem;
+                    border-radius: 12px;
+                }
+                .rr-tab {
+                    padding: 0.48rem 1rem;
                     border: none;
                     background: transparent;
-                    border-radius: 0.375rem;
+                    border-radius: 9px;
                     font-weight: 600;
+                    font-size: 0.85rem;
                     color: #6b7280;
                     cursor: pointer;
                     display: flex;
                     align-items: center;
-                    gap: 0.5rem;
-                    transition: all 0.2s;
-                }
-                .tab-btn.active {
-                    background: white;
-                    color: #4f46e5;
-                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                }
-                .tab-btn:hover:not(.active) {
-                    color: #374151;
-                    background: rgba(255,255,255,0.5);
-                }
-                .badge-dot {
-                    width: 8px;
-                    height: 8px;
-                    background: #ef4444;
-                    border-radius: 50%;
-                }
-                .guest-count {
-                    color: #6b7280;
-                    font-weight: 500;
-                    background: white;
-                    padding: 0.5rem 1rem;
-                    border-radius: 0.5rem;
-                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-                }
-
-                /* Empty State */
-                .empty-state {
-                    background: white;
-                    padding: 4rem 2rem;
-                    border-radius: 1rem;
-                    text-align: center;
-                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-                }
-
-                .empty-state i {
-                    font-size: 4rem;
-                    color: #d1d5db;
-                    margin-bottom: 1rem;
-                }
-
-                .empty-state h3 {
-                    color: #1f2937;
-                    margin-bottom: 0.5rem;
-                }
-
-                .empty-state p {
-                    color: #6b7280;
-                }
-
-                /* Table */
-                .table-container {
-                    background: white;
-                    border-radius: 1rem;
-                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-                    overflow: hidden;
-                }
-
-                .guest-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                }
-
-                .guest-table thead {
-                    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-                }
-
-                .guest-table th {
-                    padding: 1rem;
-                    text-align: left;
-                    font-weight: 600;
-                    color: #374151;
-                    font-size: 0.875rem;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                    border-bottom: 2px solid #e5e7eb;
-                }
-
-                .guest-table tbody tr {
-                    border-bottom: 1px solid #f3f4f6;
+                    gap: 0.45rem;
                     transition: all 0.2s ease;
-                }
-
-                .guest-table tbody tr:hover {
-                    background: #f9fafb;
-                }
-
-                .guest-table tbody tr.editing {
-                    background: #eff6ff;
-                }
-
-                .guest-table td {
-                    padding: 1rem;
-                    color: #4b5563;
-                }
-
-                .name-cell {
-                    font-weight: 600;
-                    color: #1f2937;
-                    min-width: 200px;
-                }
-
-                .email-cell {
-                    min-width: 200px;
-                }
-
-                .phone-cell {
-                    min-width: 130px;
-                }
-
-                .guests-cell {
-                    text-align: center;
-                    font-weight: 600;
-                }
-
-                .date-cell {
-                    font-size: 0.875rem;
-                    color: #6b7280;
-                    min-width: 150px;
-                }
-
-                .status-badge {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 0.375rem;
-                    padding: 0.375rem 0.75rem;
-                    border-radius: 0.5rem;
-                    font-size: 0.875rem;
-                    font-weight: 600;
-                    white-space: nowrap;
-                }
-
-                .status-badge.yes {
-                    background: #d1fae5;
-                    color: #065f46;
-                }
-
-                .status-badge.no {
-                    background: #fee2e2;
-                    color: #991b1b;
-                }
-
-                /* Edit Inputs */
-                .edit-input, .edit-select {
-                    width: 100%;
-                    padding: 0.5rem;
-                    border: 2px solid #6366f1;
-                    border-radius: 0.375rem;
-                    font-size: 0.875rem;
                     font-family: inherit;
                 }
+                .rr-tab-active {
+                    background: #0d0d14;
+                    color: #a3e635;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+                }
+                .rr-tab:hover:not(.rr-tab-active) { background: rgba(255,255,255,0.6); color: #374151; }
+                .rr-count {
+                    background: rgba(0,0,0,0.08);
+                    color: inherit;
+                    border-radius: 999px;
+                    padding: 0.1rem 0.5rem;
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                }
+                .rr-count-alert { background: #ef4444; color: #fff !important; }
 
-                .edit-input:focus, .edit-select:focus {
+                /* ── EMPTY ── */
+                .rr-empty {
+                    background: #fff;
+                    border-radius: 18px;
+                    padding: 4rem 2rem;
+                    text-align: center;
+                    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+                    border: 1px solid rgba(0,0,0,0.04);
+                }
+                .rr-empty i { font-size: 3.5rem; color: #d1d5db; display: block; margin-bottom: 1rem; }
+                .rr-empty h3 { color: #0d0d14; font-weight: 700; margin-bottom: 0.4rem; }
+                .rr-empty p { color: #9ca3af; font-size: 0.9rem; }
+
+                /* ── TABLE ── */
+                .rr-table-wrap {
+                    background: #fff;
+                    border-radius: 18px;
+                    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+                    border: 1px solid rgba(0,0,0,0.04);
+                    overflow: hidden;
+                    overflow-x: auto;
+                }
+                .rr-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    min-width: 700px;
+                }
+                .rr-table thead { background: #0d0d14; }
+                .rr-table th {
+                    padding: 1rem 1.1rem;
+                    text-align: left;
+                    font-weight: 700;
+                    font-size: 0.7rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.1em;
+                    color: rgba(255,255,255,0.45);
+                }
+                .rr-table th:first-child { padding-left: 1.5rem; }
+                .rr-table th:last-child  { padding-right: 1.5rem; }
+                .rr-table tbody tr {
+                    border-bottom: 1px solid #f3f4f6;
+                    transition: background 0.15s;
+                }
+                .rr-table tbody tr:last-child { border-bottom: none; }
+                .rr-table tbody tr:hover { background: #f9fafb; }
+                .rr-table tbody tr.rr-editing { background: #f0fdf4; }
+                .rr-table td {
+                    padding: 1rem 1.1rem;
+                    font-size: 0.9rem;
+                    color: #4b5563;
+                }
+                .rr-table td:first-child { padding-left: 1.5rem; }
+                .rr-table td:last-child  { padding-right: 1.5rem; }
+                .rr-name  { font-weight: 700; color: #0d0d14; min-width: 160px; }
+                .rr-email { color: #6b7280; min-width: 180px; }
+                .rr-phone { color: #6b7280; min-width: 120px; }
+                .rr-center { text-align: center; font-weight: 700; color: #0d0d14; }
+                .rr-date  { font-size: 0.8rem; color: #9ca3af; min-width: 140px; }
+
+                /* Status badges */
+                .rr-badge {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.35rem;
+                    padding: 0.3rem 0.8rem;
+                    border-radius: 999px;
+                    font-size: 0.76rem;
+                    font-weight: 700;
+                    white-space: nowrap;
+                    letter-spacing: 0.02em;
+                }
+                .rr-badge-yes { background: #dcfce7; color: #166534; }
+                .rr-badge-no  { background: #fee2e2; color: #991b1b; }
+
+                /* Edit inputs */
+                .rr-input, .rr-select {
+                    width: 100%;
+                    padding: 0.45rem 0.6rem;
+                    border: 2px solid #a3e635;
+                    border-radius: 8px;
+                    font-size: 0.875rem;
+                    font-family: inherit;
+                    background: #f9fef0;
+                    color: #0d0d14;
                     outline: none;
-                    border-color: #4f46e5;
-                    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+                }
+                .rr-input:focus, .rr-select:focus {
+                    border-color: #65a30d;
+                    box-shadow: 0 0 0 3px rgba(163,230,53,0.2);
                 }
 
-                /* Action Buttons */
-                .action-buttons {
-                    display: flex;
-                    gap: 0.5rem;
-                }
-
-                .action-buttons button {
-                    width: 36px;
-                    height: 36px;
+                /* Action buttons */
+                .rr-actions { display: flex; gap: 0.4rem; }
+                .rr-actions button {
+                    width: 34px; height: 34px;
                     border: none;
-                    border-radius: 0.5rem;
+                    border-radius: 9px;
                     cursor: pointer;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    transition: all 0.2s ease;
-                    font-size: 0.875rem;
+                    font-size: 0.8rem;
+                    transition: all 0.18s ease;
+                    font-family: inherit;
                 }
-
-                .edit-btn {
-                    background: #dbeafe;
-                    color: #1e40af;
+                .rr-act-approve {
+                    width: auto !important;
+                    padding: 0 0.85rem;
+                    gap: 0.4rem;
+                    font-weight: 600;
+                    background: #0d0d14;
+                    color: #a3e635;
+                    font-size: 0.8rem !important;
                 }
+                .rr-act-approve:hover { background: #1a1a2e; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
+                .rr-act-edit    { background: #eff6ff; color: #1e40af; }
+                .rr-act-edit:hover    { background: #3b82f6; color: #fff; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
+                .rr-act-pending { background: #fffbeb; color: #b45309; }
+                .rr-act-pending:hover { background: #f59e0b; color: #fff; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(245,158,11,0.3); }
+                .rr-act-del     { background: #fef2f2; color: #b91c1c; }
+                .rr-act-del:hover     { background: #ef4444; color: #fff; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(239,68,68,0.3); }
+                .rr-act-save    { background: #f0fdf4; color: #166534; }
+                .rr-act-save:hover    { background: #22c55e; color: #fff; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(34,197,94,0.3); }
+                .rr-act-cancel  { background: #f3f4f6; color: #6b7280; }
+                .rr-act-cancel:hover  { background: #9ca3af; color: #fff; transform: translateY(-2px); }
+                .rr-actions button:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 
-                .edit-btn:hover {
-                    background: #3b82f6;
-                    color: white;
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+                /* Loading / Error */
+                .report-loading {
+                    display: flex; flex-direction: column;
+                    align-items: center; justify-content: center;
+                    min-height: 100vh; background: #f0f2f5;
                 }
-
-                .pending-btn {
-                    background: #fef3c7;
-                    color: #d97706;
+                .spinner {
+                    width: 50px; height: 50px;
+                    border: 4px solid rgba(163,230,53,0.2);
+                    border-top: 4px solid #a3e635;
+                    border-radius: 50%;
+                    animation: spin 0.9s linear infinite;
+                    margin-bottom: 1rem;
                 }
-
-                .pending-btn:hover {
-                    background: #f59e0b;
-                    color: white;
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+                @keyframes spin { to { transform: rotate(360deg); } }
+                .report-error {
+                    display: flex; flex-direction: column;
+                    align-items: center; justify-content: center;
+                    min-height: 100vh; background: #f0f2f5;
+                    text-align: center; padding: 2rem;
                 }
+                .report-error i { font-size: 4rem; color: #ef4444; margin-bottom: 1rem; }
+                .report-error h2 { color: #0d0d14; margin-bottom: 0.5rem; }
+                .report-error p { color: #6b7280; }
 
-                .delete-btn {
-                    background: #fee2e2;
-                    color: #991b1b;
+                /* ── RESPONSIVE ── */
+                @media (max-width: 900px) {
+                    .rr-header-inner { flex-direction: column; text-align: center; }
+                    .rr-brand h1 { font-size: 1.6rem; }
+                    .rr-meta-row { justify-content: center; }
+                    .rr-header-actions { justify-content: center; }
+                    .rr-stats { grid-template-columns: 1fr 1fr; }
+                    .rr-list-header { flex-direction: column; align-items: flex-start; }
                 }
-
-                .delete-btn:hover {
-                    background: #ef4444;
-                    color: white;
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-                }
-
-                .save-btn {
-                    background: #d1fae5;
-                    color: #065f46;
-                }
-
-                .save-btn:hover {
-                    background: #10b981;
-                    color: white;
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-                }
-
-                .cancel-btn {
-                    background: #f3f4f6;
-                    color: #6b7280;
-                }
-
-                .cancel-btn:hover {
-                    background: #9ca3af;
-                    color: white;
-                    transform: translateY(-2px);
-                }
-
-                /* Responsive Design */
-                @media (max-width: 1024px) {
-                    .header-content {
-                        flex-direction: column;
-                        text-align: center;
-                        padding: 1.5rem 1rem;
-                        gap: 1.5rem;
-                    }
-
-                    .wedding-info {
-                        text-align: center;
-                        width: 100%;
-                        flex: none;
-                    }
-
-                    .wedding-date, .wedding-venue {
-                        justify-content: center;
-                    }
-
-                    .header-buttons {
-                        justify-content: center;
-                        flex-wrap: wrap;
-                        width: 100%;
-                        gap: 0.75rem;
-                    }
-
-                    .wedding-info h1 {
-                        font-size: 1.5rem;
-                        margin-bottom: 0.75rem;
-                    }
-
-                    .download-excel-btn, .send-reminders-now-btn, .reminder-btn {
-                        padding: 0.625rem 1rem;
-                        font-size: 0.85rem;
-                        flex: 1;
-                        min-width: 140px;
-                        justify-content: center;
-                    }
-
-                    .table-container {
-                        overflow-x: auto;
-                    }
-
-                    .guest-table {
-                        min-width: 900px;
-                    }
-                }
-
-                @media (max-width: 768px) {
-                    .report-stats {
-                        grid-template-columns: 1fr;
-                    }
-
-                    .section-header {
-                        flex-direction: column;
-                        align-items: flex-start;
-                        gap: 1rem;
-                    }
-
-                    .guest-table th,
-                    .guest-table td {
-                        padding: 0.75rem 0.5rem;
-                        font-size: 0.875rem;
-                    }
-
-                    .name-cell,
-                    .email-cell {
-                        min-width: 150px;
-                    }
+                @media (max-width: 560px) {
+                    .rr-header-inner, .rr-stats, .rr-list { padding: 0 1rem; }
+                    .rr-stats { grid-template-columns: 1fr; }
                 }
             `}</style>
         </div>
     );
 };
-
-export default RSVPReport;

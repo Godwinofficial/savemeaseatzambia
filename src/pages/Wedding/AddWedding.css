@@ -10,3 +10,8 @@
 .leaflet-container {
     font-family: inherit;
 }
+
+/* Color swatches hover styles */
+.color-swatch-circle:hover .remove-color-overlay {
+    display: flex !important;
+}

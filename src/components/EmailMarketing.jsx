@@ -576,49 +576,52 @@ Save Me A Seat Team`
                 </p>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .email-marketing-container {
-                    max-width: 1000px;
-                    margin: 0 auto;
-                    padding: 20px;
+                    max-width: 100%;
+                    margin: 0;
+                    padding: 0;
                 }
 
                 .email-marketing-header {
                     text-align: center;
-                    margin-bottom: 30px;
+                    margin-bottom: 1.5rem;
                 }
 
                 .email-marketing-header h2 {
-                    font-size: 32px;
-                    color: #1f2937;
-                    margin-bottom: 10px;
+                    font-size: 1.25rem;
+                    font-weight: 800;
+                    color: #12121c;
+                    margin-bottom: 0.25rem;
                 }
 
                 .email-marketing-header p {
                     color: #6b7280;
-                    font-size: 16px;
+                    font-size: 0.78rem;
                 }
 
                 .stats-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                    gap: 20px;
-                    margin-bottom: 30px;
+                    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                    gap: 12px;
+                    margin-bottom: 1.5rem;
                 }
 
                 .stat-card {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    border-radius: 12px;
-                    padding: 20px;
+                    background: #12121c;
+                    border-radius: 14px;
+                    padding: 1rem;
                     display: flex;
                     align-items: center;
-                    gap: 15px;
+                    gap: 12px;
                     color: white;
-                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    border: 1px solid rgba(197, 160, 89, 0.25);
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
                 }
 
                 .stat-icon {
-                    font-size: 40px;
+                    font-size: 1.75rem;
+                    color: #c5a059;
                 }
 
                 .stat-content {
@@ -626,118 +629,136 @@ Save Me A Seat Team`
                 }
 
                 .stat-value {
-                    font-size: 32px;
-                    font-weight: bold;
+                    font-size: 1.5rem;
+                    font-weight: 800;
+                    color: #fff;
+                    line-height: 1.1;
                 }
 
                 .stat-label {
-                    font-size: 14px;
-                    opacity: 0.9;
+                    font-size: 0.7rem;
+                    color: #9ca3af;
+                    font-weight: 500;
+                    margin-top: 2px;
                 }
 
                 .section {
                     background: white;
-                    border-radius: 12px;
-                    padding: 25px;
-                    margin-bottom: 20px;
-                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                    border-radius: 16px;
+                    padding: 1.25rem;
+                    margin-bottom: 1rem;
+                    border: 1px solid #e5e7eb;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
                 }
 
                 .section h3 {
-                    font-size: 20px;
-                    color: #1f2937;
-                    margin-bottom: 15px;
+                    font-size: 0.95rem;
+                    font-weight: 800;
+                    color: #12121c;
+                    margin-bottom: 0.85rem;
                 }
 
                 .template-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-                    gap: 10px;
+                    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+                    gap: 8px;
                 }
 
                 .template-btn {
-                    padding: 12px 16px;
-                    border: 2px solid #e5e7eb;
-                    border-radius: 8px;
+                    padding: 10px 14px;
+                    border: 1.5px solid #e5e7eb;
+                    border-radius: 10px;
                     background: white;
                     color: #374151;
                     cursor: pointer;
                     transition: all 0.2s;
-                    font-size: 14px;
-                    font-weight: 500;
+                    font-size: 0.78rem;
+                    font-weight: 700;
                 }
 
                 .template-btn:hover {
-                    border-color: #10b981;
-                    background: #f0fdf4;
+                    border-color: #c5a059;
+                    background: #fcfbfa;
+                    color: #c5a059;
                 }
 
                 .template-btn.active {
-                    border-color: #10b981;
-                    background: #10b981;
+                    border-color: #c5a059;
+                    background: #c5a059;
                     color: white;
                 }
 
                 .form-group {
-                    margin-bottom: 20px;
+                    margin-bottom: 1.25rem;
                 }
 
                 .form-group label {
                     display: block;
-                    font-weight: 600;
+                    font-size: 0.8rem;
+                    font-weight: 700;
                     color: #374151;
-                    margin-bottom: 8px;
+                    margin-bottom: 0.35rem;
                 }
 
                 .input-field {
                     width: 100%;
-                    padding: 12px;
-                    border: 2px solid #e5e7eb;
-                    border-radius: 8px;
-                    font-size: 16px;
-                    transition: border-color 0.2s;
+                    padding: 0.65rem 0.85rem;
+                    border: 1.5px solid #e5e7eb;
+                    border-radius: 10px;
+                    font-size: 0.85rem;
+                    background: #f9fafb;
+                    color: #111827;
+                    transition: all 0.2s;
+                    outline: none;
                 }
 
                 .input-field:focus {
                     outline: none;
-                    border-color: #10b981;
+                    border-color: #c5a059;
+                    background: #ffffff;
                 }
 
                 .textarea-field {
                     width: 100%;
-                    padding: 12px;
-                    border: 2px solid #e5e7eb;
-                    border-radius: 8px;
-                    font-size: 16px;
+                    padding: 0.65rem 0.85rem;
+                    border: 1.5px solid #e5e7eb;
+                    border-radius: 10px;
+                    font-size: 0.85rem;
                     font-family: inherit;
                     resize: vertical;
-                    transition: border-color 0.2s;
+                    background: #f9fafb;
+                    color: #111827;
+                    transition: all 0.2s;
+                    outline: none;
                 }
 
                 .textarea-field:focus {
                     outline: none;
-                    border-color: #10b981;
+                    border-color: #c5a059;
+                    background: #ffffff;
                 }
 
                 .helper-text {
-                    margin-top: 8px;
-                    font-size: 14px;
+                    margin-top: 6px;
+                    font-size: 0.72rem;
                     color: #6b7280;
                 }
 
                 .test-section {
-                    background: #fffbeb;
-                    border: 2px solid #fbbf24;
+                    background: rgba(197, 160, 89, 0.05);
+                    border: 1.5px solid rgba(197, 160, 89, 0.3);
                 }
 
                 .test-section p {
-                    color: #92400e;
-                    margin-bottom: 15px;
+                    color: #5c471c;
+                    margin-bottom: 0.85rem;
+                    font-size: 0.75rem;
+                    line-height: 1.4;
                 }
 
                 .test-email-row {
                     display: flex;
-                    gap: 10px;
+                    gap: 8px;
                 }
 
                 .test-email-row .input-field {
@@ -745,20 +766,20 @@ Save Me A Seat Team`
                 }
 
                 .btn-test {
-                    padding: 12px 24px;
-                    background: #fbbf24;
-                    color: #78350f;
+                    padding: 10px 18px;
+                    background: #12121c;
+                    color: #fff;
                     border: none;
-                    border-radius: 8px;
-                    font-weight: 600;
+                    border-radius: 10px;
+                    font-weight: 700;
+                    font-size: 0.8rem;
                     cursor: pointer;
                     transition: all 0.2s;
                     white-space: nowrap;
                 }
 
                 .btn-test:hover:not(:disabled) {
-                    background: #f59e0b;
-                    transform: translateY(-1px);
+                    background: #c5a059;
                 }
 
                 .btn-test:disabled {
@@ -768,27 +789,28 @@ Save Me A Seat Team`
 
                 .send-section {
                     text-align: center;
-                    background: #f0fdf4;
-                    border: 2px solid #10b981;
+                    background: rgba(163, 230, 53, 0.05);
+                    border: 1.5px solid rgba(163, 230, 53, 0.3);
                 }
 
                 .btn-send-bulk {
                     width: 100%;
-                    padding: 16px 32px;
-                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    padding: 12px 24px;
+                    background: #c5a059;
                     color: white;
                     border: none;
-                    border-radius: 8px;
-                    font-size: 18px;
-                    font-weight: 600;
+                    border-radius: 10px;
+                    font-size: 0.95rem;
+                    font-weight: 700;
                     cursor: pointer;
                     transition: all 0.2s;
-                    margin-bottom: 15px;
+                    margin-bottom: 10px;
                 }
 
                 .btn-send-bulk:hover:not(:disabled) {
-                    transform: translateY(-2px);
-                    box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+                    background: #b28e46;
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(197, 160, 89, 0.2);
                 }
 
                 .btn-send-bulk:disabled {
@@ -797,25 +819,26 @@ Save Me A Seat Team`
                 }
 
                 .warning-text {
-                    color: #065f46;
-                    font-size: 14px;
+                    color: #6b7280;
+                    font-size: 0.72rem;
                     margin: 0;
                 }
 
                 .file-upload-container {
-                    margin-top: 10px;
+                    margin-top: 8px;
                 }
 
                 .file-upload-label {
                     display: inline-flex;
                     align-items: center;
-                    gap: 10px;
-                    padding: 12px 20px;
-                    background: #f3f4f6;
-                    border: 2px dashed #d1d5db;
-                    border-radius: 8px;
+                    gap: 8px;
+                    padding: 10px 18px;
+                    background: #fff;
+                    border: 1.5px dashed #d1d5db;
+                    border-radius: 10px;
                     color: #4b5563;
-                    font-weight: 500;
+                    font-weight: 600;
+                    font-size: 0.8rem;
                     cursor: pointer;
                     transition: all 0.2s;
                     width: 100%;
@@ -823,9 +846,9 @@ Save Me A Seat Team`
                 }
 
                 .file-upload-label:hover {
-                    background: #e5e7eb;
-                    border-color: #9ca3af;
-                    color: #1f2937;
+                    border-color: #c5a059;
+                    color: #c5a059;
+                    background: #fcfbfa;
                 }
 
                 .file-upload-label.disabled {
@@ -840,17 +863,17 @@ Save Me A Seat Team`
                 .attachments-preview {
                     display: flex;
                     flex-wrap: wrap;
-                    gap: 15px;
-                    margin-top: 15px;
+                    gap: 10px;
+                    margin-top: 12px;
                 }
 
                 .attachment-item {
                     position: relative;
-                    width: 100px;
-                    height: 100px;
+                    width: 80px;
+                    height: 80px;
                     border-radius: 8px;
                     overflow: hidden;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
                     border: 1px solid #e5e7eb;
                 }
 
@@ -862,20 +885,20 @@ Save Me A Seat Team`
 
                 .remove-attachment {
                     position: absolute;
-                    top: 5px;
-                    right: 5px;
-                    background: rgba(255, 255, 255, 0.9);
+                    top: 4px;
+                    right: 4px;
+                    background: rgba(0,0,0,0.6);
                     border: none;
                     border-radius: 50%;
-                    width: 24px;
-                    height: 24px;
+                    width: 20px;
+                    height: 20px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    color: #ef4444;
+                    color: #fff;
                     cursor: pointer;
                     transition: all 0.2s;
-                    font-size: 12px;
+                    font-size: 10px;
                 }
 
                 .remove-attachment:hover {

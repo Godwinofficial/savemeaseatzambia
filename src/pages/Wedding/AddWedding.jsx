@@ -720,7 +720,9 @@ const AddWedding = () => {
         map_location: "",
         tagline: "We are getting married",
         slider_images: [], bridesmaids: [], groomsmen: [], gifts: [], gallery_images: [], other_events: [],
-        allowed_guests: ["1"]
+        allowed_guests: ["1"],
+        theme_colors: ['#A68A64', '#FAFAF9', '#E7E5E4', '#292524'],
+        dress_code_colors: []
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -731,6 +733,12 @@ const AddWedding = () => {
     const [mapInstance, setMapInstance] = useState(null);
     const [markerInstance, setMarkerInstance] = useState(null);
     const [uploadProgress, setUploadProgress] = useState({});
+    const [tempThemeColor, setTempThemeColor] = useState("#4f46e5");
+    const [tempThemeHex, setTempThemeHex] = useState("");
+    const [tempDressColor, setTempDressColor] = useState("#e11d48");
+    const [tempDressHex, setTempDressHex] = useState("");
+    const [editingThemeIdx, setEditingThemeIdx] = useState(null);
+    const [editingDressIdx, setEditingDressIdx] = useState(null);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -760,7 +768,40 @@ const AddWedding = () => {
                     gifts: typeof data.gifts === 'string' ? JSON.parse(data.gifts) : data.gifts || [],
                     gallery_images: typeof data.gallery_images === 'string' ? JSON.parse(data.gallery_images) : data.gallery_images || [],
                     other_events: typeof data.other_events === 'string' ? JSON.parse(data.other_events) : data.other_events || [],
-                    allowed_guests: typeof data.allowed_guests === 'string' ? JSON.parse(data.allowed_guests) : data.allowed_guests || ["1"]
+                    allowed_guests: typeof data.allowed_guests === 'string' ? JSON.parse(data.allowed_guests) : data.allowed_guests || ["1"],
+                    theme_colors: (() => {
+                        const raw = data.theme_colors;
+                        if (!raw) return ['#A68A64', '#FAFAF9', '#E7E5E4', '#292524'];
+                        try {
+                            const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                            return Array.isArray(parsed) && parsed.length > 0
+                                ? parsed.filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:"))
+                                : ['#A68A64', '#FAFAF9', '#E7E5E4', '#292524'];
+                        } catch (e) {
+                            return ['#A68A64', '#FAFAF9', '#E7E5E4', '#292524'];
+                        }
+                    })(),
+                    dress_code_colors: (() => {
+                        const raw = data.dress_code_colors;
+                        if (raw) {
+                            try {
+                                const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                            } catch (e) { }
+                        }
+                        // Fallback: check theme_colors for DRESS_CODE_COLOR: prefix
+                        const rawTheme = data.theme_colors;
+                        if (!rawTheme) return [];
+                        try {
+                            const parsed = typeof rawTheme === 'string' ? JSON.parse(rawTheme) : rawTheme;
+                            if (Array.isArray(parsed)) {
+                                return parsed
+                                    .filter(c => typeof c === 'string' && c.startsWith("DRESS_CODE_COLOR:"))
+                                    .map(c => c.substring("DRESS_CODE_COLOR:".length));
+                            }
+                        } catch (e) { }
+                        return [];
+                    })()
                 });
             }
         } catch (error) {
@@ -1061,6 +1102,9 @@ const AddWedding = () => {
                 }
             });
 
+            // Clean theme_colors of any prefix tags if saving normally
+            payload.theme_colors = (payload.theme_colors || []).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:"));
+
             let error;
             if (isEditMode) {
                 const { error: updateError } = await supabase.from('weddings').update(payload).eq('id', id);
@@ -1070,7 +1114,39 @@ const AddWedding = () => {
                 error = insertError;
             }
 
-            if (error) throw error;
+            if (error) {
+                // If dress_code_colors column is missing in the database schema cache
+                if (error.message && error.message.includes("dress_code_colors")) {
+                    console.warn("dress_code_colors column is missing from weddings table, retrying save with fallback storage inside theme_colors.");
+                    const retryPayload = { ...payload };
+                    delete retryPayload.dress_code_colors;
+
+                    // Fallback storage: Pack dress_code_colors inside theme_colors array
+                    const dressCodePrefixes = (payload.dress_code_colors || []).map(c => `DRESS_CODE_COLOR:${c}`);
+                    retryPayload.theme_colors = [
+                        ...(payload.theme_colors || []).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:")),
+                        ...dressCodePrefixes
+                    ];
+
+                    let retryError;
+                    if (isEditMode) {
+                        const { error: updateError } = await supabase.from('weddings').update(retryPayload).eq('id', id);
+                        retryError = updateError;
+                    } else {
+                        const { error: insertError } = await supabase.from('weddings').insert([retryPayload]);
+                        retryError = insertError;
+                    }
+
+                    if (retryError) throw retryError;
+
+                    alert((isEditMode ? 'Wedding Updated Successfully!' : 'Wedding Website Created Successfully!') +
+                        '\n\n⚠️ NOTE: The "dress_code_colors" column is missing from your Supabase database. ' +
+                        'We saved your dress code colors inside the theme colors as a fallback. To fully upgrade your schema, please run the SQL inside the "SUPABASE_DRESS_CODE_COLORS.sql" file.');
+                    navigate(isEditMode ? '/admin' : `/w/${slug}`);
+                    return;
+                }
+                throw error;
+            }
 
             alert(isEditMode ? 'Wedding Updated Successfully!' : 'Wedding Website Created Successfully!');
             navigate(isEditMode ? '/admin' : `/w/${slug}`);
@@ -1237,6 +1313,481 @@ const AddWedding = () => {
                                 <i className="fas fa-tshirt"></i> Dress Code
                             </label>
                             <input type="text" className="form-input" name="dress_code" value={formData.dress_code} onChange={handleChange} placeholder="e.g., Formal, Cocktail Attire" />
+                        </div>
+                        {/* Wedding Website Theme Colors */}
+                        <div className="form-group theme-colors-section" style={{ gridColumn: '1 / -1', borderTop: '1px solid #e5e7eb', paddingTop: '1.5rem', marginTop: '0.5rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <label className="form-label" style={{ fontWeight: '700', fontSize: '1rem', color: '#111827', margin: 0 }}>
+                                    <i className="fas fa-palette" style={{ color: '#4f46e5', marginRight: '6px' }}></i> Wedding Website Theme Colors
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (window.confirm("Are you sure you want to reset all theme colors to defaults?")) {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                theme_colors: ['#A68A64', '#FAFAF9', '#E7E5E4', '#292524']
+                                            }));
+                                            setEditingThemeIdx(null);
+                                        }
+                                    }}
+                                    style={{
+                                        background: '#f3f4f6',
+                                        color: '#374151',
+                                        border: '1px solid #d1d5db',
+                                        padding: '4px 10px',
+                                        borderRadius: '6px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        transition: 'all 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#e5e7eb'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
+                                    title="Reset theme colors to initial system defaults"
+                                >
+                                    <i className="fas fa-undo"></i> Reset to Defaults
+                                </button>
+                            </div>
+                            <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: '4px 0 12px 0' }}>
+                                Customize the styling of your public invitation website. The colors you add will control the site design in order:
+                                <strong style={{ color: '#374151' }}> 1st: Accent (Buttons/Icons), 2nd: Page Background, 3rd: Card/Container Background, 4th: Text Color</strong>.
+                            </p>
+                            <div className="color-swatches-wrapper" style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', alignItems: 'center' }}>
+                                {formData.theme_colors && formData.theme_colors.map((color, idx) => {
+                                    const labels = ["Accent", "Background", "Card Bg", "Text"];
+                                    const label = labels[idx] || `Color ${idx + 1}`;
+                                    const isEditingThis = editingThemeIdx === idx;
+                                    return (
+                                        <div
+                                            key={idx}
+                                            style={{
+                                                position: 'relative',
+                                                display: 'inline-block'
+                                            }}
+                                        >
+                                            <div
+                                                className="color-swatch-circle"
+                                                style={{
+                                                    width: '42px',
+                                                    height: '42px',
+                                                    borderRadius: '50%',
+                                                    backgroundColor: color,
+                                                    border: isEditingThis
+                                                        ? '3px solid #4f46e5'
+                                                        : (color.toLowerCase() === '#ffffff' || color.toLowerCase() === '#fff' ? '2px solid #ccc' : '1px solid rgba(0,0,0,0.15)'),
+                                                    position: 'relative',
+                                                    boxShadow: isEditingThis ? '0 0 0 3px rgba(79, 70, 229, 0.4)' : '0 4px 6px rgba(0,0,0,0.1)',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    transition: 'all 0.2s',
+                                                    transform: isEditingThis ? 'scale(1.05)' : 'none'
+                                                }}
+                                                title={`Click to edit ${label}: ${color}`}
+                                                onClick={() => {
+                                                    setEditingThemeIdx(idx);
+                                                    setTempThemeColor(color);
+                                                    setTempThemeHex(color.replace('#', '').toUpperCase());
+                                                }}
+                                            >
+                                                <span style={{
+                                                    fontSize: '0.65rem',
+                                                    color: color.toLowerCase() === '#ffffff' || color.toLowerCase() === '#fff' || color.toLowerCase() === '#fafaf9' ? '#374151' : '#ffffff',
+                                                    fontWeight: '800',
+                                                    textShadow: color.toLowerCase() === '#ffffff' || color.toLowerCase() === '#fff' || color.toLowerCase() === '#fafaf9' ? 'none' : '0 1px 2px rgba(0,0,0,0.5)',
+                                                    pointerEvents: 'none'
+                                                }}>
+                                                    {label}
+                                                </span>
+                                            </div>
+
+                                            {/* Delete Badge */}
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const newColors = formData.theme_colors.filter((_, i) => i !== idx);
+                                                    setFormData(prev => ({ ...prev, theme_colors: newColors }));
+                                                    if (editingThemeIdx === idx) {
+                                                        setEditingThemeIdx(null);
+                                                        setTempThemeHex("");
+                                                    }
+                                                }}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '-4px',
+                                                    right: '-4px',
+                                                    width: '16px',
+                                                    height: '16px',
+                                                    borderRadius: '50%',
+                                                    backgroundColor: '#ef4444',
+                                                    border: '1px solid white',
+                                                    color: 'white',
+                                                    fontSize: '8px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    cursor: 'pointer',
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                                                    padding: 0,
+                                                    zIndex: 10
+                                                }}
+                                                title={`Delete ${label}`}
+                                            >
+                                                <i className="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+
+                                {/* Add Theme Color Control */}
+                                <div className="add-color-control" style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '0.5rem', padding: '4px 8px', background: '#fafafa' }}>
+                                    <input
+                                        type="color"
+                                        value={tempThemeColor}
+                                        onChange={(e) => {
+                                            setTempThemeColor(e.target.value);
+                                            setTempThemeHex(e.target.value.replace('#', '').toUpperCase());
+                                        }}
+                                        style={{
+                                            width: '28px',
+                                            height: '28px',
+                                            border: 'none',
+                                            borderRadius: '50%',
+                                            cursor: 'pointer',
+                                            padding: 0,
+                                            background: 'transparent'
+                                        }}
+                                    />
+                                    <span style={{ color: '#6b7280', fontSize: '0.85rem', fontWeight: '500' }}>#</span>
+                                    <input
+                                        type="text"
+                                        placeholder="4F46E5"
+                                        value={tempThemeHex}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setTempThemeHex(val);
+                                            if (/^[0-9A-F]{6}$/i.test(val)) {
+                                                setTempThemeColor(`#${val}`);
+                                            } else if (/^#[0-9A-F]{6}$/i.test(val)) {
+                                                setTempThemeColor(val);
+                                            }
+                                        }}
+                                        style={{
+                                            width: '70px',
+                                            border: 'none',
+                                            background: 'transparent',
+                                            fontSize: '0.85rem',
+                                            fontWeight: '600',
+                                            textTransform: 'uppercase',
+                                            outline: 'none',
+                                            color: '#111827'
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            let finalColor = tempThemeColor;
+                                            if (tempThemeHex) {
+                                                let cleanHex = tempThemeHex.trim();
+                                                if (!cleanHex.startsWith('#')) {
+                                                    cleanHex = '#' + cleanHex;
+                                                }
+                                                if (/^#[0-9A-F]{6}$/i.test(cleanHex) || cleanHex.toLowerCase() === '#fff' || cleanHex.toLowerCase() === '#000') {
+                                                    finalColor = cleanHex;
+                                                } else {
+                                                    alert("Please enter a valid hex color code (e.g. FFFFFF or #FFFFFF)");
+                                                    return;
+                                                }
+                                            }
+
+                                            if (editingThemeIdx !== null) {
+                                                const updatedColors = [...formData.theme_colors];
+                                                updatedColors[editingThemeIdx] = finalColor;
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    theme_colors: updatedColors
+                                                }));
+                                                setEditingThemeIdx(null);
+                                            } else {
+                                                if (finalColor && (!formData.theme_colors || !formData.theme_colors.includes(finalColor))) {
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        theme_colors: [...(prev.theme_colors || []), finalColor]
+                                                    }));
+                                                }
+                                            }
+                                            setTempThemeHex("");
+                                        }}
+                                        style={{
+                                            background: editingThemeIdx !== null ? '#10b981' : '#111827',
+                                            color: '#ffffff',
+                                            border: 'none',
+                                            width: '28px',
+                                            height: '28px',
+                                            borderRadius: '50%',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer'
+                                        }}
+                                        title={editingThemeIdx !== null ? "Save Changes" : "Add Color"}
+                                    >
+                                        <i className={editingThemeIdx !== null ? "fas fa-check" : "fas fa-plus"}></i>
+                                    </button>
+                                    {editingThemeIdx !== null && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setEditingThemeIdx(null);
+                                                setTempThemeHex("");
+                                            }}
+                                            style={{
+                                                background: '#6b7280',
+                                                color: '#ffffff',
+                                                border: 'none',
+                                                width: '28px',
+                                                height: '28px',
+                                                borderRadius: '50%',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer'
+                                            }}
+                                            title="Cancel Edit"
+                                        >
+                                            <i className="fas fa-times"></i>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Guest Dress Code Colors */}
+                        <div className="form-group dress-code-colors-section" style={{ gridColumn: '1 / -1', borderTop: '1px solid #e5e7eb', paddingTop: '1.5rem', marginTop: '0.5rem' }}>
+                            <label className="form-label" style={{ fontWeight: '700', fontSize: '1rem', color: '#111827' }}>
+                                <i className="fas fa-tshirt" style={{ color: '#e11d48', marginRight: '6px' }}></i> Guest Dress Code Colors
+                            </label>
+                            <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: '4px 0 12px 0' }}>
+                                Specify the guest dress code color palette. These colors will be shown as beautiful color circles under the Dress Code details of the invitation.
+                            </p>
+                            <div className="color-swatches-wrapper" style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', alignItems: 'center' }}>
+                                {formData.dress_code_colors && formData.dress_code_colors.map((color, idx) => {
+                                    const isEditingThis = editingDressIdx === idx;
+                                    return (
+                                        <div
+                                            key={idx}
+                                            style={{
+                                                position: 'relative',
+                                                display: 'inline-block'
+                                            }}
+                                        >
+                                            <div
+                                                className="color-swatch-circle"
+                                                style={{
+                                                    width: '38px',
+                                                    height: '38px',
+                                                    borderRadius: '6px',
+                                                    backgroundColor: color,
+                                                    border: isEditingThis
+                                                        ? '3px solid #4f46e5'
+                                                        : (color.toLowerCase() === '#ffffff' || color.toLowerCase() === '#fff' ? '2px solid #ccc' : '1px solid rgba(0,0,0,0.15)'),
+                                                    position: 'relative',
+                                                    boxShadow: isEditingThis ? '0 0 0 3px rgba(79, 70, 229, 0.4)' : '0 4px 6px rgba(0,0,0,0.1)',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    transition: 'all 0.2s',
+                                                    transform: isEditingThis ? 'scale(1.05)' : 'none'
+                                                }}
+                                                title={`Click to edit: ${color}`}
+                                                onClick={() => {
+                                                    setEditingDressIdx(idx);
+                                                    setTempDressColor(color);
+                                                    setTempDressHex(color.replace('#', '').toUpperCase());
+                                                }}
+                                            >
+                                                <div className="remove-color-overlay" style={{
+                                                    position: 'absolute',
+                                                    inset: 0,
+                                                    borderRadius: '6px',
+                                                    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                                                    display: 'none',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: 'white',
+                                                    fontSize: '12px'
+                                                }}>
+                                                    <i className="fas fa-edit"></i>
+                                                </div>
+                                            </div>
+
+                                            {/* Delete Badge */}
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const newColors = formData.dress_code_colors.filter((_, i) => i !== idx);
+                                                    setFormData(prev => ({ ...prev, dress_code_colors: newColors }));
+                                                    if (editingDressIdx === idx) {
+                                                        setEditingDressIdx(null);
+                                                        setTempDressHex("");
+                                                    }
+                                                }}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '-4px',
+                                                    right: '-4px',
+                                                    width: '16px',
+                                                    height: '16px',
+                                                    borderRadius: '50%',
+                                                    backgroundColor: '#ef4444',
+                                                    border: '1px solid white',
+                                                    color: 'white',
+                                                    fontSize: '8px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    cursor: 'pointer',
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                                                    padding: 0,
+                                                    zIndex: 10
+                                                }}
+                                                title="Delete Color"
+                                            >
+                                                <i className="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+
+                                {/* Add Dress Code Color Control */}
+                                <div className="add-color-control" style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '0.5rem', padding: '4px 8px', background: '#fafafa' }}>
+                                    <input
+                                        type="color"
+                                        value={tempDressColor}
+                                        onChange={(e) => {
+                                            setTempDressColor(e.target.value);
+                                            setTempDressHex(e.target.value.replace('#', '').toUpperCase());
+                                        }}
+                                        style={{
+                                            width: '28px',
+                                            height: '28px',
+                                            border: 'none',
+                                            borderRadius: '50%',
+                                            cursor: 'pointer',
+                                            padding: 0,
+                                            background: 'transparent'
+                                        }}
+                                    />
+                                    <span style={{ color: '#6b7280', fontSize: '0.85rem', fontWeight: '500' }}>#</span>
+                                    <input
+                                        type="text"
+                                        placeholder="FFFFFF"
+                                        value={tempDressHex}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setTempDressHex(val);
+                                            if (/^[0-9A-F]{6}$/i.test(val)) {
+                                                setTempDressColor(`#${val}`);
+                                            } else if (/^#[0-9A-F]{6}$/i.test(val)) {
+                                                setTempDressColor(val);
+                                            }
+                                        }}
+                                        style={{
+                                            width: '70px',
+                                            border: 'none',
+                                            background: 'transparent',
+                                            fontSize: '0.85rem',
+                                            fontWeight: '600',
+                                            textTransform: 'uppercase',
+                                            outline: 'none',
+                                            color: '#111827'
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            let finalColor = tempDressColor;
+                                            if (tempDressHex) {
+                                                let cleanHex = tempDressHex.trim();
+                                                if (!cleanHex.startsWith('#')) {
+                                                    cleanHex = '#' + cleanHex;
+                                                }
+                                                if (/^#[0-9A-F]{6}$/i.test(cleanHex) || cleanHex.toLowerCase() === '#fff' || cleanHex.toLowerCase() === '#000') {
+                                                    finalColor = cleanHex;
+                                                } else {
+                                                    alert("Please enter a valid hex color code (e.g. FFFFFF or #FFFFFF)");
+                                                    return;
+                                                }
+                                            }
+
+                                            if (editingDressIdx !== null) {
+                                                const updatedColors = [...formData.dress_code_colors];
+                                                updatedColors[editingDressIdx] = finalColor;
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    dress_code_colors: updatedColors
+                                                }));
+                                                setEditingDressIdx(null);
+                                            } else {
+                                                if (finalColor && (!formData.dress_code_colors || !formData.dress_code_colors.includes(finalColor))) {
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        dress_code_colors: [...(prev.dress_code_colors || []), finalColor]
+                                                    }));
+                                                }
+                                            }
+                                            setTempDressHex("");
+                                        }}
+                                        style={{
+                                            background: editingDressIdx !== null ? '#10b981' : '#111827',
+                                            color: '#ffffff',
+                                            border: 'none',
+                                            width: '28px',
+                                            height: '28px',
+                                            borderRadius: '50%',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer'
+                                        }}
+                                        title={editingDressIdx !== null ? "Save Changes" : "Add Color"}
+                                    >
+                                        <i className={editingDressIdx !== null ? "fas fa-check" : "fas fa-plus"}></i>
+                                    </button>
+                                    {editingDressIdx !== null && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setEditingDressIdx(null);
+                                                setTempDressHex("");
+                                            }}
+                                            style={{
+                                                background: '#6b7280',
+                                                color: '#ffffff',
+                                                border: 'none',
+                                                width: '28px',
+                                                height: '28px',
+                                                borderRadius: '50%',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer'
+                                            }}
+                                            title="Cancel Edit"
+                                        >
+                                            <i className="fas fa-times"></i>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                         <div className="form-group">
                             <label className="form-label">
@@ -1854,1712 +2405,292 @@ const AddWedding = () => {
     );
 
     return (
-        <div className="admin-page add-wedding-page">
-            {/* Forced Clean Light-Mode Styles Overrides */}
-            <style>{`
-                html, body, #root, .add-wedding-page, .sidebar, .form-content-card, .person-card {
-                    background-color: #fdfbf7 !important;
-                    background: #fdfbf7 !important;
-                    color: #1b2424 !important;
-                }
-
-                .sidebar {
-                    background: #ffffff !important;
-                    border-right: 1px solid #e9e4d9 !important;
-                }
-
-                .form-content-card, .person-card, .page-title-card, .progress-section {
-                    background: #ffffff !important;
-                    border: 1px solid #e9e4d9 !important;
-                    box-shadow: 0 4px 15px rgba(45, 58, 58, 0.04) !important;
-                }
-
-                .sidebar-step.active {
-                    background: #f5f2eb !important;
-                    border-left: 3px solid #ea8612 !important;
-                }
-
-                .sidebar-step.active .step-number {
-                    background: #ea8612 !important;
-                    color: #ffffff !important;
-                }
-
-                .step-number {
-                    background: #f5f2eb !important;
-                    border: 1px solid #e9e4d9 !important;
-                }
-
-                .form-input, .form-textarea, .form-select {
-                    background: #f5f2eb !important;
-                    border: 1.5px solid #e9e4d9 !important;
-                    color: #1b2424 !important;
-                }
-
-                .form-input:focus, .form-textarea:focus, .form-select:focus {
-                    border-color: #ea8612 !important;
-                    background: #ffffff !important;
-                }
-
-                .sidebar-btn {
-                    background: #f5f2eb !important;
-                    border: 1px solid #e9e4d9 !important;
-                    color: #1b2424 !important;
-                }
-
-                .sidebar-btn:hover {
-                    background: #e9e4d9 !important;
-                }
-            `}</style>
-            {/* Mobile Sidebar Toggle */}
-            <button className="mobile-sidebar-toggle" onClick={() => setShowSidebar(!showSidebar)}>
-                <i className={`fas fa-${showSidebar ? 'times' : 'bars'}`}></i>
-            </button>
-
-            {/* Sidebar */}
-            <aside className={`sidebar ${showSidebar ? 'open' : ''}`}>
-                <div className="sidebar-header">
-                    <div className="logo">
-                        <div className="logo-icon">
-                            <i className="fas fa-heart"></i>
-                        </div>
-                        <div className="logo-text">
-                            <h2>WeddingSuite</h2>
-                            <p>Admin Panel</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="sidebar-steps">
-                    {steps.map((step, idx) => (
-                        <div
-                            key={idx}
-                            className={`sidebar-step ${currentStep === idx ? 'active' : ''} ${currentStep > idx ? 'completed' : ''}`}
-                            onClick={() => {
-                                setCurrentStep(idx);
-                                setShowSidebar(false);
-                            }}
-                        >
-                            <div className="step-indicator">
-                                <div className="step-number">
-                                    {currentStep > idx ? <i className="fas fa-check"></i> : idx + 1}
-                                </div>
-                                <div className="step-line"></div>
-                            </div>
-                            <div className="step-content">
-                                <div className="step-title">
-                                    <i className={`fas ${step.icon}`}></i>
-                                    {step.label}
-                                </div>
-                                <div className="step-desc">{step.description}</div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="sidebar-actions">
-                    <button className="sidebar-btn dashboard" onClick={() => navigate('/admin')}>
-                        <i className="fas fa-th-large"></i>
-                        Dashboard
-                    </button>
-                    {formData.slug && (
-                        <button className="sidebar-btn preview" onClick={() => window.open(`/w/${formData.slug}`, '_blank')}>
-                            <i className="fas fa-eye"></i>
-                            Preview Site
+        <div className="rr-page">
+            <div className="phone-shell">
+                <header className="bd-admin-header" style={{ background: '#12121c', color: '#fff', padding: '0.85rem 1.25rem', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                        <button onClick={() => navigate('/admin')} style={{ background: 'none', border: 'none', color: '#a3e635', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <i className="fas fa-arrow-left"></i> Dashboard
                         </button>
-                    )}
-                </div>
-
-                <div className="sidebar-footer">
-                    <div className="progress-info">
-                        <div className="progress-label">Progress</div>
-                        <div className="progress-value">{Math.round(((currentStep + 1) / steps.length) * 100)}%</div>
-                    </div>
-                    <div className="progress-bar">
-                        <div
-                            className="progress-fill"
-                            style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
-                        ></div>
-                    </div>
-                </div>
-            </aside>
-
-            {/* Main Content */}
-            <main className="main-content">
-                <header className="main-header">
-                    <div className="header-content">
-                        <div className="header-title">
-                            <h1>
-                                <i className={isEditMode ? "fas fa-edit" : "fas fa-plus-circle"}></i>
-                                {isEditMode ? 'Edit Wedding' : 'Create Wedding Website'}
-                            </h1>
-                            <p className="header-subtitle">
-                                {isEditMode
-                                    ? 'Update your wedding details and make them perfect'
-                                    : 'Build your dream wedding website step by step'
-                                }
-                            </p>
-                        </div>
-                        <div className="header-stats">
-                            <div className="stat">
-                                <div className="stat-icon">
-                                    <i className="fas fa-check-circle"></i>
-                                </div>
-                                <div className="stat-info">
-                                    <div className="stat-value">{currentStep + 1}/{steps.length}</div>
-                                    <div className="stat-label">Steps Completed</div>
-                                </div>
-                            </div>
-                        </div>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{isEditMode ? 'Edit Wedding' : 'New Wedding'}</span>
+                        {formData.slug ? (
+                            <a href={`/w/${formData.slug}`} target="_blank" rel="noopener noreferrer" style={{ color: '#c5a059', fontSize: '0.85rem', fontWeight: 700, textDecoration: 'none' }}>
+                                Preview
+                            </a>
+                        ) : (
+                            <div style={{ width: 45 }}></div>
+                        )}
                     </div>
                 </header>
 
-                <div className="content-wrapper">
-                    <div className="steps-indicator-mobile">
-                        <div className="steps-bar">
-                            {steps.map((_, idx) => (
-                                <div
-                                    key={idx}
-                                    className={`step-dot ${currentStep === idx ? 'active' : ''} ${currentStep > idx ? 'completed' : ''}`}
-                                    onClick={() => setCurrentStep(idx)}
-                                ></div>
-                            ))}
+                <div className="scroll-area" style={{ background: '#f4f5f7' }}>
+                    <div className="content-pad" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {/* Page Title Card */}
+                        <div className="page-title-card" style={{ background: '#fff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                            <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#12121c', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                                <i className={isEditMode ? "fas fa-edit" : "fas fa-plus-circle"} style={{ color: '#c5a059' }}></i>
+                                {isEditMode ? 'Edit Wedding Details' : 'Create Wedding Website'}
+                            </h2>
+                            <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem', margin: 0 }}>
+                                {isEditMode ? 'Update wedding details and info.' : 'Build your dream wedding website step by step.'}
+                            </p>
                         </div>
-                        <div className="step-name">
-                            {steps[currentStep].label}
-                            <span className="step-count">({currentStep + 1}/{steps.length})</span>
-                        </div>
-                    </div>
 
-                    <div className="form-container">
-                        {loading ? (
-                            <div className="loading-state">
-                                <div className="spinner"></div>
-                                <p>Loading wedding details...</p>
+                        {/* Stepper Indicator */}
+                        <div className="progress-section" style={{ background: '#fff', borderRadius: '16px', padding: '1rem', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                            <div className="form-steps" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
+                                {steps.map((step, idx) => (
+                                    <div key={idx} className={`step ${currentStep === idx ? 'active' : ''} ${currentStep > idx ? 'completed' : ''}`} onClick={() => setCurrentStep(idx)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, cursor: 'pointer' }}>
+                                        <div className="step-number" style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', transition: 'all 0.2s' }}>
+                                            {currentStep > idx ? <i className="fas fa-check"></i> : idx + 1}
+                                        </div>
+                                        <span className="step-label" style={{ fontSize: '0.6rem', fontWeight: 700, marginTop: '4px', textAlign: 'center', display: 'block' }}>{step.label.split(' ')[0]}</span>
+                                    </div>
+                                ))}
                             </div>
-                        ) : (
-                            <>
-                                {currentStep === 0 && renderStep1()}
-                                {currentStep === 1 && renderStep2()}
-                                {currentStep === 2 && renderStep3()}
-                                {currentStep === 3 && renderStep4()}
-                            </>
-                        )}
-                    </div>
+                        </div>
 
-                    <div className="form-footer">
-                        <div className="footer-actions">
-                            <button
-                                className="btn btn-prev"
-                                disabled={currentStep === 0}
-                                onClick={() => { setCurrentStep(p => p - 1); window.scrollTo(0, 0); }}
-                                type="button"
-                            >
-                                <i className="fas fa-chevron-left"></i>
-                                Previous Step
+                        {/* Form Container */}
+                        <div className="form-container-card" style={{ background: '#fff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                            {loading ? (
+                                <div style={{ textAlign: 'center', padding: '3rem' }}>
+                                    <i className="fas fa-spinner fa-spin" style={{ fontSize: '2rem', color: '#c5a059' }}></i>
+                                    <p style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.5rem' }}>Loading wedding details...</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {currentStep === 0 && renderStep1()}
+                                    {currentStep === 1 && renderStep2()}
+                                    {currentStep === 2 && renderStep3()}
+                                    {currentStep === 3 && renderStep4()}
+                                </>
+                            )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="form-actions" style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginTop: '0.5rem', marginBottom: '1.5rem' }}>
+                            <button className="btn btn-secondary" disabled={currentStep === 0} onClick={() => { setCurrentStep(p => p - 1); window.scrollTo(0, 0); }} type="button" style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 600, border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer' }}>
+                                <i className="fas fa-arrow-left"></i> Previous
                             </button>
-
-                            <div className="step-progress">
-                                <div className="progress-text">
-                                    Step {currentStep + 1} of {steps.length}
-                                </div>
-                                <div className="progress-container">
-                                    <div
-                                        className="progress-fill"
-                                        style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
-                                    ></div>
-                                </div>
-                            </div>
-
                             {currentStep < steps.length - 1 ? (
-                                <button
-                                    className="btn btn-next"
-                                    onClick={() => { setCurrentStep(p => p + 1); window.scrollTo(0, 0); }}
-                                    type="button"
-                                >
-                                    Next Step
-                                    <i className="fas fa-chevron-right"></i>
+                                <button className="btn btn-primary" onClick={() => { setCurrentStep(p => p + 1); window.scrollTo(0, 0); }} type="button" style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, background: '#c5a059', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                                    Next <i className="fas fa-arrow-right"></i>
                                 </button>
                             ) : (
-                                <button
-                                    className="btn btn-submit"
-                                    onClick={handleSubmit}
-                                    disabled={loading}
-                                    type="button"
-                                >
-                                    {loading ? (
-                                        <>
-                                            <i className="fas fa-spinner fa-spin"></i>
-                                            Saving...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <i className="fas fa-rocket"></i>
-                                            {isEditMode ? "Update Wedding" : "Launch Website"}
-                                        </>
-                                    )}
+                                <button className="btn btn-primary" onClick={handleSubmit} disabled={loading} type="button" style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, background: '#c5a059', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                                    {loading ? <><i className="fas fa-spinner fa-spin"></i> Saving...</> : <><i className="fas fa-rocket"></i> {isEditMode ? "Update" : "Publish"}</>}
                                 </button>
                             )}
                         </div>
                     </div>
                 </div>
-            </main>
+            </div>
 
-            {/* Overlay for mobile sidebar */}
-            {showSidebar && (
-                <div className="sidebar-overlay" onClick={() => setShowSidebar(false)}></div>
-            )}
+            <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-            <style jsx>{`
-                :root {
-                    --primary: #4f46e5;
-                    --primary-light: #818cf8;
-                    --primary-dark: #3730a3;
-                    --secondary: #ec4899;
-                    --accent: #f59e0b;
-                    --success: #10b981;
-                    --warning: #f59e0b;
-                    --danger: #ef4444;
-                    --dark: #0f172a;
-                    --darker: #f8fafc;
-                    --light: #f8fafc;
-                    --lighter: #f1f5f9;
-                    --gray: #64748b;
-                    --gray-light: #94a3b8;
-                    --white: #ffffff;
-                    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
-                    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
-                    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
-                    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
-                    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
-                    --shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.15);
-                    --radius-sm: 0.5rem;
-                    --radius-md: 0.75rem;
-                    --radius-lg: 1rem;
-                    --radius-xl: 1.25rem;
-                    --radius-2xl: 1.5rem;
-                    --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-                }
-
-                * {
-                    margin: 0;
-                    padding: 0;
-                    box-sizing: border-box;
-                }
-
-                body {
-                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                .rr-page {
                     min-height: 100vh;
-                    color: var(--dark);
-                }
-
-                .add-wedding-page {
+                    background: #d8dce3;
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
                     display: flex;
-                    min-height: 100vh;
-                    position: relative;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 2rem 0;
                 }
 
-                /* Sidebar Styles */
-                .sidebar {
-                    width: 320px;
-                    background: var(--white);
-                    color: var(--dark);
-                    padding: 2rem;
+                .phone-shell {
+                    width: 100%; max-width: 420px;
+                    height: 90vh;
+                    max-height: 860px;
+                    min-height: 600px;
+                    background: #f4f5f7;
+                    border-radius: 44px;
+                    overflow: hidden;
+                    box-shadow: 0 32px 80px rgba(0,0,0,.22), 0 0 0 8px rgba(0,0,0,.07);
                     display: flex;
                     flex-direction: column;
-                    border-right: 1px solid var(--lighter);
-                    position: fixed;
-                    left: 0;
-                    top: 0;
-                    bottom: 0;
-                    z-index: 1000;
-                    overflow-y: auto;
-                    transform: translateX(0);
-                    transition: transform 0.3s ease;
                 }
 
-                @media (max-width: 1024px) {
-                    .sidebar {
-                        transform: translateX(-100%);
-                        width: 300px;
-                    }
-
-                    .sidebar.open {
-                        transform: translateX(0);
-                    }
-                }
-
-                .sidebar-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0, 0, 0, 0.5);
-                    backdrop-filter: blur(4px);
-                    z-index: 999;
-                    display: none;
-                }
-
-                @media (max-width: 1024px) {
-                    .sidebar-overlay {
-                        display: block;
-                    }
-                }
-
-                .mobile-sidebar-toggle {
-                    position: fixed;
-                    top: 1rem;
-                    left: 1rem;
-                    z-index: 1100;
-                    background: var(--primary);
-                    color: white;
-                    border: none;
-                    border-radius: var(--radius-md);
-                    width: 48px;
-                    height: 48px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 1.25rem;
-                    cursor: pointer;
-                    box-shadow: var(--shadow-lg);
-                    display: none;
-                }
-
-                @media (max-width: 1024px) {
-                    .mobile-sidebar-toggle {
-                        display: flex;
-                    }
-                }
-
-                .sidebar-header {
-                    margin-bottom: 3rem;
-                }
-
-                .logo {
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                }
-
-                .logo-icon {
-                    width: 48px;
-                    height: 48px;
-                    background: linear-gradient(135deg, var(--primary), var(--secondary));
-                    border-radius: var(--radius-md);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 1.5rem;
-                }
-
-                .logo-text h2 {
-                    font-size: 1.5rem;
-                    font-weight: 700;
-                    background: linear-gradient(135deg, var(--dark), var(--gray));
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    background-clip: text;
-                    line-height: 1.2;
-                }
-
-                .logo-text p {
-                    font-size: 0.875rem;
-                    color: var(--gray-light);
-                    margin-top: 0.25rem;
-                }
-
-                .sidebar-steps {
+                .scroll-area {
                     flex: 1;
+                    min-height: 0;
+                    overflow-y: auto;
                     display: flex;
                     flex-direction: column;
-                    gap: 1.5rem;
+                    -webkit-overflow-scrolling: touch;
+                    scrollbar-width: none;
                 }
-
-                .sidebar-step {
-                    display: flex;
-                    gap: 1rem;
-                    align-items: flex-start;
-                    cursor: pointer;
-                    padding: 0.75rem;
-                    border-radius: var(--radius-md);
-                    transition: var(--transition);
-                    position: relative;
-                }
-
-                .sidebar-step:hover {
-                    background: var(--lighter);
-                }
-
-                .sidebar-step.active {
-                    background: var(--lighter);
-                    border-left: 3px solid var(--primary);
-                }
-
-                .step-indicator {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    flex-shrink: 0;
-                }
+                .scroll-area::-webkit-scrollbar { display: none; }
 
                 .step-number {
-                    width: 36px;
-                    height: 36px;
-                    border-radius: 50%;
-                    background: var(--lighter);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-weight: 600;
-                    font-size: 0.875rem;
-                    color: var(--gray-light);
-                    transition: var(--transition);
+                    background: #f3f4f6;
+                    border: 1.5px solid #e5e7eb;
+                    color: #9ca3af;
                 }
 
-                .sidebar-step.active .step-number {
-                    background: var(--primary);
-                    color: white;
-                    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+                .step.active .step-number {
+                    background: #c5a059 !important;
+                    color: #ffffff !important;
+                    border-color: #c5a059 !important;
                 }
 
-                .sidebar-step.completed .step-number {
-                    background: var(--success);
-                    color: white;
+                .step.active .step-label {
+                    color: #c5a059 !important;
                 }
 
-                .step-line {
-                    width: 2px;
-                    height: 40px;
-                    background: var(--lighter);
-                    margin-top: 0.5rem;
+                .step.completed .step-number {
+                    background: #10b981 !important;
+                    color: #ffffff !important;
+                    border-color: #10b981 !important;
                 }
 
-                .step-content {
-                    flex: 1;
-                }
-
-                .step-title {
-                    font-weight: 600;
-                    font-size: 1rem;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    margin-bottom: 0.25rem;
-                }
-
-                .step-desc {
-                    font-size: 0.875rem;
-                    color: var(--gray);
-                }
-
-                .sidebar-actions {
-                    margin-top: 2rem;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.75rem;
-                }
-
-                .sidebar-btn {
-                    padding: 0.875rem 1rem;
-                    border-radius: var(--radius-md);
-                    border: 1px solid var(--lighter);
-                    background: var(--light);
-                    color: var(--dark);
-                    font-weight: 500;
-                    cursor: pointer;
-                    transition: var(--transition);
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                    text-align: left;
-                }
-
-                .sidebar-btn:hover {
-                    background: var(--lighter);
-                    transform: translateY(-2px);
-                    color: var(--dark);
-                }
-
-                .sidebar-btn.dashboard {
-                    background: var(--lighter);
-                    border-color: var(--primary-light);
-                    color: var(--primary);
-                }
-
-                .sidebar-btn.preview {
-                    background: var(--lighter);
-                    border-color: var(--secondary);
-                    color: var(--secondary);
-                }
-
-                .sidebar-footer {
-                    margin-top: 2rem;
-                    padding-top: 2rem;
-                    border-top: 1px solid var(--lighter);
-                }
-
-                .progress-info {
-                    display: flex;
-                    justify-content: space-between;
-                    margin-bottom: 0.75rem;
-                }
-
-                .progress-label {
-                    font-size: 0.875rem;
-                    color: var(--gray);
-                }
-
-                .progress-value {
-                    font-weight: 600;
-                    color: var(--primary);
-                }
-
-                .progress-bar {
-                    height: 6px;
-                    background: var(--lighter);
-                    border-radius: 3px;
-                    overflow: hidden;
-                }
-
-                .progress-fill {
-                    height: 100%;
-                    background: linear-gradient(90deg, var(--primary), var(--secondary));
-                    border-radius: 3px;
-                    transition: width 0.3s ease;
-                }
-
-                /* Main Content */
-                .main-content {
-                    flex: 1;
-                    margin-left: 320px;
-                    min-height: 100vh;
-                    display: flex;
-                    flex-direction: column;
-                }
-
-                @media (max-width: 1024px) {
-                    .main-content {
-                        margin-left: 0;
-                    }
-                }
-
-                .main-header {
-                    background: var(--white);
-                    padding: 2rem 3rem;
-                    border-bottom: 1px solid var(--lighter);
-                    box-shadow: var(--shadow-sm);
-                }
-
-                .header-content {
-                    max-width: 1200px;
-                    margin: 0 auto;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                }
-
-                .header-title h1 {
-                    font-size: 2rem;
-                    font-weight: 700;
-                    color: var(--dark);
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                }
-
-                .header-title h1 i {
-                    color: var(--primary);
-                }
-
-                .header-subtitle {
-                    color: var(--gray);
-                    margin-top: 0.5rem;
-                    font-size: 1rem;
-                }
-
-                .header-stats {
-                    display: flex;
-                    gap: 1.5rem;
-                }
-
-                .stat {
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                    background: var(--lighter);
-                    padding: 1rem 1.5rem;
-                    border-radius: var(--radius-lg);
-                }
-
-                .stat-icon {
-                    width: 48px;
-                    height: 48px;
-                    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-                    border-radius: var(--radius-md);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: white;
-                    font-size: 1.25rem;
-                }
-
-                .stat-info {
-                    display: flex;
-                    flex-direction: column;
-                }
-
-                .stat-value {
-                    font-size: 1.5rem;
-                    font-weight: 700;
-                    color: var(--dark);
-                    line-height: 1;
-                }
-
-                .stat-label {
-                    font-size: 0.875rem;
-                    color: var(--gray);
-                    margin-top: 0.25rem;
-                }
-
-                /* Content Wrapper */
-                .content-wrapper {
-                    flex: 1;
-                    padding: 3rem;
-                    max-width: 1200px;
-                    margin: 0 auto;
-                    width: 100%;
-                }
-
-                @media (max-width: 768px) {
-                    .content-wrapper {
-                        padding: 1.5rem;
-                    }
-
-                    .main-header {
-                        padding: 1.5rem;
-                    }
-
-                    .header-content {
-                        flex-direction: column;
-                        gap: 1.5rem;
-                        align-items: flex-start;
-                    }
-
-                    .header-stats {
-                        width: 100%;
-                    }
-
-                    .stat {
-                        flex: 1;
-                        justify-content: center;
-                    }
-                }
-
-                /* Mobile Steps Indicator */
-                .steps-indicator-mobile {
-                    background: var(--white);
-                    border-radius: var(--radius-lg);
-                    padding: 1.5rem;
-                    margin-bottom: 2rem;
-                    box-shadow: var(--shadow-md);
-                    display: none;
-                }
-
-                @media (max-width: 768px) {
-                    .steps-indicator-mobile {
-                        display: block;
-                    }
-                }
-
-                .steps-bar {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 1rem;
-                    position: relative;
-                }
-
-                .steps-bar::before {
-                    content: '';
-                    position: absolute;
-                    top: 50%;
-                    left: 0;
-                    right: 0;
-                    height: 2px;
-                    background: var(--lighter);
-                    transform: translateY(-50%);
-                    z-index: 1;
-                }
-
-                .step-dot {
-                    width: 16px;
-                    height: 16px;
-                    border-radius: 50%;
-                    background: var(--lighter);
-                    position: relative;
-                    z-index: 2;
-                    cursor: pointer;
-                    transition: var(--transition);
-                }
-
-                .step-dot.active {
-                    background: var(--primary);
-                    transform: scale(1.2);
-                }
-
-                .step-dot.completed {
-                    background: var(--success);
-                }
-
-                .step-name {
-                    font-weight: 600;
-                    font-size: 1rem;
-                    color: var(--dark);
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                }
-
-                .step-count {
-                    font-weight: 500;
-                    color: var(--gray);
-                    font-size: 0.875rem;
-                }
-
-                /* Form Container */
-                .form-container {
-                    background: var(--white);
-                    border-radius: var(--radius-xl);
-                    padding: 3rem;
-                    box-shadow: var(--shadow-lg);
-                    margin-bottom: 2rem;
-                }
-
-                @media (max-width: 768px) {
-                    .form-container {
-                        padding: 1.5rem;
-                    }
-                }
-
-                /* Section Styles */
-                .form-section {
-                    animation: fadeIn 0.4s ease-out;
-                }
-
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(20px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-
-                .section-header {
-                    margin-bottom: 2.5rem;
-                }
-
-                .section-title {
-                    font-size: 1.75rem;
-                    font-weight: 700;
-                    color: var(--dark);
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                    margin-bottom: 0.5rem;
-                }
-
-                .section-title i {
-                    color: var(--primary);
-                }
-
-                .section-description {
-                    color: var(--gray);
-                    font-size: 1rem;
-                    line-height: 1.6;
-                    max-width: 600px;
-                }
-
-                /* Cover Upload */
-                .cover-upload-section {
-                    margin-bottom: 2.5rem;
-                }
-
-                .cover-upload .image-upload-wrapper {
-                    height: 300px;
-                }
-
-                .upload-hint {
-                    font-size: 0.875rem;
-                    color: var(--gray);
-                    margin-top: 0.5rem;
-                    text-align: center;
-                }
-
-                /* Couple Grid */
-                .couple-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 2rem;
-                }
-
-                @media (max-width: 768px) {
-                    .couple-grid {
-                        grid-template-columns: 1fr;
-                    }
-                }
-
-                .person-card {
-                    background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
-                    border-radius: var(--radius-xl);
-                    padding: 2rem;
-                    border: 1px solid var(--lighter);
-                }
-
-                .person-card.bride {
-                    border-top: 4px solid var(--secondary);
-                }
-
-                .person-card.groom {
-                    border-top: 4px solid var(--primary);
-                }
-
-                .person-header {
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                    margin-bottom: 1.5rem;
-                }
-
-                .person-icon {
-                    width: 48px;
-                    height: 48px;
-                    border-radius: var(--radius-md);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 1.25rem;
-                    color: white;
-                }
-
-                .bride .person-icon {
-                    background: linear-gradient(135deg, var(--secondary), #db2777);
-                }
-
-                .groom .person-icon {
-                    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-                }
-
-                .person-title {
-                    font-size: 1.25rem;
-                    font-weight: 600;
-                    color: var(--dark);
-                }
-
-                /* Form Elements */
+                /* Form Components */
                 .form-group {
-                    margin-bottom: 1.5rem;
+                    margin-bottom: 1rem;
                 }
 
                 .form-label {
                     display: block;
-                    font-weight: 600;
-                    color: var(--dark);
-                    margin-bottom: 0.5rem;
-                    font-size: 0.875rem;
-                }
-
-                .form-label i {
-                    margin-right: 0.5rem;
-                    color: var(--primary);
-                }
-
-                .input-with-icon {
-                    position: relative;
-                }
-
-                .input-with-icon i {
-                    position: absolute;
-                    left: 1rem;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    color: var(--gray);
+                    font-size: 0.8rem;
+                    font-weight: 700;
+                    color: #374151;
+                    margin-bottom: 0.35rem;
                 }
 
                 .form-input, .form-textarea, .form-select {
                     width: 100%;
-                    padding: 0.875rem 1rem;
-                    border: 1px solid var(--lighter);
-                    border-radius: var(--radius-md);
-                    font-size: 0.875rem;
-                    background: var(--white);
-                    color: var(--dark);
-                    transition: var(--transition);
-                }
-
-                .input-with-icon .form-input {
-                    padding-left: 3rem;
-                }
-
-                .form-input:hover, .form-textarea:hover, .form-select:hover {
-                    border-color: var(--primary-light);
+                    padding: 0.65rem 0.85rem;
+                    background: #f9fafb !important;
+                    border: 1.5px solid #e5e7eb !important;
+                    border-radius: 10px !important;
+                    font-size: 0.85rem !important;
+                    color: #111827 !important;
+                    outline: none;
+                    transition: all 0.2s;
                 }
 
                 .form-input:focus, .form-textarea:focus, .form-select:focus {
-                    outline: none;
-                    border-color: var(--primary);
-                    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+                    border-color: #c5a059 !important;
+                    background: #ffffff !important;
                 }
 
                 .form-textarea {
-                    min-height: 120px;
+                    min-height: 100px;
                     resize: vertical;
-                    line-height: 1.6;
+                }
+
+                .grid-2, .couple-grid, .ceremony-reception-grid, .party-grid {
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    gap: 0.75rem;
+                }
+
+                /* Cards */
+                .person-card, .event-card, .ceremony-card, .reception-card, .story-card, .highlight-card, .bridesmaids-card, .groomsmen-card, .gift-card {
+                    background: #f9fafb;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 14px;
+                    padding: 1rem;
+                    margin-bottom: 1rem;
+                }
+
+                .person-header, .event-card-header, .party-card-header, .gift-card-header {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    margin-bottom: 1rem;
+                }
+
+                .person-icon, .event-card-header i, .party-icon {
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 1rem;
+                    color: #fff;
+                    background: #c5a059;
+                }
+
+                .person-title, .event-card-header h3, .party-card-header h4, .gift-number {
+                    font-size: 0.9rem;
+                    font-weight: 700;
+                    color: #111827;
+                    margin: 0;
                 }
 
                 /* Image Upload */
                 .image-upload-wrapper {
-                    border: 2px dashed var(--lighter);
-                    border-radius: var(--radius-lg);
-                    padding: 2rem;
+                    border: 2px dashed #d1d5db;
+                    border-radius: 12px;
+                    padding: 1.5rem;
+                    text-align: center;
                     cursor: pointer;
-                    transition: var(--transition);
-                    background: var(--white);
+                    background: #f9fafb;
+                    transition: all 0.2s;
                     position: relative;
-                    overflow: hidden;
                 }
 
                 .image-upload-wrapper:hover {
-                    border-color: var(--primary);
-                    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-                }
-
-                .image-upload-wrapper.uploading {
-                    border-color: var(--primary);
-                }
-
-                .image-upload-wrapper input {
-                    display: none;
+                    border-color: #c5a059;
+                    background: #fcfbfa;
                 }
 
                 .upload-placeholder {
                     display: flex;
                     flex-direction: column;
                     align-items: center;
-                    gap: 1rem;
-                    padding: 1rem;
+                    gap: 0.5rem;
+                    color: #6b7280;
                 }
 
-                .upload-icon {
-                    width: 80px;
-                    height: 80px;
-                    border-radius: 50%;
-                    background: linear-gradient(135deg, var(--lighter), #e5e7eb);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 2rem;
-                    color: var(--primary);
-                }
-
-                .upload-text {
-                    text-align: center;
-                }
-
-                .upload-title {
-                    display: block;
-                    font-weight: 600;
-                    color: var(--dark);
-                    margin-bottom: 0.25rem;
-                }
-
-                .upload-subtitle {
-                    display: block;
-                    font-size: 0.875rem;
-                    color: var(--gray);
-                    margin-bottom: 0.25rem;
-                }
-
-                .upload-info {
-                    display: block;
-                    font-size: 0.75rem;
-                    color: var(--gray-light);
-                }
-
-                .upload-progress {
-                    position: relative;
-                }
-
-                .progress-circle {
-                    width: 60px;
-                    height: 60px;
-                    border-radius: 50%;
-                    background: conic-gradient(var(--primary) ${uploadProgress => uploadProgress}%, var(--lighter) 0%);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                .progress-circle span {
-                    font-size: 0.875rem;
-                    font-weight: 600;
-                    color: var(--dark);
+                .upload-placeholder i {
+                    font-size: 1.5rem;
+                    color: #c5a059;
                 }
 
                 .image-preview {
                     position: relative;
-                    width: 100%;
-                    height: 200px;
-                    border-radius: var(--radius-md);
+                    border-radius: 8px;
                     overflow: hidden;
+                    width: 100%;
                 }
 
                 .image-preview img {
                     width: 100%;
-                    height: 100%;
+                    height: 140px;
                     object-fit: cover;
                 }
 
-                .image-overlay {
+                .remove-image, .btn-remove-gallery {
                     position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0, 0, 0, 0.5);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 1rem;
-                    opacity: 0;
-                    transition: opacity 0.3s ease;
-                }
-
-                .image-preview:hover .image-overlay {
-                    opacity: 1;
-                }
-
-                .replace-image, .remove-image {
-                    padding: 0.5rem 1rem;
+                    top: 5px;
+                    right: 5px;
+                    background: rgba(0,0,0,0.6);
+                    color: #fff;
                     border: none;
-                    border-radius: var(--radius-sm);
-                    font-weight: 500;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    transition: var(--transition);
-                }
-
-                .replace-image {
-                    background: var(--white);
-                    color: var(--dark);
-                }
-
-                .replace-image:hover {
-                    background: var(--lighter);
-                    transform: translateY(-2px);
-                }
-
-                .remove-image {
-                    background: var(--danger);
-                    color: white;
-                }
-
-                .remove-image:hover {
-                    background: #dc2626;
-                    transform: translateY(-2px);
-                }
-
-                /* Event Basics */
-                .event-basics {
-                    margin-bottom: 2.5rem;
-                }
-
-                .event-card {
-                    background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
-                    border-radius: var(--radius-xl);
-                    padding: 2rem;
-                    border: 1px solid var(--lighter);
-                }
-
-                .event-card-header {
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                    margin-bottom: 1.5rem;
-                }
-
-                .event-card-header i {
-                    font-size: 1.5rem;
-                    color: var(--primary);
-                }
-
-                .event-card-header h3 {
-                    font-size: 1.25rem;
-                    font-weight: 600;
-                    color: var(--dark);
-                }
-
-                .grid-2 {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 1.5rem;
-                }
-
-                @media (max-width: 768px) {
-                    .grid-2 {
-                        grid-template-columns: 1fr;
-                    }
-                }
-
-                /* Map Section */
-                .map-section {
-                    margin-bottom: 2.5rem;
-                }
-
-                .map-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 1.5rem;
-                }
-
-                .map-header h3 {
-                    font-size: 1.25rem;
-                    font-weight: 600;
-                    color: var(--dark);
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                }
-
-                .btn-map-toggle {
-                    padding: 0.5rem 1rem;
-                    background: var(--lighter);
-                    border: 1px solid var(--lighter);
-                    border-radius: var(--radius-md);
-                    color: var(--dark);
-                    font-weight: 500;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    transition: var(--transition);
-                }
-
-                .btn-map-toggle:hover {
-                    background: var(--lighter);
-                    border-color: var(--primary-light);
-                }
-
-                .map-container {
-                    background: var(--white);
-                    border: 1px solid var(--lighter);
-                    border-radius: var(--radius-lg);
-                    overflow: hidden;
-                    box-shadow: var(--shadow-md);
-                }
-
-                .map-search {
-                    padding: 1.5rem;
-                    border-bottom: 1px solid var(--lighter);
-                }
-
-                .search-input-wrapper {
-                    position: relative;
-                }
-
-                .search-input-wrapper i {
-                    position: absolute;
-                    left: 1rem;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    color: var(--gray);
-                }
-
-                .search-input {
-                    width: 100%;
-                    padding: 0.875rem 1rem 0.875rem 3rem;
-                    border: 1px solid var(--lighter);
-                    border-radius: var(--radius-md);
-                    font-size: 0.875rem;
-                    background: var(--white);
-                    color: var(--dark);
-                    transition: var(--transition);
-                }
-
-                .search-input:focus {
-                    outline: none;
-                    border-color: var(--primary);
-                    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
-                }
-
-                .search-spinner {
-                    position: absolute;
-                    right: 1rem;
-                    top: 50%;
-                    transform: translateY(-50%);
-                }
-
-                .search-results {
-                    margin-top: 1rem;
-                    max-height: 200px;
-                    overflow-y: auto;
-                    border: 1px solid var(--lighter);
-                    border-radius: var(--radius-md);
-                }
-
-                .search-result {
-                    padding: 1rem;
-                    border-bottom: 1px solid var(--lighter);
-                    cursor: pointer;
-                    transition: var(--transition);
-                    display: flex;
-                    gap: 1rem;
-                }
-
-                .search-result:last-child {
-                    border-bottom: none;
-                }
-
-                .search-result:hover {
-                    background: var(--lighter);
-                }
-
-                .result-icon {
-                    width: 32px;
-                    height: 32px;
-                    background: var(--lighter);
-                    border-radius: var(--radius-sm);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: var(--primary);
-                    flex-shrink: 0;
-                }
-
-                .result-info {
-                    flex: 1;
-                }
-
-                .result-name {
-                    font-weight: 500;
-                    color: var(--dark);
-                    margin-bottom: 0.25rem;
-                }
-
-                .result-address {
-                    font-size: 0.75rem;
-                    color: var(--gray);
-                }
-
-                .leaflet-map {
-                    width: 100%;
-                    height: 400px;
-                }
-
-                .map-info {
-                    padding: 1.5rem;
-                    border-top: 1px solid var(--lighter);
-                }
-
-                .url-display {
-                    display: flex;
-                    gap: 1rem;
-                }
-
-                .url-display .form-input {
-                    flex: 1;
-                }
-
-                .btn-test-link {
-                    padding: 0.875rem 1.5rem;
-                    background: var(--success);
-                    color: white;
-                    border: none;
-                    border-radius: var(--radius-md);
-                    font-weight: 500;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    transition: var(--transition);
-                    white-space: nowrap;
-                }
-
-                .btn-test-link:hover {
-                    background: #059669;
-                    transform: translateY(-2px);
-                }
-
-                .map-hint {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    margin-top: 0.75rem;
-                    font-size: 0.875rem;
-                    color: var(--gray);
-                }
-
-                .map-hint i {
-                    color: var(--primary);
-                }
-
-                /* Ceremony & Reception */
-                .ceremony-reception-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 2rem;
-                }
-
-                @media (max-width: 768px) {
-                    .ceremony-reception-grid {
-                        grid-template-columns: 1fr;
-                    }
-                }
-
-                .ceremony-card {
-                    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-                    border: 1px solid #bae6fd;
-                    border-radius: var(--radius-xl);
-                    padding: 2rem;
-                }
-
-                .reception-card {
-                    background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
-                    border: 1px solid #fbcfe8;
-                    border-radius: var(--radius-xl);
-                    padding: 2rem;
-                }
-
-                /* Story Grid */
-                .story-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 2rem;
-                }
-
-                @media (max-width: 768px) {
-                    .story-grid {
-                        grid-template-columns: 1fr;
-                    }
-                }
-
-                .story-card {
-                    background: var(--white);
-                    border: 1px solid var(--lighter);
-                    border-radius: var(--radius-xl);
-                    padding: 2rem;
-                }
-
-                .highlight-card {
-                    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-                    border: 1px solid #fbbf24;
-                    border-radius: var(--radius-xl);
-                    padding: 2rem;
-                }
-
-                .story-card-header, .highlight-card-header {
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                    margin-bottom: 1.5rem;
-                }
-
-                .story-icon {
-                    width: 48px;
-                    height: 48px;
-                    border-radius: var(--radius-md);
-                    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: white;
-                    font-size: 1.25rem;
-                }
-
-                .highlight-card-header i {
-                    font-size: 2rem;
-                    color: var(--warning);
-                }
-
-                /* Party Section */
-                .party-section {
-                    margin-bottom: 3rem;
-                }
-
-                .party-header {
-                    margin-bottom: 2rem;
-                }
-
-                .party-header h3 {
-                    font-size: 1.5rem;
-                    font-weight: 600;
-                    color: var(--dark);
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                    margin-bottom: 0.5rem;
-                }
-
-                .party-description {
-                    color: var(--gray);
-                    font-size: 0.875rem;
-                }
-
-                .party-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 2rem;
-                }
-
-                @media (max-width: 768px) {
-                    .party-grid {
-                        grid-template-columns: 1fr;
-                    }
-                }
-
-                .bridesmaids-card, .groomsmen-card {
-                    background: var(--white);
-                    border: 1px solid var(--lighter);
-                    border-radius: var(--radius-xl);
-                    padding: 2rem;
-                }
-
-                .bridesmaids-card {
-                    border-top: 4px solid var(--secondary);
-                }
-
-                .groomsmen-card {
-                    border-top: 4px solid var(--primary);
-                }
-
-                .party-card-header {
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                    margin-bottom: 1.5rem;
-                }
-
-                .party-icon {
-                    width: 48px;
-                    height: 48px;
-                    border-radius: var(--radius-md);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 1.25rem;
-                    color: white;
-                }
-
-                .bride-icon {
-                    background: linear-gradient(135deg, var(--secondary), #db2777);
-                }
-
-                .groom-icon {
-                    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-                }
-
-                .party-list {
-                    margin-bottom: 1.5rem;
-                }
-
-                .party-member {
-                    background: var(--lighter);
-                    border-radius: var(--radius-lg);
-                    padding: 1.5rem;
-                    margin-bottom: 1rem;
-                    border: 1px solid var(--lighter);
-                }
-
-                .member-actions {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 1rem;
-                }
-
-                .btn-remove-member {
-                    width: 32px;
-                    height: 32px;
                     border-radius: 50%;
-                    background: var(--danger);
-                    color: white;
-                    border: none;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    transition: var(--transition);
-                }
-
-                .btn-remove-member:hover {
-                    transform: scale(1.1);
-                }
-
-                .member-number {
-                    font-weight: 600;
-                    color: var(--gray);
-                    font-size: 0.875rem;
-                }
-
-                .member-form {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1rem;
-                }
-
-                .member-photo-upload .image-upload-wrapper {
-                    padding: 1rem;
-                }
-
-                .member-photo-upload .upload-placeholder {
-                    padding: 0.5rem;
-                }
-
-                .btn-add-member {
-                    width: 100%;
-                    padding: 1rem;
-                    background: var(--white);
-                    border: 2px dashed var(--lighter);
-                    border-radius: var(--radius-lg);
-                    color: var(--gray);
-                    font-weight: 500;
+                    width: 24px;
+                    height: 24px;
                     cursor: pointer;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    gap: 0.5rem;
-                    transition: var(--transition);
-                }
-
-                .btn-add-member:hover {
-                    border-color: var(--primary);
-                    color: var(--primary);
-                    background: var(--lighter);
-                }
-
-                /* Gifts Section */
-                .gifts-section {
-                    margin-bottom: 3rem;
-                }
-
-                .gifts-list {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1.5rem;
-                }
-
-                .gift-card {
-                    background: var(--white);
-                    border: 1px solid var(--lighter);
-                    border-radius: var(--radius-xl);
-                    padding: 2rem;
-                }
-
-                .gift-card-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 1.5rem;
-                }
-
-                .gift-number {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                    font-weight: 600;
-                    color: var(--dark);
-                }
-
-                .gift-number i {
-                    color: var(--primary);
-                }
-
-                .btn-remove-gift {
-                    padding: 0.5rem 1rem;
-                    background: rgba(239, 68, 68, 0.1);
-                    border: 1px solid var(--danger);
-                    border-radius: var(--radius-md);
-                    color: var(--danger);
-                    font-weight: 500;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    transition: var(--transition);
-                }
-
-                .btn-remove-gift:hover {
-                    background: var(--danger);
-                    color: white;
-                }
-
-                .gift-form {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1.5rem;
-                }
-
-                .btn-add-gift {
-                    padding: 1rem;
-                    background: var(--white);
-                    border: 2px dashed var(--lighter);
-                    border-radius: var(--radius-lg);
-                    color: var(--gray);
-                    font-weight: 500;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 0.5rem;
-                    transition: var(--transition);
-                }
-
-                .btn-add-gift:hover {
-                    border-color: var(--primary);
-                    color: var(--primary);
-                    background: var(--lighter);
-                }
-
-                /* Gallery Section */
-                .gallery-section {
-                    margin-bottom: 2rem;
-                }
-
-                .gallery-header {
-                    margin-bottom: 1.5rem;
-                }
-
-                .gallery-header h3 {
-                    font-size: 1.5rem;
-                    font-weight: 600;
-                    color: var(--dark);
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                    margin-bottom: 0.5rem;
-                }
-
-                .gallery-description {
-                    color: var(--gray);
-                    font-size: 0.875rem;
+                    font-size: 0.8rem;
+                    z-index: 10;
                 }
 
                 .gallery-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-                    gap: 1rem;
-                }
-
-                @media (max-width: 768px) {
-                    .gallery-grid {
-                        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-                    }
+                    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                    gap: 0.5rem;
                 }
 
                 .gallery-item {
                     position: relative;
-                    border-radius: var(--radius-lg);
+                    border-radius: 8px;
                     overflow: hidden;
                     aspect-ratio: 1;
                 }
@@ -3570,160 +2701,67 @@ const AddWedding = () => {
                     object-fit: cover;
                 }
 
-                .btn-remove-gallery {
-                    position: absolute;
-                    top: 0.5rem;
-                    right: 0.5rem;
-                    width: 32px;
-                    height: 32px;
-                    border-radius: 50%;
-                    background: rgba(0, 0, 0, 0.5);
-                    color: white;
-                    border: none;
+                /* Buttons */
+                .btn-add-member, .btn-add-gift {
+                    width: 100%;
+                    padding: 0.65rem;
+                    border: 2px dashed #d1d5db;
+                    border-radius: 10px;
+                    background: #fff;
+                    color: #4b5563;
+                    font-weight: 600;
+                    font-size: 0.8rem;
+                    cursor: pointer;
+                    transition: all 0.2s;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    cursor: pointer;
-                    transition: var(--transition);
+                    gap: 0.35rem;
                 }
 
-                .btn-remove-gallery:hover {
-                    background: rgba(0, 0, 0, 0.7);
-                    transform: scale(1.1);
+                .btn-add-member:hover, .btn-add-gift:hover {
+                    border-color: #c5a059;
+                    color: #c5a059;
                 }
 
-                .gallery-upload-item .image-upload-wrapper {
-                    height: 100%;
-                    min-height: 200px;
-                }
-
-                /* Loading State */
-                .loading-state {
-                    padding: 4rem 0;
-                    text-align: center;
-                }
-
-                .spinner {
-                    width: 50px;
-                    height: 50px;
-                    border: 3px solid var(--lighter);
-                    border-top-color: var(--primary);
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                    margin: 0 auto 1rem;
-                }
-
-                @keyframes spin {
-                    to { transform: rotate(360deg); }
-                }
-
-                /* Form Footer */
-                .form-footer {
-                    background: var(--white);
-                    border-radius: var(--radius-xl);
-                    padding: 2rem;
-                    box-shadow: var(--shadow-lg);
-                }
-
-                .footer-actions {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    gap: 2rem;
-                }
-
-                @media (max-width: 768px) {
-                    .footer-actions {
-                        flex-direction: column;
-                        gap: 1.5rem;
-                    }
-                }
-
-                .step-progress {
-                    flex: 1;
-                    max-width: 400px;
-                }
-
-                .progress-text {
-                    font-size: 0.875rem;
-                    color: var(--gray);
-                    margin-bottom: 0.5rem;
-                    text-align: center;
-                }
-
-                .progress-container {
-                    height: 8px;
-                    background: var(--lighter);
-                    border-radius: 4px;
-                    overflow: hidden;
-                }
-
-                .btn {
-                    padding: 1rem 2rem;
-                    border-radius: var(--radius-lg);
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: var(--transition);
+                .btn-remove-member, .btn-remove-gift {
+                    background: none;
                     border: none;
+                    color: #ef4444;
+                    cursor: pointer;
+                    font-size: 0.85rem;
+                }
+
+                .party-member {
+                    border: 1px solid #e5e7eb;
+                    border-radius: 12px;
+                    padding: 0.85rem;
+                    margin-bottom: 0.75rem;
+                    background: #fff;
+                }
+
+                .member-actions {
                     display: flex;
+                    justify-content: space-between;
                     align-items: center;
-                    gap: 0.75rem;
+                    margin-bottom: 0.5rem;
                 }
 
-                .btn-prev {
-                    background: var(--white);
-                    color: var(--dark);
-                    border: 2px solid var(--lighter);
+                .member-number {
+                    font-size: 0.75rem;
+                    color: #9ca3af;
+                    fontWeight: 700;
                 }
 
-                .btn-prev:hover:not(:disabled) {
-                    background: var(--lighter);
-                    border-color: var(--gray);
+                /* Color swatches */
+                .color-swatch-circle {
+                    cursor: pointer;
+                    position: relative;
                 }
 
-                .btn-prev:disabled {
-                    opacity: 0.5;
-                    cursor: not-allowed;
-                }
-
-                .btn-next, .btn-submit {
-                    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-                    color: white;
-                    box-shadow: var(--shadow-md);
-                }
-
-                .btn-next:hover, .btn-submit:hover:not(:disabled) {
-                    transform: translateY(-2px);
-                    box-shadow: var(--shadow-lg);
-                }
-
-                .btn-submit {
-                    background: linear-gradient(135deg, var(--success), #059669);
-                }
-
-                /* Responsive Adjustments */
-                @media (max-width: 640px) {
-                    .header-title h1 {
-                        font-size: 1.5rem;
-                    }
-
-                    .section-title {
-                        font-size: 1.5rem;
-                    }
-
-                    .btn {
-                        padding: 0.875rem 1.5rem;
-                        font-size: 0.875rem;
-                    }
-
-                    .url-display {
-                        flex-direction: column;
-                    }
-
-                    .btn-test-link {
-                        width: 100%;
-                        justify-content: center;
-                    }
+                @media (max-width: 480px) {
+                    .rr-page { padding: 0; align-items: stretch; }
+                    .phone-shell { border-radius: 0; box-shadow: none; max-width: 100%; width: 100%; height: 100vh; max-height: 100vh; }
                 }
             `}</style>
         </div>

@@ -161,7 +161,9 @@ const WeddingTemplate = () => {
     coverImage: null,
     allowedGuests: [],
     otherEvents: [],
-    tagline: "We are getting married"
+    tagline: "We are getting married",
+    theme_colors: [],
+    dress_code_colors: []
   };
 
   const [weddingData, setWeddingData] = useState(initialWeddingData);
@@ -280,6 +282,39 @@ const WeddingTemplate = () => {
             },
             dressCode: dbData.dress_code,
             dressCodeDescription: dbData.dress_code_desc,
+            theme_colors: (() => {
+              const raw = dbData.theme_colors;
+              if (!raw) return [];
+              try {
+                const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                return Array.isArray(parsed)
+                  ? parsed.filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:"))
+                  : [];
+              } catch (e) {
+                return [];
+              }
+            })(),
+            dress_code_colors: (() => {
+              const raw = dbData.dress_code_colors;
+              if (raw) {
+                try {
+                  const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                  if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                } catch (e) { }
+              }
+              // Fallback: check theme_colors for DRESS_CODE_COLOR: prefix
+              const rawTheme = dbData.theme_colors;
+              if (!rawTheme) return [];
+              try {
+                const parsed = typeof rawTheme === 'string' ? JSON.parse(rawTheme) : rawTheme;
+                if (Array.isArray(parsed)) {
+                  return parsed
+                    .filter(c => typeof c === 'string' && c.startsWith("DRESS_CODE_COLOR:"))
+                    .map(c => c.substring("DRESS_CODE_COLOR:".length));
+                }
+              } catch (e) { }
+              return [];
+            })(),
             gifts: dbData.gifts || [],
             galleryImages: dbData.gallery_images || [],
             mapLocation: dbData.map_location,
@@ -2640,11 +2675,30 @@ const WeddingTemplate = () => {
     }
   `;
 
+  const getDynamicStyles = () => {
+    const colors = weddingData.theme_colors || [];
+    if (colors.length === 0) return '';
+
+    const accent = colors[0];
+    const primary = colors[1] || '#FAFAF9';
+    const secondary = colors[2] || '#E7E5E4';
+    const text = colors[3] || '#292524';
+
+    return `
+      :root {
+        --accent-color: ${accent} !important;
+        --primary-color: ${primary} !important;
+        --secondary-color: ${secondary} !important;
+        --text-color: ${text} !important;
+      }
+    `;
+  };
+
   return (
     <>
       <FontAwesomeCSS />
       <GoogleFontsCSS />
-      <style>{styles}</style>
+      <style>{styles + getDynamicStyles()}</style>
 
       {loading && (
         <div className="page-loader" id="pageLoader">
@@ -2964,6 +3018,34 @@ const WeddingTemplate = () => {
                 </div>
                 {weddingData.dressCodeDescription && (
                   <p className="details-card-address">{weddingData.dressCodeDescription}</p>
+                )}
+                {weddingData.dress_code_colors && weddingData.dress_code_colors.length > 0 && (
+                  <div className="dress-code-colors-swatch" style={{
+                    display: 'flex',
+                    gap: '10px',
+                    justifyContent: 'center',
+                    marginTop: '20px',
+                    flexWrap: 'wrap'
+                  }}>
+                    {weddingData.dress_code_colors.map((color, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '6px',
+                          backgroundColor: color,
+                          border: color.toLowerCase() === '#ffffff' || color.toLowerCase() === '#fff' ? '2px solid #ddd' : '1px solid rgba(0,0,0,0.15)',
+                          boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+                          transition: 'transform 0.2s',
+                          cursor: 'pointer'
+                        }}
+                        title={color}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

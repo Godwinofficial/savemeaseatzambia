@@ -306,9 +306,10 @@ const AdminDashboard = () => {
         );
         setFilteredWeddings(filtered);
 
-        // Calculate stats
-        const totalRSVPs = weddings.reduce((acc, w) => acc + (w.rsvp_count || 0), 0);
-        const totalViews = weddings.reduce((acc, w) => acc + (w.views || 0), 0);
+        // Calculate stats (only for active weddings)
+        const activeList = weddings.filter(w => getWeddingStatus(w.date) !== 'past');
+        const totalRSVPs = activeList.reduce((acc, w) => acc + (w.rsvp_count || 0), 0);
+        const totalViews = activeList.reduce((acc, w) => acc + (w.views || 0), 0);
         setStats({ totalRSVPs, totalViews });
     }, [searchTerm, weddings]);
 
@@ -995,417 +996,129 @@ const AdminDashboard = () => {
         );
     };
 
-    const activeWeddings = filteredWeddings.filter(w => getWeddingStatus(w.date) !== 'past');
-    const archivedWeddings = weddings.filter(w => getWeddingStatus(w.date) === 'past');
+    const filteredWeddingsList = weddings.filter(w =>
+        w.groom_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        w.bride_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        w.venue_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        w.slug?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    const activeWeddings = filteredWeddingsList.filter(w => getWeddingStatus(w.date) !== 'past');
+    const archivedWeddings = filteredWeddingsList.filter(w => getWeddingStatus(w.date) === 'past');
 
-    const activeBirthdays = birthdays.filter(b => getWeddingStatus(b.date) !== 'past');
-    const archivedBirthdays = birthdays.filter(b => getWeddingStatus(b.date) === 'past');
+    const filteredBirthdaysList = birthdays.filter(b =>
+        b.child_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        b.venue_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        b.slug?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    const activeBirthdays = filteredBirthdaysList.filter(b => getWeddingStatus(b.date) !== 'past');
+    const archivedBirthdays = filteredBirthdaysList.filter(b => getWeddingStatus(b.date) === 'past');
 
-    const activeBridalShowers = bridalShowers.filter(bs => getWeddingStatus(bs.date) !== 'past');
-    const archivedBridalShowers = bridalShowers.filter(bs => getWeddingStatus(bs.date) === 'past');
+    const filteredBridalShowersList = bridalShowers.filter(bs =>
+        bs.bride_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        bs.venue_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        bs.slug?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    const activeBridalShowers = filteredBridalShowersList.filter(bs => getWeddingStatus(bs.date) !== 'past');
+    const archivedBridalShowers = filteredBridalShowersList.filter(bs => getWeddingStatus(bs.date) === 'past');
+
+    const filteredVendorsList = vendors.filter(v =>
+        v.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
 
     return (
-        <div className="admin-page admin-dashboard">
-            {/* Forced Clean Light-Mode Styles Overrides */}
-            <style>{`
-                html, body, #root, .admin-page, .admin-dashboard {
-                    background-color: var(--bg-base) !important;
-                    background: var(--bg-base) !important;
-                    color: var(--text-main) !important;
-                }
-                
-                .admin-header {
-                    background: var(--glass-bg) !important;
-                    backdrop-filter: blur(16px) !important;
-                    -webkit-backdrop-filter: blur(16px) !important;
-                    border-bottom: 1px solid var(--border-color) !important;
-                }
+        <div className="rr-page">
+            <div className="phone-shell">
+                <div className="scroll-area">
+                    {/* HERO */}
+                    <div className="hero">
+                        <div className="hero-ring r1"></div>
+                        <div className="hero-ring r2"></div>
 
-                .content-container {
-                    background: var(--bg-surface) !important;
-                    border: none !important;
-                    border-radius: var(--radius-lg) !important;
-                    box-shadow: var(--shadow-md) !important;
-                }
+                        <div className="hero-eyebrow">SAVE ME A SEAT</div>
+                        <div className="hero-big-num">{weddings.length + birthdays.length + bridalShowers.length}</div>
+                        <div className="hero-couple">Total Events</div>
+                        <div className="hero-meta">Managing all your celebrations</div>
 
-                .wedding-card {
-                    background: var(--bg-surface) !important;
-                    border: none !important;
-                    box-shadow: var(--shadow-md) !important;
-                    border-radius: var(--radius-lg) !important;
-                }
-
-                .card-header {
-                    background: transparent !important;
-                    border-bottom: 1px solid var(--border-color) !important;
-                }
-
-                .venue-info, .stat-item {
-                    background: var(--bg-surface-elevated) !important;
-                    border: 1px solid var(--border-color) !important;
-                    color: var(--text-main) !important;
-                    border-radius: var(--radius-md) !important;
-                }
-
-                .tab-btn.active {
-                    border-bottom-color: var(--primary) !important;
-                    color: var(--primary) !important;
-                }
-                
-                .tab-btn:hover {
-                    color: var(--primary) !important;
-                }
-
-                .stat-card {
-                    background: var(--bg-surface) !important;
-                    border: none !important;
-                    box-shadow: var(--shadow-md) !important;
-                    border-radius: var(--radius-lg) !important;
-                    padding: 1.5rem !important;
-                }
-
-                .stat-card.highlight {
-                    background: var(--bg-surface) !important;
-                    color: var(--text-main) !important;
-                }
-
-                .stat-card.highlight .stat-number {
-                    color: var(--primary) !important;
-                }
-                
-                .stat-card.highlight .stat-label {
-                    color: var(--text-muted) !important;
-                }
-            `}</style>
-            {/* Mobile Menu Overlay */}
-            {showMobileMenu && (
-                <div className="mobile-menu-overlay" onClick={() => setShowMobileMenu(false)}>
-                    <div className="mobile-menu" onClick={e => e.stopPropagation()}>
-                        <div className="mobile-header">
-                            <h3>Menu</h3>
-                            <button className="close-menu" onClick={() => setShowMobileMenu(false)}>
-                                <i className="fas fa-times"></i>
-                            </button>
-                        </div>
-                        <div className="mobile-nav">
-                            <Link to="/addWedding" className="mobile-nav-item" onClick={() => setShowMobileMenu(false)}>
-                                <i className="fas fa-plus-circle"></i>
-                                Create New Wedding
+                        <div className="hero-btns">
+                            <Link to="/addWedding" className="hbtn" style={{ textDecoration: 'none' }}>
+                                <div className="hbtn-icon"><i className="fas fa-plus"></i></div>
+                                <span className="hbtn-lbl">WEDDING</span>
                             </Link>
-                            <Link to="/addBridalShower" className="mobile-nav-item" onClick={() => setShowMobileMenu(false)}>
-                                <i className="fas fa-gift"></i>
-                                Create Bridal Shower
+                            <Link to="/addBridalShower" className="hbtn hbtn-lime" style={{ textDecoration: 'none' }}>
+                                <div className="hbtn-icon"><i className="fas fa-gift"></i></div>
+                                <span className="hbtn-lbl">SHOWER</span>
                             </Link>
-                            <button className="mobile-nav-item" style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => { setActiveTab('vendors'); setShowMobileMenu(false); }}>
-                                <i className="fas fa-store"></i>
-                                Manage Ecosystem Vendors
-                            </button>
-                            <button className="mobile-nav-item" style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => { handleLogout(); setShowMobileMenu(false); }}>
-                                <i className="fas fa-sign-out-alt"></i>
-                                Logout
+                            <button className="hbtn" onClick={() => setShowMobileMenu(true)}>
+                                <div className="hbtn-icon"><i className="fas fa-bars"></i></div>
+                                <span className="hbtn-lbl">MENU</span>
                             </button>
                         </div>
                     </div>
-                </div>
-            )}
 
-            {/* Header */}
-            <header className="admin-header">
-                <div className="header-container">
-                    <div className="header-main">
-                        {/* Mobile Menu Button */}
-                        <button className="mobile-menu-btn" onClick={() => setShowMobileMenu(true)}>
-                            <i className="fas fa-bars"></i>
-                        </button>
-
-                        {/* Order 1 (Left): Brand/Logo */}
-                        <div className="brand">
-                            <img src="/imgs/logo1.png" alt="Save Me A Seat" className="logo-img" />
-                        </div>
-
-                        {/* Order 2 (Center): Navigation & Search */}
-                        <div className="desktop-nav">
-                            <div className="search-container">
-                                <i className="fas fa-search search-icon"></i>
-                                <input
-                                    type="text"
-                                    placeholder="Search weddings..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="search-input"
-                                />
-                                {searchTerm && (
-                                    <button className="clear-search" onClick={() => setSearchTerm('')}>
-                                        <i className="fas fa-times"></i>
-                                    </button>
-                                )}
-                            </div>
-
-                            <div className="nav-actions">
-                                <Link to="/addWedding" className="nav-btn primary">
-                                    <i className="fas fa-plus"></i>
-                                    <span>New Wedding</span>
-                                </Link>
-                                <button className="nav-btn outline" onClick={handleLogout}>
-                                    <i className="fas fa-sign-out-alt"></i>
-                                    <span>Logout</span>
+                    {/* CONTENT */}
+                    <div className="content-pad">
+                        {/* SEARCH */}
+                        <div className="search-wrap">
+                            <i className="fas fa-search si"></i>
+                            <input
+                                type="text"
+                                className="search-inp"
+                                placeholder="Search events..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                            {searchTerm && (
+                                <button className="search-clear" onClick={() => setSearchTerm('')}>
+                                    <i className="fas fa-times"></i>
                                 </button>
+                            )}
+                        </div>
+
+                        {/* TABS */}
+                        <div className="sec-hdr" style={{ marginTop: '0.5rem' }}>
+                            <div className="sec-title">Event Activities</div>
+                            <div className="sec-tabs" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                                <style>{`.sec-tabs::-webkit-scrollbar { display: none; }`}</style>
+                                <button className={`sec-tab ${activeTab === 'weddings' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('weddings')}>Weddings</button>
+                                <button className={`sec-tab ${activeTab === 'birthdays' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('birthdays')}>Birthdays</button>
+                                <button className={`sec-tab ${activeTab === 'bridal_showers' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('bridal_showers')}>Bridal Showers</button>
+                                <button className={`sec-tab ${activeTab === 'marketing' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('marketing')}>Marketing</button>
+                                <button className={`sec-tab ${activeTab === 'vendors' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('vendors')}>Vendors</button>
+                                <button className={`sec-tab ${activeTab === 'archives' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('archives')}>Archives</button>
                             </div>
                         </div>
 
-                        {/* Order 3 (Right): User Icon */}
-                        <div className="user-profile-section">
-                            <div className="user-icon-circle" title="Admin Profile">
-                                <i className="fas fa-user"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            {/* Stats Cards */}
-            <section className="stats-section">
-                {dueReminders.length > 0 && showRemindersAlert && (
-                    <div className="alert-banner" style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                        <div className="alert-content">
-                            <i className="fas fa-bell"></i>
-                            <span>{dueReminders.length} weddings have reminders due today or pending.</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <button
-                                className="alert-btn"
-                                onClick={sendDueReminders}
-                                disabled={processingReminders}
-                            >
-                                {processingReminders ? 'Sending...' : 'Send Reminders Now'}
-                            </button>
-                            <button
-                                onClick={() => setShowRemindersAlert(false)}
-                                style={{
-                                    background: 'var(--bg-surface-elevated)',
-                                    border: '1px solid var(--border-color)',
-                                    color: 'var(--text-muted)',
-                                    cursor: 'pointer',
-                                    fontSize: '1rem',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    padding: '0.25rem',
-                                    transition: 'all 0.2s',
-                                    borderRadius: '50%',
-                                    width: '36px',
-                                    height: '36px',
-                                    boxShadow: 'var(--shadow-sm)'
-                                }}
-                                title="Dismiss Alert"
-                                onMouseEnter={(e) => { e.currentTarget.style.color = '#ffffff'; e.currentTarget.style.background = 'var(--danger)'; e.currentTarget.style.borderColor = 'var(--danger)'; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'var(--bg-surface-elevated)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
-                            >
-                                <i className="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Tab Navigation */}
-                <div className="tab-navigation">
-                    <button
-                        className={`tab-btn ${activeTab === 'weddings' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('weddings')}
-                    >
-                        <i className="fas fa-glass-cheers"></i>
-                        Weddings
-                    </button>
-                    <button
-                        className={`tab-btn ${activeTab === 'birthdays' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('birthdays')}
-                        style={activeTab === 'birthdays' ? { borderBottomColor: '#c44569', color: '#c44569' } : {}}
-                    >
-                        <i className="fas fa-birthday-cake"></i>
-                        Birthdays
-                    </button>
-                    <button
-                        className={`tab-btn ${activeTab === 'bridal_showers' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('bridal_showers')}
-                        style={activeTab === 'bridal_showers' ? { borderBottomColor: '#c5a059', color: '#c5a059' } : {}}
-                    >
-                        <i className="fas fa-gift"></i>
-                        Bridal Showers
-                    </button>
-                    <button
-                        className={`tab-btn ${activeTab === 'marketing' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('marketing')}
-                    >
-                        <i className="fas fa-envelope"></i>
-                        Email Marketing
-                    </button>
-                    <button
-                        className={`tab-btn ${activeTab === 'vendors' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('vendors')}
-                        style={activeTab === 'vendors' ? { borderBottomColor: '#10b981', color: '#10b981' } : {}}
-                    >
-                        <i className="fas fa-store"></i>
-                        Ecosystem Vendors
-                    </button>
-                    <button
-                        className={`tab-btn ${activeTab === 'archives' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('archives')}
-                        style={activeTab === 'archives' ? { borderBottomColor: '#6b7280', color: '#6b7280' } : {}}
-                    >
-                        <i className="fas fa-archive"></i>
-                        Archives
-                    </button>
-                </div>
-            </section>
-
-            {/* Weddings Tab Content */}
-            {activeTab === 'weddings' && (
-                <>
-                    <div className="stats-scroller">
-                        <div className="stat-card">
-                            <div className="stat-icon-wrapper gradient-1">
-                                <i className="fas fa-glass-cheers"></i>
-                            </div>
-                            <div className="stat-content">
-                                <h3 className="stat-number">{weddings.length}</h3>
-                                <p className="stat-label">Active Weddings</p>
-                            </div>
-                        </div>
-
-                        <div className="stat-card">
-                            <div className="stat-icon-wrapper gradient-2">
-                                <i className="fas fa-user-friends"></i>
-                            </div>
-                            <div className="stat-content">
-                                <h3 className="stat-number">{stats.totalRSVPs}</h3>
-                                <p className="stat-label">Total RSVPs</p>
-                            </div>
-                        </div>
-
-                        <div className="stat-card">
-                            <div className="stat-icon-wrapper gradient-3">
-                                <i className="fas fa-eye"></i>
-                            </div>
-                            <div className="stat-content">
-                                <h3 className="stat-number">{stats.totalViews.toLocaleString()}</h3>
-                                <p className="stat-label">Total Views</p>
-                            </div>
-                        </div>
-
-                        <div className="stat-card highlight">
-                            <div className="stat-icon-wrapper gradient-4">
-                                <i className="fas fa-star"></i>
-                            </div>
-                            <div className="stat-content">
-                                <h3 className="stat-number">
-                                    {weddings.length > 0
-                                        ? Math.round((stats.totalRSVPs / weddings.length) * 10) / 10
-                                        : 0
-                                    }
-                                </h3>
-                                <p className="stat-label">Avg RSVPs per Wedding</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Premium Animated Dashboard Charts */}
-                    <main className="main-content" style={{ paddingBottom: '1rem' }}>
-                        <DashboardCharts weddings={weddings} birthdays={birthdays} bridalShowers={bridalShowers} />
-                    </main>
-
-                    {/* Main Content */}
-                    <main className="main-content">
-                        <div className="content-container">
-                            <div className="content-header">
-                                <div className="header-left">
-                                    <h2 className="section-title">Wedding Websites</h2>
-                                    <p className="section-subtitle">Manage all your wedding sites in one place</p>
-                                </div>
-                                <div className="header-right">
-                                    <div className="results-info">
-                                        <span className="results-count">{activeWeddings.length}</span>
-                                        <span className="results-text">of {weddings.length} weddings</span>
-                                    </div>
-                                    <div className="sort-options">
-                                        <select className="sort-select">
-                                            <option>Newest First</option>
-                                            <option>Oldest First</option>
-                                            <option>Name A-Z</option>
-                                            <option>Most RSVPs</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {loading ? (
-                                <div className="loading-container">
-                                    <div className="loading-spinner">
-                                        <div className="spinner-ring"></div>
-                                        <div className="spinner-ring"></div>
-                                        <div className="spinner-ring"></div>
-                                        <div className="spinner-ring"></div>
-                                    </div>
-                                    <p className="loading-text">Loading your weddings...</p>
-                                </div>
-                            ) : activeWeddings.length === 0 ? (
-                                <div className="empty-state">
-                                    <div className="empty-icon">
-                                        <i className="fas fa-heart"></i>
-                                    </div>
-                                    <h3 className="empty-title">
-                                        {searchTerm ? 'No weddings found' : 'No weddings yet'}
-                                    </h3>
-                                    <p className="empty-description">
-                                        {searchTerm
-                                            ? 'Try adjusting your search terms'
-                                            : 'Create your first beautiful wedding website'
-                                        }
-                                    </p>
-                                    {!searchTerm && (
-                                        <Link to="/addWedding" className="empty-action">
-                                            <i className="fas fa-plus"></i>
-                                            Create First Wedding
-                                        </Link>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="weddings-list" style={{ display: 'flex', flexDirection: 'column' }}>
-                                    {activeWeddings.map((wedding) => (
-                                        <div key={wedding.id} className="app-row-item">
-                                            {/* Avatar badge with initials */}
-                                            <div style={{
-                                                width: 52, height: 52, borderRadius: '50%',
-                                                background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%)',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                color: '#ffffff', fontWeight: 800, fontSize: '0.95rem', marginRight: '1.25rem',
-                                                boxShadow: '0 4px 12px rgba(255, 123, 0, 0.3)'
-                                            }}>
-                                                {wedding.groom_name?.substring(0, 1)}{wedding.bride_name?.substring(0, 1)}
-                                            </div>
-
-                                            {/* Content details */}
-                                            <div style={{ flex: 1 }}>
-                                                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                                                    {wedding.groom_name} & {wedding.bride_name}
-                                                </h4>
-                                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.15rem' }}>
-                                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                        <i className="far fa-calendar"></i> {formatDate(wedding.date)}
-                                                    </span>
-                                                    <StatusBadge date={wedding.date} />
-                                                </div>
-                                                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.4rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                                                    <span><i className="fas fa-users" style={{ color: 'var(--primary)' }}></i> RSVPs: <strong style={{ color: 'var(--text-main)' }}>{wedding.rsvp_count || 0}</strong></span>
-                                                    <span><i className="fas fa-eye" style={{ color: 'var(--primary)' }}></i> Views: <strong style={{ color: 'var(--text-main)' }}>{wedding.views?.toLocaleString() || 0}</strong></span>
-                                                </div>
-                                            </div>
-
-                                            {/* Ellipsis Actions Button */}
-                                            <button
-                                                onClick={() => setActiveActionSheet({
+                        {/* LIST */}
+                        <div className="guest-list">
+                            {/* Render active events based on activeTab */}
+                            {activeTab === 'weddings' && activeWeddings.map(wedding => {
+                                const isPositive = (wedding.rsvp_count || 0) > 0;
+                                return (
+                                    <div key={wedding.id} className="g-row" onClick={() => navigate(`/w/${wedding.slug}`)} style={{ cursor: 'pointer' }}>
+                                        <div className="g-avatar" style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%)' }}>
+                                            {wedding.groom_name?.substring(0, 1)}{wedding.bride_name?.substring(0, 1)}
+                                        </div>
+                                        <div className="g-info">
+                                            <span className="g-name">{wedding.groom_name} & {wedding.bride_name}</span>
+                                            <span className="g-sub">Wedding Co. • {new Date(wedding.date).toLocaleDateString()}</span>
+                                        </div>
+                                        <div className="g-right">
+                                            <span className={`g-count ${isPositive ? 'gc-green' : 'gc-red'}`}>{wedding.rsvp_count || 0}</span>
+                                            <span className={`g-pct ${isPositive ? 'gp-green' : 'gp-red'}`}>
+                                                {isPositive ? '+' : ''}{wedding.views ? Math.round(wedding.views / 10) : 0}%
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveActionSheet({
                                                     type: 'wedding',
                                                     title: `${wedding.groom_name} & ${wedding.bride_name}`,
-                                                    subtitle: `Wedding Date: ${formatDate(wedding.date)}`,
+                                                    subtitle: `Wedding Date: ${new Date(wedding.date).toLocaleDateString()}`,
                                                     url: `/w/${wedding.slug}`,
                                                     slug: wedding.slug,
                                                     copyType: 'preview',
@@ -1414,869 +1127,621 @@ const AdminDashboard = () => {
                                                     reportUrl: `/report/${wedding.slug}`,
                                                     onDownload: () => downloadRSVPs(wedding.id, `${wedding.groom_name}_${wedding.bride_name}`),
                                                     onDelete: () => handleDelete(wedding.id, `${wedding.groom_name} & ${wedding.bride_name}`)
-                                                })}
-                                                style={{
-                                                    background: 'none', border: 'none', color: 'var(--text-muted)',
-                                                    cursor: 'pointer', fontSize: '1.2rem', padding: '0.5rem',
-                                                    marginLeft: '0.5rem', transition: 'color 0.2s'
-                                                }}
-                                                onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
-                                                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
-                                            >
-                                                <i className="fas fa-ellipsis-v"></i>
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </main>
-                </>
-            )}
-
-            {/* Email Marketing Tab Content */}
-            {activeTab === 'marketing' && (
-                <main className="main-content">
-                    <EmailMarketing />
-                </main>
-            )}
-
-            {/* Birthday Events Tab */}
-            {activeTab === 'birthdays' && (
-                <main className="main-content">
-                    <div className="content-container">
-                        <div className="content-header">
-                            <div className="header-left">
-                                <h2 className="section-title">Birthday Websites</h2>
-                                <p className="section-subtitle">Manage all birthday invitation sites</p>
-                            </div>
-                            <div className="header-right">
-                                <Link to="/addBirthday" className="nav-btn primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg,#ff6b9d,#c44569)', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, color: '#ffffff', fontWeight: 700, fontSize: '0.85rem' }}>
-                                    <i className="fas fa-plus" />
-                                    New Birthday
-                                </Link>
-                            </div>
-                        </div>
-
-                        {birthdayLoading ? (
-                            <div className="loading-container">
-                                <div className="loading-spinner"><div className="spinner-ring" /><div className="spinner-ring" /><div className="spinner-ring" /><div className="spinner-ring" /></div>
-                                <p className="loading-text">Loading birthday events…</p>
-                            </div>
-                        ) : activeBirthdays.length === 0 ? (
-                            <div className="empty-state">
-                                <div className="empty-icon"><i className="fas fa-birthday-cake" /></div>
-                                <h3 className="empty-title">No birthday events yet</h3>
-                                <p className="empty-description">Create your first birthday invitation website</p>
-                                <Link to="/addBirthday" className="empty-action" style={{ textDecoration: 'none' }}>
-                                    <i className="fas fa-plus" /> Create First Birthday
-                                </Link>
-                            </div>
-                        ) : (
-                            <div className="birthdays-list" style={{ display: 'flex', flexDirection: 'column' }}>
-                                {activeBirthdays.map((bdEvent) => (
-                                    <div key={bdEvent.id} className="app-row-item" style={{ borderLeft: '4px solid #c44569' }}>
-                                        {/* Avatar badge with cake icon */}
-                                        <div style={{
-                                            width: 52, height: 52, borderRadius: '50%',
-                                            background: 'linear-gradient(135deg, #ff6b9d 0%, #c44569 100%)',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            color: '#ffffff', fontWeight: 800, fontSize: '1rem', marginRight: '1.25rem',
-                                            boxShadow: '0 4px 12px rgba(196, 69, 105, 0.3)'
-                                        }}>
-                                            <i className="fas fa-birthday-cake" style={{ fontSize: '1rem' }}></i>
-                                        </div>
-
-                                        {/* Content details */}
-                                        <div style={{ flex: 1 }}>
-                                            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                                                {bdEvent.child_name}'s Birthday
-                                            </h4>
-                                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.15rem' }}>
-                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                    <i className="far fa-calendar"></i> {bdEvent.date ? new Date(bdEvent.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Date TBD'}
-                                                </span>
-                                                {bdEvent.age && <span className="status-badge" style={{ backgroundColor: '#c44569' }}>Age {bdEvent.age}</span>}
-                                            </div>
-                                            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.4rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                                                <span><i className="fas fa-users" style={{ color: '#c44569' }}></i> RSVPs: <strong style={{ color: 'var(--text-main)' }}>{bdEvent.rsvp_count || 0}</strong></span>
-                                                <span><i className="fas fa-link" style={{ color: '#c44569' }}></i> Slug: <strong style={{ color: 'var(--text-main)' }}>/{bdEvent.slug}</strong></span>
-                                            </div>
-                                        </div>
-
-                                        {/* Ellipsis Actions Button */}
-                                        <button
-                                            onClick={() => setActiveActionSheet({
-                                                type: 'birthday',
-                                                title: `${bdEvent.child_name}'s Birthday`,
-                                                subtitle: `Date: ${bdEvent.date ? new Date(bdEvent.date).toLocaleDateString() : 'TBD'}`,
-                                                url: `/b/${bdEvent.slug}`,
-                                                slug: bdEvent.slug,
-                                                copyType: 'preview-bd',
-                                                editUrl: `/editBirthday/${bdEvent.id}`,
-                                                reportUrl: `/b-report/${bdEvent.slug}`,
-                                                onDownload: () => downloadBirthdayRSVPs(bdEvent.id, bdEvent.child_name),
-                                                onDelete: () => handleDeleteBirthday(bdEvent.id, `${bdEvent.child_name}'s Birthday`)
-                                            })}
-                                            style={{
-                                                background: 'none', border: 'none', color: 'var(--text-muted)',
-                                                cursor: 'pointer', fontSize: '1.2rem', padding: '0.5rem',
-                                                marginLeft: '0.5rem', transition: 'color 0.2s'
+                                                });
                                             }}
-                                            onMouseEnter={e => e.currentTarget.style.color = '#c44569'}
-                                            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                                            style={{ background: 'none', border: 'none', color: '#9ca3af', padding: '0.5rem', cursor: 'pointer' }}
                                         >
                                             <i className="fas fa-ellipsis-v"></i>
                                         </button>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </main>
-            )}
+                                )
+                            })}
 
-            {/* Bridal Showers Tab Content */}
-            {activeTab === 'bridal_showers' && (
-                <main className="main-content">
-                    <div className="content-container">
-                        <div className="content-header">
-                            <div className="header-left">
-                                <h2 className="section-title">Bridal Showers</h2>
-                                <p className="section-subtitle">Manage bridal shower websites</p>
-                            </div>
-                            <div className="header-right">
-                                <Link to="/addBridalShower" className="nav-btn primary">
-                                    <i className="fas fa-plus"></i>
-                                    <span>New Bridal Shower</span>
-                                </Link>
-                            </div>
-                        </div>
-
-                        {bridalShowerLoading ? (
-                            <div className="loading-container"><p>Loading bridal showers...</p></div>
-                        ) : activeBridalShowers.length === 0 ? (
-                            <div className="empty-state">
-                                <div className="empty-icon"><i className="fas fa-gift"></i></div>
-                                <h3 className="empty-title">No bridal showers yet</h3>
-                                <Link to="/addBridalShower" className="empty-action"><i className="fas fa-plus"></i> Create Bridal Shower</Link>
-                            </div>
-                        ) : (
-                            <div className="bridal-showers-list" style={{ display: 'flex', flexDirection: 'column' }}>
-                                {activeBridalShowers.map((bs) => (
-                                    <div key={bs.id} className="app-row-item" style={{ borderLeft: '4px solid #c5a059' }}>
-                                        {/* Avatar badge with gift icon */}
-                                        <div style={{
-                                            width: 52, height: 52, borderRadius: '50%',
-                                            background: 'linear-gradient(135deg, #dfc28c 0%, #c5a059 100%)',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            color: '#ffffff', fontWeight: 800, fontSize: '1rem', marginRight: '1.25rem',
-                                            boxShadow: '0 4px 12px rgba(197, 160, 89, 0.3)'
-                                        }}>
-                                            <i className="fas fa-gift" style={{ fontSize: '1rem' }}></i>
+                            {activeTab === 'birthdays' && activeBirthdays.map(bday => {
+                                const isPositive = (bday.rsvp_count || 0) > 0;
+                                return (
+                                    <div key={bday.id} className="g-row" onClick={() => navigate(`/b/${bday.slug}`)} style={{ cursor: 'pointer' }}>
+                                        <div className="g-avatar" style={{ background: '#c44569' }}>
+                                            {bday.celebrant_name?.substring(0, 1)}
                                         </div>
-
-                                        {/* Content details */}
-                                        <div style={{ flex: 1 }}>
-                                            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                                                {bs.bride_name}'s Bridal Shower
-                                            </h4>
-                                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.15rem' }}>
-                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                    <i className="far fa-calendar"></i> {bs.date ? new Date(bs.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Date TBD'}
-                                                </span>
-                                                <StatusBadge date={bs.date} />
-                                            </div>
-                                            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.4rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                                                <span><i className="fas fa-users" style={{ color: '#c5a059' }}></i> RSVPs: <strong style={{ color: 'var(--text-main)' }}>{bs.rsvp_count || 0}</strong></span>
-                                                <span><i className="fas fa-link" style={{ color: '#c5a059' }}></i> Slug: <strong style={{ color: 'var(--text-main)' }}>/{bs.slug}</strong></span>
-                                            </div>
+                                        <div className="g-info">
+                                            <span className="g-name">{bday.celebrant_name}'s Birthday</span>
+                                            <span className="g-sub">Birthday • {new Date(bday.date).toLocaleDateString()}</span>
                                         </div>
-
-                                        {/* Ellipsis Actions Button */}
+                                        <div className="g-right">
+                                            <span className={`g-count ${isPositive ? 'gc-green' : 'gc-red'}`}>{bday.rsvp_count || 0}</span>
+                                            <span className={`g-pct ${isPositive ? 'gp-green' : 'gp-red'}`}>
+                                                {isPositive ? '+' : ''}{bday.views ? Math.round(bday.views / 10) : 0}%
+                                            </span>
+                                        </div>
                                         <button
-                                            onClick={() => setActiveActionSheet({
-                                                type: 'bridal_shower',
-                                                title: `${bs.bride_name}'s Bridal Shower`,
-                                                subtitle: `Date: ${bs.date ? new Date(bs.date).toLocaleDateString() : 'TBD'}`,
-                                                url: `/bridal-shower/${bs.slug}`,
-                                                slug: bs.slug,
-                                                copyType: 'bridal-shower',
-                                                editUrl: `/editBridalShower/${bs.id}`,
-                                                reportUrl: `/bs-report/${bs.slug}`,
-                                                onDownload: () => downloadBridalShowerRSVPs(bs.id, bs.bride_name),
-                                                onDelete: () => handleDeleteBridalShower(bs.id, `${bs.bride_name}'s Bridal Shower`)
-                                            })}
-                                            style={{
-                                                background: 'none', border: 'none', color: 'var(--text-muted)',
-                                                cursor: 'pointer', fontSize: '1.2rem', padding: '0.5rem',
-                                                marginLeft: '0.5rem', transition: 'color 0.2s'
-                                            }}
-                                            onMouseEnter={e => e.currentTarget.style.color = '#c5a059'}
-                                            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
-                                        >
-                                            <i className="fas fa-ellipsis-v"></i>
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </main>
-            )}
-
-            {/* Archives Tab Content */}
-            {activeTab === 'archives' && (
-                <main className="main-content">
-                    <div className="content-container">
-                        <div className="content-header">
-                            <div className="header-left">
-                                <h2 className="section-title">Archives</h2>
-                                <p className="section-subtitle">Past events automatically moved here</p>
-                            </div>
-                        </div>
-
-                        <div className="archives-list" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                            {archivedWeddings.length > 0 && (
-                                <div>
-                                    <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>Archived Weddings</h3>
-                                    {archivedWeddings.map((wedding) => (
-                                        <div key={wedding.id} className="app-row-item" style={{ opacity: 0.8 }}>
-                                            <div style={{
-                                                width: 52, height: 52, borderRadius: '50%',
-                                                background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%)',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                color: '#ffffff', fontWeight: 800, fontSize: '0.95rem', marginRight: '1.25rem',
-                                                boxShadow: '0 4px 12px rgba(255, 123, 0, 0.3)'
-                                            }}>
-                                                {wedding.groom_name?.substring(0, 1)}{wedding.bride_name?.substring(0, 1)}
-                                            </div>
-                                            <div style={{ flex: 1 }}>
-                                                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                                                    {wedding.groom_name} & {wedding.bride_name}
-                                                </h4>
-                                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.15rem' }}>
-                                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                                        <i className="far fa-calendar"></i> {wedding.date ? new Date(wedding.date).toLocaleDateString() : 'TBD'}
-                                                    </span>
-                                                    <StatusBadge date={wedding.date} />
-                                                </div>
-                                                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.4rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                                                    <span><i className="fas fa-users" style={{ color: 'var(--primary)' }}></i> RSVPs: <strong style={{ color: 'var(--text-main)' }}>{wedding.rsvp_count || 0}</strong></span>
-                                                    <span><i className="fas fa-link" style={{ color: 'var(--primary)' }}></i> Slug: <strong style={{ color: 'var(--text-main)' }}>/{wedding.slug}</strong></span>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => setActiveActionSheet({
-                                                    type: 'wedding',
-                                                    title: `${wedding.groom_name} & ${wedding.bride_name}`,
-                                                    subtitle: `Date: ${wedding.date ? new Date(wedding.date).toLocaleDateString() : 'TBD'}`,
-                                                    url: `/${wedding.slug}`,
-                                                    slug: wedding.slug,
-                                                    copyType: 'preview',
-                                                    rawEvent: wedding,
-                                                    reportUrl: `/report/${wedding.slug}`,
-                                                    onDownload: () => downloadRSVPs(wedding.id, `${wedding.groom_name}_${wedding.bride_name}`),
-                                                    onDelete: () => handleDelete(wedding.id, `${wedding.groom_name} & ${wedding.bride_name}`)
-                                                })}
-                                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', padding: '0.5rem', marginLeft: '0.5rem' }}
-                                            >
-                                                <i className="fas fa-ellipsis-v"></i>
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {archivedBirthdays.length > 0 && (
-                                <div>
-                                    <h3 style={{ marginBottom: '1rem', color: '#c44569', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>Archived Birthdays</h3>
-                                    {archivedBirthdays.map((bdEvent) => (
-                                        <div key={bdEvent.id} className="app-row-item" style={{ borderLeft: '4px solid #c44569', opacity: 0.8 }}>
-                                            <div style={{
-                                                width: 52, height: 52, borderRadius: '50%',
-                                                background: 'linear-gradient(135deg, #ff6b9d 0%, #c44569 100%)',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                color: '#ffffff', fontWeight: 800, fontSize: '1rem', marginRight: '1.25rem',
-                                            }}>
-                                                <i className="fas fa-birthday-cake" style={{ fontSize: '1rem' }}></i>
-                                            </div>
-                                            <div style={{ flex: 1 }}>
-                                                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                                                    {bdEvent.child_name}'s Birthday
-                                                </h4>
-                                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.15rem' }}>
-                                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                                        <i className="far fa-calendar"></i> {bdEvent.date ? new Date(bdEvent.date).toLocaleDateString() : 'TBD'}
-                                                    </span>
-                                                    <StatusBadge date={bdEvent.date} />
-                                                </div>
-                                                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.4rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                                                    <span><i className="fas fa-users" style={{ color: '#c44569' }}></i> RSVPs: <strong style={{ color: 'var(--text-main)' }}>{bdEvent.rsvp_count || 0}</strong></span>
-                                                    <span><i className="fas fa-link" style={{ color: '#c44569' }}></i> Slug: <strong style={{ color: 'var(--text-main)' }}>/{bdEvent.slug}</strong></span>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => setActiveActionSheet({
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveActionSheet({
                                                     type: 'birthday',
-                                                    title: `${bdEvent.child_name}'s Birthday`,
-                                                    subtitle: `Date: ${bdEvent.date ? new Date(bdEvent.date).toLocaleDateString() : 'TBD'}`,
-                                                    url: `/b/${bdEvent.slug}`,
-                                                    slug: bdEvent.slug,
-                                                    copyType: 'preview-bd',
-                                                    editUrl: `/editBirthday/${bdEvent.id}`,
-                                                    reportUrl: `/b-report/${bdEvent.slug}`,
-                                                    onDownload: () => downloadBirthdayRSVPs(bdEvent.id, bdEvent.child_name),
-                                                    onDelete: () => handleDeleteBirthday(bdEvent.id, `${bdEvent.child_name}'s Birthday`)
-                                                })}
-                                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', padding: '0.5rem', marginLeft: '0.5rem' }}
-                                            >
-                                                <i className="fas fa-ellipsis-v"></i>
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {archivedBridalShowers.length > 0 && (
-                                <div>
-                                    <h3 style={{ marginBottom: '1rem', color: '#c5a059', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>Archived Bridal Showers</h3>
-                                    {archivedBridalShowers.map((bs) => (
-                                        <div key={bs.id} className="app-row-item" style={{ borderLeft: '4px solid #c5a059', opacity: 0.8 }}>
-                                            <div style={{
-                                                width: 52, height: 52, borderRadius: '50%',
-                                                background: 'linear-gradient(135deg, #dfc28c 0%, #c5a059 100%)',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                color: '#ffffff', fontWeight: 800, fontSize: '1rem', marginRight: '1.25rem',
-                                            }}>
-                                                <i className="fas fa-gift" style={{ fontSize: '1rem' }}></i>
-                                            </div>
-                                            <div style={{ flex: 1 }}>
-                                                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                                                    {bs.bride_name}'s Bridal Shower
-                                                </h4>
-                                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.15rem' }}>
-                                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                                        <i className="far fa-calendar"></i> {bs.date ? new Date(bs.date).toLocaleDateString() : 'TBD'}
-                                                    </span>
-                                                    <StatusBadge date={bs.date} />
-                                                </div>
-                                                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.4rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                                                    <span><i className="fas fa-users" style={{ color: '#c5a059' }}></i> RSVPs: <strong style={{ color: 'var(--text-main)' }}>{bs.rsvp_count || 0}</strong></span>
-                                                    <span><i className="fas fa-link" style={{ color: '#c5a059' }}></i> Slug: <strong style={{ color: 'var(--text-main)' }}>/{bs.slug}</strong></span>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => setActiveActionSheet({
-                                                    type: 'bridal_shower',
-                                                    title: `${bs.bride_name}'s Bridal Shower`,
-                                                    subtitle: `Date: ${bs.date ? new Date(bs.date).toLocaleDateString() : 'TBD'}`,
-                                                    url: `/bridal-shower/${bs.slug}`,
-                                                    slug: bs.slug,
-                                                    copyType: 'bridal-shower',
-                                                    editUrl: `/editBridalShower/${bs.id}`,
-                                                    reportUrl: `/bs-report/${bs.slug}`,
-                                                    onDownload: () => downloadBridalShowerRSVPs(bs.id, bs.bride_name),
-                                                    onDelete: () => handleDeleteBridalShower(bs.id, `${bs.bride_name}'s Bridal Shower`)
-                                                })}
-                                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', padding: '0.5rem', marginLeft: '0.5rem' }}
-                                            >
-                                                <i className="fas fa-ellipsis-v"></i>
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {archivedWeddings.length === 0 && archivedBirthdays.length === 0 && archivedBridalShowers.length === 0 && (
-                                <div className="empty-state">
-                                    <div className="empty-icon"><i className="fas fa-archive"></i></div>
-                                    <h3 className="empty-title">No archived events</h3>
-                                    <p className="empty-description">Events that have passed will automatically appear here</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </main>
-            )}
-
-            {/* Vendors Tab Content */}
-            {activeTab === 'vendors' && (
-                <main className="main-content">
-                    <div className="content-container">
-                        <div className="content-header">
-                            <div className="header-left">
-                                <h2 className="section-title">Supporting Platform Ecosystem</h2>
-                                <p className="section-subtitle">Manage service vendors shown on the website directory</p>
-                            </div>
-                            <div className="header-right">
-                                <button className="nav-btn primary" onClick={openAddVendor} style={{ background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, color: '#ffffff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}>
-                                    <i className="fas fa-plus" />
-                                    New Vendor
-                                </button>
-                            </div>
-                        </div>
-
-                        {vendorLoading ? (
-                            <div className="loading-container">
-                                <div className="loading-spinner"><div className="spinner-ring" /><div className="spinner-ring" /><div className="spinner-ring" /><div className="spinner-ring" /></div>
-                                <p className="loading-text">Loading platform vendors…</p>
-                            </div>
-                        ) : vendors.length === 0 ? (
-                            <div className="empty-state">
-                                <div className="empty-icon"><i className="fas fa-store" /></div>
-                                <h3 className="empty-title">No vendors listed yet</h3>
-                                <p className="empty-description">Create your first directory vendor</p>
-                                <button className="empty-action" onClick={openAddVendor} style={{ border: 'none', cursor: 'pointer' }}>
-                                    <i className="fas fa-plus" /> Create First Vendor
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="vendors-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                {vendors.map((vendor) => (
-                                    <div key={vendor.id} className="app-row-item" style={{ borderLeft: '4px solid #10b981' }}>
-                                        {/* Avatar preview */}
-                                        <div style={{
-                                            width: 52, height: 52, borderRadius: '50%',
-                                            backgroundImage: `url(${vendor.image || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=600&q=80'})`,
-                                            backgroundSize: 'cover',
-                                            backgroundPosition: 'center',
-                                            marginRight: '1.25rem',
-                                            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
-                                            flexShrink: 0
-                                        }}>
-                                        </div>
-
-                                        {/* Content details */}
-                                        <div style={{ flex: 1 }}>
-                                            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                                                {vendor.name}
-                                            </h4>
-                                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.15rem', flexWrap: 'wrap' }}>
-                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                    <i className="fas fa-map-marker-alt" style={{ color: '#10b981' }}></i> {vendor.city}
-                                                </span>
-                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                    <i className="fas fa-tag" style={{ color: '#10b981' }}></i> {vendor.category}
-                                                </span>
-                                                <span className="status-badge" style={{ backgroundColor: '#10b981', color: '#ffffff' }}>
-                                                    <i className="fas fa-star" style={{ fontSize: '0.7rem' }}></i> {vendor.rating || '5.0 Verified'}
-                                                </span>
-                                            </div>
-                                            {vendor.description && (
-                                                <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                                                    {vendor.description}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        {/* Actions panel */}
-                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            <button
-                                                onClick={() => openEditVendor(vendor)}
-                                                style={{
-                                                    background: 'none', border: 'none', color: 'var(--text-muted)',
-                                                    cursor: 'pointer', fontSize: '1rem', padding: '0.5rem',
-                                                    transition: 'color 0.2s'
-                                                }}
-                                                title="Edit Vendor"
-                                                onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
-                                                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
-                                            >
-                                                <i className="fas fa-edit"></i>
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteVendor(vendor.id, vendor.name)}
-                                                style={{
-                                                    background: 'none', border: 'none', color: 'var(--text-muted)',
-                                                    cursor: 'pointer', fontSize: '1rem', padding: '0.5rem',
-                                                    transition: 'color 0.2s'
-                                                }}
-                                                title="Delete Vendor"
-                                                onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
-                                                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
-                                            >
-                                                <i className="fas fa-trash"></i>
-                                            </button>
-                                        </div>
+                                                    title: `${bday.celebrant_name}'s Birthday`,
+                                                    subtitle: `Date: ${new Date(bday.date).toLocaleDateString()}`,
+                                                    url: `/b/${bday.slug}`,
+                                                    slug: bday.slug,
+                                                    copyType: 'birthday',
+                                                    editUrl: `/editBirthday/${bday.id}`,
+                                                    rawEvent: bday,
+                                                    reportUrl: `/report/${bday.slug}`,
+                                                    onDownload: () => downloadBirthdayRSVPs(bday.id, bday.celebrant_name),
+                                                    onDelete: () => handleDeleteBirthday(bday.id, `${bday.celebrant_name}'s Birthday`)
+                                                });
+                                            }}
+                                            style={{ background: 'none', border: 'none', color: '#9ca3af', padding: '0.5rem', cursor: 'pointer' }}
+                                        >
+                                            <i className="fas fa-ellipsis-v"></i>
+                                        </button>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </main>
-            )}
-            {/* Floating Action Button for Mobile */}
-            <Link to={activeTab === 'birthdays' ? '/addBirthday' : '/addWedding'} className="fab">
-                <i className="fas fa-plus"></i>
-            </Link>
+                                )
+                            })}
 
-            {showReminderModal && selectedWeddingForReminder && (
-                <ReminderModal
-                    wedding={selectedWeddingForReminder}
-                    onClose={() => setShowReminderModal(false)}
-                    onSave={() => {
-                        fetchWeddings();
-                        setShowReminderModal(false);
-                    }}
-                />
-            )}
+                            {activeTab === 'bridal_showers' && activeBridalShowers.map(shower => {
+                                const isPositive = (shower.rsvp_count || 0) > 0;
+                                return (
+                                    <div key={shower.id} className="g-row" onClick={() => navigate(`/bridal-shower/${shower.slug}`)} style={{ cursor: 'pointer' }}>
+                                        <div className="g-avatar" style={{ background: '#c5a059' }}>
+                                            {shower.bride_name?.substring(0, 1)}
+                                        </div>
+                                        <div className="g-info">
+                                            <span className="g-name">{shower.bride_name}'s Shower</span>
+                                            <span className="g-sub">Shower • {new Date(shower.date).toLocaleDateString()}</span>
+                                        </div>
+                                        <div className="g-right">
+                                            <span className={`g-count ${isPositive ? 'gc-green' : 'gc-red'}`}>{shower.rsvp_count || 0}</span>
+                                            <span className={`g-pct ${isPositive ? 'gp-green' : 'gp-red'}`}>
+                                                {isPositive ? '+' : ''}{shower.views ? Math.round(shower.views / 10) : 0}%
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveActionSheet({
+                                                    type: 'bridal_shower',
+                                                    title: `${shower.bride_name}'s Bridal Shower`,
+                                                    subtitle: `Date: ${new Date(shower.date).toLocaleDateString()}`,
+                                                    url: `/bridal-shower/${shower.slug}`,
+                                                    slug: shower.slug,
+                                                    copyType: 'bridal_shower',
+                                                    editUrl: `/editBridalShower/${shower.id}`,
+                                                    rawEvent: shower,
+                                                    reportUrl: `/report/${shower.slug}`,
+                                                    onDownload: () => downloadBridalShowerRSVPs(shower.id, shower.bride_name),
+                                                    onDelete: () => handleDeleteBridalShower(shower.id, `${shower.bride_name}'s Bridal Shower`)
+                                                });
+                                            }}
+                                            style={{ background: 'none', border: 'none', color: '#9ca3af', padding: '0.5rem', cursor: 'pointer' }}
+                                        >
+                                            <i className="fas fa-ellipsis-v"></i>
+                                        </button>
+                                    </div>
+                                )
+                            })}
 
-            {showVendorModal && (
-                <div className="popup-overlay active" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
-                    <div className="popup-content" style={{ maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', width: '90%', background: 'var(--bg-surface)', padding: '2rem', borderRadius: '1rem', border: '1px solid var(--border-color)', position: 'relative' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                                {editingVendor ? 'Edit Platform Vendor' : 'Add New Platform Vendor'}
-                            </h3>
-                            <button onClick={() => { setShowVendorModal(false); setEditingVendor(null); }} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                                &times;
-                            </button>
-                        </div>
-                        <form onSubmit={handleSaveVendor} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', textAlign: 'left' }}>Vendor Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    className="form-control"
-                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-surface-elevated)', color: 'var(--text-main)' }}
-                                    placeholder="e.g. Glow by Sarah M."
-                                    value={vendorForm.name}
-                                    onChange={e => setVendorForm({ ...vendorForm, name: e.target.value })}
-                                />
-                            </div>
+                            {activeTab === 'marketing' && (
+                                <div style={{ background: '#fff', borderRadius: '16px', padding: '0.25rem', boxShadow: '0 1px 5px rgba(0,0,0,.05)' }}>
+                                    <EmailMarketing />
+                                </div>
+                            )}
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', textAlign: 'left' }}>Category / Service</label>
-                                    <select
-                                        className="form-control"
-                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-surface-elevated)', color: 'var(--text-main)' }}
-                                        value={vendorForm.category}
-                                        onChange={e => setVendorForm({ ...vendorForm, category: e.target.value })}
+                            {activeTab === 'vendors' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    <button
+                                        className="ga-approve"
+                                        onClick={openAddVendor}
+                                        style={{
+                                            background: '#10b981',
+                                            color: '#fff',
+                                            padding: '0.85rem',
+                                            justifyContent: 'center',
+                                            fontSize: '0.85rem',
+                                            borderRadius: '12px',
+                                            marginBottom: '0.5rem',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            fontWeight: 700,
+                                            width: '100%'
+                                        }}
                                     >
-                                        <option value="Makeup">Makeup</option>
-                                        <option value="Photography">Photography</option>
-                                        <option value="Decor">Decor</option>
-                                        <option value="Catering">Catering</option>
-                                        <option value="Venues">Venues</option>
-                                        <option value="DJ/Sound">DJ/Sound</option>
-                                        <option value="Planning">Planning</option>
-                                        <option value="Other">Other</option>
-                                    </select>
-                                </div>
-                                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', textAlign: 'left' }}>Location / City</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="form-control"
-                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-surface-elevated)', color: 'var(--text-main)' }}
-                                        placeholder="e.g. Lusaka"
-                                        value={vendorForm.city}
-                                        onChange={e => setVendorForm({ ...vendorForm, city: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', textAlign: 'left' }}>Cover Photo</label>
-                                <input
-                                    type="file"
-                                    id="vendor-cover-upload"
-                                    accept="image/*"
-                                    onChange={handleCoverUploadChange}
-                                    style={{ display: 'none' }}
-                                />
-                                <div
-                                    onClick={() => document.getElementById('vendor-cover-upload').click()}
-                                    style={{
-                                        border: '2px dashed var(--border-color)',
-                                        borderRadius: '12px',
-                                        padding: '1rem',
-                                        textAlign: 'center',
-                                        cursor: 'pointer',
-                                        background: 'var(--bg-surface-elevated)',
-                                        position: 'relative',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        minHeight: '120px'
-                                    }}
-                                >
-                                    {uploadingCover ? (
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                                            <i className="fas fa-spinner fa-spin" style={{ fontSize: '1.5rem', color: '#10b981' }}></i>
-                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Uploading Cover Photo...</span>
-                                        </div>
-                                    ) : vendorForm.image ? (
-                                        <div style={{ width: '100%', position: 'relative' }}>
-                                            <img src={vendorForm.image} alt="Cover" style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '8px' }} />
-                                            <button
-                                                type="button"
-                                                onClick={(e) => { e.stopPropagation(); setVendorForm({ ...vendorForm, image: '' }); }}
+                                        <i className="fas fa-plus"></i> Add New Vendor
+                                    </button>
+                                    {filteredVendorsList.map(vendor => (
+                                        <div key={vendor.id} className="g-row">
+                                            <div
+                                                className="g-avatar"
                                                 style={{
-                                                    position: 'absolute', top: '8px', right: '8px',
-                                                    background: 'rgba(239, 68, 68, 0.9)', border: 'none', borderRadius: '50%',
-                                                    width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    color: '#fff', cursor: 'pointer', zIndex: 10
+                                                    backgroundImage: `url(${vendor.image || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=600&q=80'})`,
+                                                    backgroundSize: 'cover',
+                                                    backgroundPosition: 'center',
+                                                    borderRadius: '14px',
+                                                    width: '44px',
+                                                    height: '44px'
                                                 }}
-                                            >
-                                                <i className="fas fa-trash" style={{ fontSize: '0.8rem' }}></i>
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                                            <i className="fas fa-cloud-upload-alt" style={{ fontSize: '1.8rem', color: 'var(--text-muted)' }}></i>
-                                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>Upload Cover Photo</span>
-                                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>PNG, JPG up to 5MB</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', textAlign: 'left' }}>Portfolio Gallery (Videos & Pictures of Work)</label>
-                                <input
-                                    type="file"
-                                    id="vendor-portfolio-upload"
-                                    accept="image/*,video/*"
-                                    multiple
-                                    onChange={handlePortfolioUploadChange}
-                                    style={{ display: 'none' }}
-                                />
-                                <div
-                                    onClick={() => document.getElementById('vendor-portfolio-upload').click()}
-                                    style={{
-                                        border: '2px dashed var(--border-color)',
-                                        borderRadius: '12px',
-                                        padding: '1rem',
-                                        textAlign: 'center',
-                                        cursor: 'pointer',
-                                        background: 'var(--bg-surface-elevated)',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        minHeight: '100px'
-                                    }}
-                                >
-                                    {uploadingPortfolio ? (
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                                            <i className="fas fa-spinner fa-spin" style={{ fontSize: '1.5rem', color: '#10b981' }}></i>
-                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Uploading Portfolio...</span>
-                                        </div>
-                                    ) : (
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                                            <i className="fas fa-images" style={{ fontSize: '1.8rem', color: 'var(--text-muted)' }}></i>
-                                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>Upload Work Gallery Items</span>
-                                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Multi-select images & videos up to 20MB</span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {vendorForm.portfolio && vendorForm.portfolio.length > 0 && (
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginTop: '0.5rem' }}>
-                                        {vendorForm.portfolio.map((item, index) => (
-                                            <div key={index} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', height: '65px', border: '1px solid var(--border-color)', background: '#000' }}>
-                                                {item.type === 'video' ? (
-                                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                        <video src={item.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted playsInline />
-                                                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                            <i className="fas fa-play" style={{ color: '#fff', fontSize: '0.8rem' }}></i>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <img src={item.url} alt="Work item" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                )}
+                                            />
+                                            <div className="g-info">
+                                                <span className="g-name">{vendor.name}</span>
+                                                <span className="g-sub">{vendor.category} • {vendor.city}</span>
+                                            </div>
+                                            <div className="g-right" style={{ marginRight: '0.5rem' }}>
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#10b981' }}>
+                                                    ★ {vendor.rating?.split(' ')[0] || '5.0'}
+                                                </span>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.25rem' }}>
                                                 <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        const updated = [...vendorForm.portfolio];
-                                                        updated.splice(index, 1);
-                                                        setVendorForm({ ...vendorForm, portfolio: updated });
-                                                    }}
-                                                    style={{
-                                                        position: 'absolute', top: '2px', right: '2px',
-                                                        background: 'rgba(239, 68, 68, 0.9)', border: 'none', borderRadius: '50%',
-                                                        width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        color: '#fff', cursor: 'pointer', zIndex: 10
-                                                    }}
+                                                    onClick={() => openEditVendor(vendor)}
+                                                    style={{ background: 'none', border: 'none', color: '#9ca3af', padding: '0.4rem', cursor: 'pointer' }}
                                                 >
-                                                    <i className="fas fa-times" style={{ fontSize: '0.55rem' }}></i>
+                                                    <i className="fas fa-edit"></i>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteVendor(vendor.id, vendor.name)}
+                                                    style={{ background: 'none', border: 'none', color: '#ef4444', padding: '0.4rem', cursor: 'pointer' }}
+                                                >
+                                                    <i className="fas fa-trash"></i>
                                                 </button>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                                        </div>
+                                    ))}
+                                    {filteredVendorsList.length === 0 && (
+                                        <div className="empty-state" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                                            <i className="fas fa-store" style={{ fontSize: '2.5rem', color: '#9ca3af', marginBottom: '1rem', display: 'block' }}></i>
+                                            <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>No vendors listed yet.</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
-                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', textAlign: 'left' }}>Rating & Verification Status</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-surface-elevated)', color: 'var(--text-main)' }}
-                                    placeholder="e.g. 5.0 Verified"
-                                    value={vendorForm.rating}
-                                    onChange={e => setVendorForm({ ...vendorForm, rating: e.target.value })}
-                                />
-                            </div>
+                            {activeTab === 'archives' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                    {archivedWeddings.length > 0 && (
+                                        <div>
+                                            <div className="sec-title" style={{ marginBottom: '0.5rem', color: 'var(--primary)' }}>Archived Weddings</div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                                                {archivedWeddings.map(wedding => {
+                                                    const isPositive = (wedding.rsvp_count || 0) > 0;
+                                                    return (
+                                                        <div key={wedding.id} className="g-row" onClick={() => navigate(`/w/${wedding.slug}`)} style={{ cursor: 'pointer', opacity: 0.7 }}>
+                                                            <div className="g-avatar" style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%)' }}>
+                                                                {wedding.groom_name?.substring(0, 1)}{wedding.bride_name?.substring(0, 1)}
+                                                            </div>
+                                                            <div className="g-info">
+                                                                <span className="g-name">{wedding.groom_name} & {wedding.bride_name}</span>
+                                                                <span className="g-sub">Wedding • {new Date(wedding.date).toLocaleDateString()}</span>
+                                                            </div>
+                                                            <div className="g-right">
+                                                                <span className={`g-count ${isPositive ? 'gc-green' : 'gc-red'}`}>{wedding.rsvp_count || 0}</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setActiveActionSheet({
+                                                                        type: 'wedding',
+                                                                        title: `${wedding.groom_name} & ${wedding.bride_name}`,
+                                                                        subtitle: `Wedding Date: ${new Date(wedding.date).toLocaleDateString()}`,
+                                                                        url: `/w/${wedding.slug}`,
+                                                                        slug: wedding.slug,
+                                                                        copyType: 'preview',
+                                                                        editUrl: `/editWedding/${wedding.id}`,
+                                                                        rawEvent: wedding,
+                                                                        reportUrl: `/report/${wedding.slug}`,
+                                                                        onDownload: () => downloadRSVPs(wedding.id, `${wedding.groom_name}_${wedding.bride_name}`),
+                                                                        onDelete: () => handleDelete(wedding.id, `${wedding.groom_name} & ${wedding.bride_name}`)
+                                                                    });
+                                                                }}
+                                                                style={{ background: 'none', border: 'none', color: '#9ca3af', padding: '0.5rem', cursor: 'pointer' }}
+                                                            >
+                                                                <i className="fas fa-ellipsis-v"></i>
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
 
-                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', textAlign: 'left' }}>Short Description</label>
-                                <textarea
-                                    className="form-control"
-                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-surface-elevated)', color: 'var(--text-main)', height: '80px', resize: 'vertical' }}
-                                    placeholder="e.g. Top-rated makeup professional. One simple search."
-                                    value={vendorForm.description}
-                                    onChange={e => setVendorForm({ ...vendorForm, description: e.target.value })}
-                                />
-                            </div>
+                                    {archivedBirthdays.length > 0 && (
+                                        <div>
+                                            <div className="sec-title" style={{ marginBottom: '0.5rem', color: '#c44569' }}>Archived Birthdays</div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                                                {archivedBirthdays.map(bday => {
+                                                    const isPositive = (bday.rsvp_count || 0) > 0;
+                                                    return (
+                                                        <div key={bday.id} className="g-row" onClick={() => navigate(`/b/${bday.slug}`)} style={{ cursor: 'pointer', opacity: 0.7 }}>
+                                                            <div className="g-avatar" style={{ background: '#c44569' }}>
+                                                                {bday.celebrant_name?.substring(0, 1)}
+                                                            </div>
+                                                            <div className="g-info">
+                                                                <span className="g-name">{bday.celebrant_name}'s Birthday</span>
+                                                                <span className="g-sub">Birthday • {new Date(bday.date).toLocaleDateString()}</span>
+                                                            </div>
+                                                            <div className="g-right">
+                                                                <span className={`g-count ${isPositive ? 'gc-green' : 'gc-red'}`}>{bday.rsvp_count || 0}</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setActiveActionSheet({
+                                                                        type: 'birthday',
+                                                                        title: `${bday.celebrant_name}'s Birthday`,
+                                                                        subtitle: `Date: ${new Date(bday.date).toLocaleDateString()}`,
+                                                                        url: `/b/${bday.slug}`,
+                                                                        slug: bday.slug,
+                                                                        copyType: 'birthday',
+                                                                        editUrl: `/editBirthday/${bday.id}`,
+                                                                        rawEvent: bday,
+                                                                        reportUrl: `/report/${bday.slug}`,
+                                                                        onDownload: () => downloadBirthdayRSVPs(bday.id, `${bday.celebrant_name}_Birthday`),
+                                                                        onDelete: () => handleDeleteBirthday(bday.id, `${bday.celebrant_name}'s Birthday`)
+                                                                    });
+                                                                }}
+                                                                style={{ background: 'none', border: 'none', color: '#9ca3af', padding: '0.5rem', cursor: 'pointer' }}
+                                                            >
+                                                                <i className="fas fa-ellipsis-v"></i>
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
 
-                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                                <button type="button" onClick={() => { setShowVendorModal(false); setEditingVendor(null); }} className="nav-btn outline" style={{ flex: 1, padding: '10px 18px', cursor: 'pointer' }}>
-                                    Cancel
-                                </button>
-                                <button type="submit" className="nav-btn primary" disabled={uploadingCover || uploadingPortfolio} style={{ flex: 1, padding: '10px 18px', cursor: 'pointer', background: 'var(--primary)', color: '#ffffff', border: 'none', opacity: (uploadingCover || uploadingPortfolio) ? 0.6 : 1 }}>
-                                    {(uploadingCover || uploadingPortfolio) ? 'Uploading Files...' : 'Save Vendor'}
-                                </button>
-                            </div>
-                        </form>
+                                    {archivedBridalShowers.length > 0 && (
+                                        <div>
+                                            <div className="sec-title" style={{ marginBottom: '0.5rem', color: '#c5a059' }}>Archived Bridal Showers</div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                                                {archivedBridalShowers.map(shower => {
+                                                    const isPositive = (shower.rsvp_count || 0) > 0;
+                                                    return (
+                                                        <div key={shower.id} className="g-row" onClick={() => navigate(`/bridal-shower/${shower.slug}`)} style={{ cursor: 'pointer', opacity: 0.7 }}>
+                                                            <div className="g-avatar" style={{ background: '#c5a059' }}>
+                                                                {shower.bride_name?.substring(0, 1)}
+                                                            </div>
+                                                            <div className="g-info">
+                                                                <span className="g-name">{shower.bride_name}'s Shower</span>
+                                                                <span className="g-sub">Shower • {new Date(shower.date).toLocaleDateString()}</span>
+                                                            </div>
+                                                            <div className="g-right">
+                                                                <span className={`g-count ${isPositive ? 'gc-green' : 'gc-red'}`}>{shower.rsvp_count || 0}</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setActiveActionSheet({
+                                                                        type: 'bridal_shower',
+                                                                        title: `${shower.bride_name}'s Bridal Shower`,
+                                                                        subtitle: `Date: ${new Date(shower.date).toLocaleDateString()}`,
+                                                                        url: `/bridal-shower/${shower.slug}`,
+                                                                        slug: shower.slug,
+                                                                        copyType: 'bridal_shower',
+                                                                        editUrl: `/editBridalShower/${shower.id}`,
+                                                                        rawEvent: shower,
+                                                                        reportUrl: `/report/${shower.slug}`,
+                                                                        onDownload: () => downloadBridalShowerRSVPs(shower.id, `${shower.bride_name}_Bridal_Shower`),
+                                                                        onDelete: () => handleDeleteBridalShower(shower.id, `${shower.bride_name}'s Bridal Shower`)
+                                                                    });
+                                                                }}
+                                                                style={{ background: 'none', border: 'none', color: '#9ca3af', padding: '0.5rem', cursor: 'pointer' }}
+                                                            >
+                                                                <i className="fas fa-ellipsis-v"></i>
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {archivedWeddings.length === 0 && archivedBirthdays.length === 0 && archivedBridalShowers.length === 0 && (
+                                        <div className="empty-state" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                                            <i className="fas fa-archive" style={{ fontSize: '2.5rem', color: '#9ca3af', marginBottom: '1rem', display: 'block' }}></i>
+                                            <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>No archived events.</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
-            )}
 
-            {activeActionSheet && (
-                <div className="bottom-sheet-overlay" onClick={() => setActiveActionSheet(null)}>
-                    <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
-                        <div className="bottom-sheet-drag-handle"></div>
-
-                        <div className="bottom-sheet-header">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <div className="bottom-sheet-avatar">
-                                    <i className={
-                                        activeActionSheet.type === 'wedding' ? 'fas fa-glass-cheers' :
-                                            activeActionSheet.type === 'birthday' ? 'fas fa-birthday-cake' :
-                                                'fas fa-gift'
-                                    } style={{
-                                        color: activeActionSheet.type === 'wedding' ? 'var(--primary)' :
-                                            activeActionSheet.type === 'birthday' ? '#c44569' :
-                                                '#c5a059'
-                                    }}></i>
-                                </div>
-                                <div>
-                                    <h4 className="bottom-sheet-title">{activeActionSheet.title}</h4>
-                                    <p className="bottom-sheet-subtitle">{activeActionSheet.subtitle}</p>
-                                </div>
-                            </div>
-                            <button className="bottom-sheet-close" onClick={() => setActiveActionSheet(null)}>
-                                <i className="fas fa-times"></i>
-                            </button>
-                        </div>
-
-                        <div className="bottom-sheet-actions">
-                            {/* View Site */}
-                            {activeActionSheet.type === 'wedding' && (
-                                <a href={`${window.location.origin}/w/${activeActionSheet.slug}`} target="_blank" rel="noopener noreferrer" className="bottom-sheet-action-btn">
-                                    <i className="fas fa-external-link-alt" style={{ color: 'var(--primary)' }}></i>
-                                    <span>View Invitation Website</span>
-                                </a>
-                            )}
-                            {activeActionSheet.type === 'birthday' && (
-                                <a href={`${window.location.origin}/b/${activeActionSheet.slug}`} target="_blank" rel="noopener noreferrer" className="bottom-sheet-action-btn">
-                                    <i className="fas fa-external-link-alt" style={{ color: '#c44569' }}></i>
-                                    <span>View Invitation Website</span>
-                                </a>
-                            )}
-                            {activeActionSheet.type === 'bridal_shower' && (
-                                <a href={`${window.location.origin}/bridal-shower/${activeActionSheet.slug}`} target="_blank" rel="noopener noreferrer" className="bottom-sheet-action-btn">
-                                    <i className="fas fa-external-link-alt" style={{ color: '#c5a059' }}></i>
-                                    <span>View Invitation Website</span>
-                                </a>
-                            )}
-
-                            {/* Share / Copy WhatsApp Link */}
-                            <button onClick={() => { copyLink(activeActionSheet.slug, activeActionSheet.copyType); setActiveActionSheet(null); }} className="bottom-sheet-action-btn">
-                                <i className="fab fa-whatsapp" style={{ color: '#25D366' }}></i>
-                                <span>Copy Link for WhatsApp</span>
-                            </button>
-
-                            {/* RSVP Report */}
-                            <Link to={activeActionSheet.reportUrl} target="_blank" className="bottom-sheet-action-btn">
-                                <i className="fas fa-chart-bar" style={{ color: '#3b82f6' }}></i>
-                                <span>View RSVP Report</span>
-                            </Link>
-
-                            {/* Download Excel */}
-                            <button onClick={() => { activeActionSheet.onDownload(); setActiveActionSheet(null); }} className="bottom-sheet-action-btn">
-                                <i className="fas fa-file-excel" style={{ color: 'var(--success)' }}></i>
-                                <span>Download RSVPs Excel</span>
-                            </button>
-
-                            {/* Manage Reminder Modal (Weddings only) */}
-                            {activeActionSheet.type === 'wedding' && (
-                                <button onClick={() => {
-                                    setSelectedWeddingForReminder(activeActionSheet.rawEvent);
-                                    setShowReminderModal(true);
-                                    setActiveActionSheet(null);
-                                }} className="bottom-sheet-action-btn">
-                                    <i className="fas fa-bell" style={{ color: 'var(--primary)' }}></i>
-                                    <span>Manage Reminders</span>
-                                </button>
-                            )}
-
-                            {/* Edit */}
-                            <Link to={activeActionSheet.editUrl} className="bottom-sheet-action-btn">
-                                <i className="fas fa-edit" style={{ color: '#8b5cf6' }}></i>
-                                <span>Edit Event Details</span>
-                            </Link>
-
-                            {/* Delete */}
-                            <button onClick={() => { activeActionSheet.onDelete(); setActiveActionSheet(null); }} className="bottom-sheet-action-btn delete">
-                                <i className="fas fa-trash" style={{ color: 'var(--danger)' }}></i>
-                                <span style={{ color: 'var(--danger)' }}>Delete Event</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-            {/* Premium Mobile Bottom Navigation Bar */}
-            <div className="mobile-bottom-nav">
-                <button
-                    className={`mobile-bottom-nav-item ${activeTab === 'weddings' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('weddings')}
-                >
-                    <i className="fas fa-glass-cheers"></i>
-                    <span>Weddings</span>
-                </button>
-                <button
-                    className={`mobile-bottom-nav-item birthdays-tab ${activeTab === 'birthdays' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('birthdays')}
-                >
-                    <i className="fas fa-birthday-cake"></i>
-                    <span>Birthdays</span>
-                </button>
-                <button
-                    className={`mobile-bottom-nav-item bridal-tab ${activeTab === 'bridal_showers' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('bridal_showers')}
-                >
-                    <i className="fas fa-gift"></i>
-                    <span>Showers</span>
-                </button>
-                <button
-                    className={`mobile-bottom-nav-item ${activeTab === 'marketing' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('marketing')}
-                >
-                    <i className="fas fa-envelope"></i>
-                    <span>Marketing</span>
-                </button>
+                {/* BOTTOM NAV */}
+                <nav className="btm-nav">
+                    <button className={`bn-item ${activeTab === 'weddings' ? 'bn-active' : ''}`} onClick={() => setActiveTab('weddings')}>
+                        <i className="fas fa-ring"></i><span>Weddings</span>
+                    </button>
+                    <button className={`bn-item ${activeTab === 'birthdays' ? 'bn-active' : ''}`} onClick={() => setActiveTab('birthdays')}>
+                        <i className="fas fa-birthday-cake"></i><span>Birthdays</span>
+                    </button>
+                    <button className="bn-center" onClick={() => setShowMobileMenu(true)}>
+                        <i className="fas fa-bars"></i>
+                    </button>
+                    <button className={`bn-item ${activeTab === 'bridal_showers' ? 'bn-active' : ''}`} onClick={() => setActiveTab('bridal_showers')}>
+                        <i className="fas fa-gift"></i><span>Showers</span>
+                    </button>
+                    <button className={`bn-item ${activeTab === 'vendors' ? 'bn-active' : ''}`} onClick={() => setActiveTab('vendors')}>
+                        <i className="fas fa-store"></i><span>Vendors</span>
+                    </button>
+                </nav>
             </div>
+
+            {/* Mobile Menu Overlay */}
+            {showMobileMenu && (
+                <div className="vm-overlay" onClick={() => setShowMobileMenu(false)}>
+                    <div className="vm-box" onClick={e => e.stopPropagation()} style={{ padding: '1.5rem', height: 'auto', gap: '0.85rem' }}>
+                        <h3 className="vm-name">Menu</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                            <Link to="/addWedding" className="nav-btn primary" onClick={() => setShowMobileMenu(false)} style={{ padding: '0.85rem', textAlign: 'center', background: '#12121c', color: '#a3e635', borderRadius: '12px', textDecoration: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                <i className="fas fa-plus"></i> Create New Wedding
+                            </Link>
+                            <Link to="/addBirthday" className="nav-btn primary" onClick={() => setShowMobileMenu(false)} style={{ padding: '0.85rem', textAlign: 'center', background: '#c44569', color: '#fff', borderRadius: '12px', textDecoration: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                <i className="fas fa-plus"></i> Create New Birthday
+                            </Link>
+                            <Link to="/addBridalShower" className="nav-btn primary" onClick={() => setShowMobileMenu(false)} style={{ padding: '0.85rem', textAlign: 'center', background: '#c5a059', color: '#fff', borderRadius: '12px', textDecoration: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                <i className="fas fa-plus"></i> Create Bridal Shower
+                            </Link>
+                            <button className="nav-btn outline" onClick={() => { setActiveTab('marketing'); setShowMobileMenu(false); }} style={{ padding: '0.85rem', background: '#f3f4f6', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                <i className="fas fa-envelope"></i> Email Marketing
+                            </button>
+                            <button className="nav-btn outline" onClick={() => { setActiveTab('vendors'); setShowMobileMenu(false); }} style={{ padding: '0.85rem', background: '#f3f4f6', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                <i className="fas fa-store"></i> Manage Ecosystem Vendors
+                            </button>
+                            <button className="nav-btn outline" onClick={() => { setActiveTab('archives'); setShowMobileMenu(false); }} style={{ padding: '0.85rem', background: '#f3f4f6', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                <i className="fas fa-archive"></i> View Archives
+                            </button>
+                            <button className="nav-btn outline" onClick={() => { handleLogout(); setShowMobileMenu(false); }} style={{ padding: '0.85rem', background: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                <i className="fas fa-sign-out-alt"></i> Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
+            {/* Overlays (Action Sheets) */}
+            {activeActionSheet && (
+                <div className="vm-overlay" onClick={() => setActiveActionSheet(null)}>
+                    <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '1.5rem' }}>
+                        <h4 className="vm-name">{activeActionSheet.title}</h4>
+                        <p className="vm-desc" style={{ marginBottom: '1.5rem' }}>{activeActionSheet.subtitle}</p>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <a href={`${window.location.origin}${activeActionSheet.type === 'wedding' ? '/w/' : activeActionSheet.type === 'birthday' ? '/b/' : '/bridal-shower/'}${activeActionSheet.slug}`} target="_blank" rel="noopener noreferrer" className="ga-approve" style={{ padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem', textDecoration: 'none' }}>
+                                <i className="fas fa-external-link-alt"></i> View Website
+                            </a>
+                            <button onClick={() => { copyLink(activeActionSheet.slug, activeActionSheet.copyType); setActiveActionSheet(null); }} className="ga-approve" style={{ background: '#25D366', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem' }}>
+                                <i className="fab fa-whatsapp"></i> Copy Link for WhatsApp
+                            </button>
+                            <Link to={activeActionSheet.reportUrl} target="_blank" className="ga-approve" style={{ background: '#3b82f6', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem', textDecoration: 'none' }}>
+                                <i className="fas fa-chart-bar"></i> View RSVP Report
+                            </Link>
+                            <button onClick={() => { activeActionSheet.onDownload(); setActiveActionSheet(null); }} className="ga-approve" style={{ background: '#10b981', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem' }}>
+                                <i className="fas fa-file-excel"></i> Download Excel
+                            </button>
+                            <Link to={activeActionSheet.editUrl} className="ga-approve" style={{ background: '#8b5cf6', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem', textDecoration: 'none' }}>
+                                <i className="fas fa-edit"></i> Edit Details
+                            </Link>
+                            <button onClick={() => { activeActionSheet.onDelete(); setActiveActionSheet(null); }} className="ga-approve" style={{ background: '#ef4444', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem' }}>
+                                <i className="fas fa-trash"></i> Delete Event
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <style jsx>{`
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+                *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+                /* PAGE */
+                .rr-page {
+                    min-height: 100vh;
+                    background: #d8dce3;
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 2rem 0;
+                }
+
+                /* VENDOR MODAL / ACTION SHEET */
+                .vm-overlay {
+                    position: fixed; inset: 0;
+                    background: rgba(0,0,0,.75); backdrop-filter: blur(10px);
+                    z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+                }
+                .vm-box {
+                    background: #fff; border-radius: 24px; max-width: 400px; width: 100%;
+                    max-height: 80vh; overflow-y: auto; display: flex; flex-direction: column;
+                    box-shadow: 0 30px 60px rgba(0,0,0,.45);
+                }
+                .vm-name { font-size:1.25rem; font-weight:800; color:#111; margin-bottom:.55rem; }
+                .vm-desc { font-size:.86rem; color:#6b7280; line-height:1.55; }
+
+                /* PHONE SHELL */
+                .phone-shell {
+                    width: 100%; max-width: 420px;
+                    height: 90vh;
+                    max-height: 860px;
+                    min-height: 600px;
+                    background: #f4f5f7;
+                    border-radius: 44px;
+                    overflow: hidden;
+                    box-shadow: 0 32px 80px rgba(0,0,0,.22), 0 0 0 8px rgba(0,0,0,.07);
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                /* SCROLL AREA */
+                .scroll-area {
+                    flex: 1;
+                    min-height: 0;
+                    overflow-y: auto;
+                    display: flex;
+                    flex-direction: column;
+                    -webkit-overflow-scrolling: touch;
+                    scrollbar-width: none;
+                }
+                .scroll-area::-webkit-scrollbar { display: none; }
+
+                /* HERO */
+                .hero {
+                    background: #12121c;
+                    padding: 2.75rem 1.75rem 2.25rem;
+                    position: relative; overflow: hidden; text-align: center;
+                    flex-shrink: 0;
+                }
+                .hero-ring {
+                    position: absolute; border-radius: 50%; pointer-events: none;
+                    border: 38px solid rgba(255,255,255,.035);
+                }
+                .r1 { width:260px; height:260px; top:-85px; right:-65px; }
+                .r2 { width:180px; height:180px; bottom:-55px; left:-45px; }
+                .hero-eyebrow {
+                    font-size:.7rem; font-weight:600; color:rgba(255,255,255,.38);
+                    letter-spacing:.1em; text-transform:uppercase; margin-bottom:.35rem;
+                    position:relative; z-index:1;
+                }
+                .hero-big-num {
+                    font-size:4.75rem; font-weight:900; color:#fff;
+                    letter-spacing:-.05em; line-height:1; margin-bottom:.45rem;
+                    position:relative; z-index:1;
+                }
+                .hero-couple {
+                    font-size:.95rem; font-weight:700; color:rgba(255,255,255,.82);
+                    margin-bottom:.25rem; position:relative; z-index:1;
+                }
+                .hero-meta {
+                    font-size:.72rem; color:rgba(255,255,255,.32);
+                    margin-bottom:2rem; position:relative; z-index:1;
+                }
+                
+                .hero-btns {
+                    display:flex; justify-content:center; gap:1.75rem;
+                    position:relative; z-index:1;
+                }
+                .hbtn {
+                    display:flex; flex-direction:column; align-items:center; gap:.4rem;
+                    background:none; border:none; cursor:pointer;
+                }
+                .hbtn-icon {
+                    width:56px; height:56px; border-radius:18px;
+                    background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.08);
+                    display:flex; align-items:center; justify-content:center;
+                    font-size:1.15rem; color:rgba(255,255,255,.82);
+                    transition:all .2s ease;
+                }
+                .hbtn-lbl { font-size:.68rem; font-weight:600; color:rgba(255,255,255,.42); letter-spacing:.02em; }
+                .hbtn-lime .hbtn-icon {
+                    background:#a3e635; color:#12121c; border-color:transparent;
+                    box-shadow:0 6px 20px rgba(163,230,53,.4);
+                }
+                .hbtn-lime .hbtn-lbl { color:#a3e635; }
+                .hbtn:hover .hbtn-icon { transform:translateY(-3px); }
+
+                /* WHITE CONTENT PADDING */
+                .content-pad {
+                    background: #f4f5f7;
+                    flex: 1;
+                    padding: 1.2rem 1.2rem 1rem;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
+                }
+
+                /* SEARCH */
+                .search-wrap {
+                    background:#fff; border-radius:14px;
+                    display:flex; align-items:center; gap:.6rem;
+                    padding:.82rem 1rem;
+                    box-shadow:0 2px 8px rgba(0,0,0,.05);
+                }
+                .si { color:#9ca3af; font-size:.88rem; flex-shrink:0; }
+                .search-inp {
+                    border:none; background:transparent; outline:none;
+                    font-size:.86rem; color:#374151; width:100%; font-family:inherit;
+                }
+                .search-clear {
+                    border:none; background:#f3f4f6; color:#6b7280;
+                    width:22px; height:22px; border-radius:50%; cursor:pointer;
+                    display:flex; align-items:center; justify-content:center; font-size:.65rem; flex-shrink:0;
+                }
+
+                /* SECTION HEADER */
+                .sec-hdr { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.5rem; }
+                .sec-title { font-size:.92rem; font-weight:800; color:#111; letter-spacing:-.01em; }
+                .sec-tabs { display:flex; gap:.28rem; background:#e4e6ed; padding:.22rem; border-radius:10px; }
+                .sec-tab {
+                    padding:.3rem .65rem; border:none; background:transparent; border-radius:7px;
+                    font-size:.7rem; font-weight:600; color:#6b7280; cursor:pointer; font-family:inherit; transition:all .18s;
+                }
+                .sec-tab-on { background:#12121c; color:#a3e635; box-shadow:0 2px 6px rgba(0,0,0,.2); }
+                .sec-tab:hover:not(.sec-tab-on) { background:rgba(255,255,255,.6); color:#374151; }
+
+                /* LIST */
+                .guest-list { display:flex; flex-direction:column; gap:.45rem; }
+                .g-row {
+                    background:#fff; border-radius:16px; padding:.8rem .95rem;
+                    display:flex; align-items:center; gap:.8rem;
+                    box-shadow:0 1px 5px rgba(0,0,0,.05); transition:transform .15s;
+                }
+                .g-row:hover { transform:translateY(-1px); box-shadow:0 4px 14px rgba(0,0,0,.08); }
+                .g-avatar {
+                    width:44px; height:44px; border-radius:14px; flex-shrink:0;
+                    display:flex; align-items:center; justify-content:center;
+                    font-size:.78rem; font-weight:800; color:#fff; letter-spacing:.03em;
+                }
+                .g-info { flex:1; min-width:0; }
+                .g-name { display:block; font-size:.86rem; font-weight:700; color:#111; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+                .g-sub  { display:block; font-size:.7rem; color:#9ca3af; margin-top:.08rem; }
+                .g-right { display:flex; flex-direction:column; align-items:flex-end; gap:.22rem; flex-shrink:0; }
+                .g-count { font-size:.95rem; font-weight:900; letter-spacing:-.02em; }
+                .gc-green { color:#15803d; }
+                .gc-red   { color:#dc2626; }
+                .g-pct { font-size:.67rem; font-weight:600; }
+                .gp-green { color:#16a34a; }
+                .gp-red   { color:#dc2626; }
+                .ga-approve {
+                    display:flex; align-items:center; gap:.28rem;
+                    padding:.26rem .6rem; border:none; border-radius:8px;
+                    background:#12121c; color:#a3e635; font-size:.68rem; font-weight:700;
+                    cursor:pointer; font-family:inherit; transition:all .15s; white-space:nowrap;
+                }
+                .ga-approve:hover { filter:brightness(1.1); }
+
+                /* BOTTOM NAV */
+                .btm-nav {
+                    display: flex; align-items: center; justify-content: space-around;
+                    background: #fff; padding: .7rem 1rem 1.5rem;
+                    border-top: 1px solid #f1f5f9; flex-shrink: 0; z-index: 10;
+                }
+                .bn-item {
+                    display:flex; flex-direction:column; align-items:center; gap:.18rem;
+                    border:none; background:none; cursor:pointer; color:#9ca3af;
+                    font-size:.58rem; font-weight:600; font-family:inherit; padding:.3rem .5rem;
+                }
+                .bn-item i { font-size:1.12rem; }
+                .bn-active { color:#12121c; }
+                .bn-item:hover:not(.bn-center) { color:#374151; }
+                .bn-center {
+                    width:52px; height:52px; border-radius:50%; border:none;
+                    background:#12121c; color:#a3e635; font-size:1.08rem;
+                    cursor:pointer; display:flex; align-items:center; justify-content:center;
+                    box-shadow:0 6px 20px rgba(0,0,0,.28); transition:all .2s;
+                }
+                .bn-center:hover { transform:scale(1.08); }
+
+                /* FULL WIDTH ON SMALL PHONES */
+                @media (max-width: 480px) {
+                    .rr-page { padding: 0; align-items: stretch; }
+                    .phone-shell { border-radius: 0; box-shadow: none; max-width: 100%; width: 100%; height: 100vh; max-height: 100vh; }
+                }
+            `}</style>
         </div>
     );
-};
+
+}
 
 export default AdminDashboard;

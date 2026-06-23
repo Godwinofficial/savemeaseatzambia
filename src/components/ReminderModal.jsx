@@ -123,288 +123,224 @@ const ReminderModal = ({ wedding, onClose, onSave }) => {
     };
 
     return (
-        <div className="modal-overlay">
-            <div className="modal-content">
-                <div className="modal-header">
-                    <h3>Reminders for {wedding.groom_name} & {wedding.bride_name}</h3>
-                    <button className="close-btn" onClick={onClose}>
-                        <i className="fas fa-times"></i>
-                    </button>
+        <div className="rm-overlay" onClick={onClose}>
+            <div className="rm-sheet" onClick={e => e.stopPropagation()}>
+                <div className="rm-header">
+                    <div className="rm-drag-pill"></div>
+                    <h3>Schedule Reminders</h3>
+                    <p>For {wedding.groom_name} & {wedding.bride_name}</p>
+                    <button className="rm-close" onClick={onClose}><i className="fas fa-times"></i></button>
                 </div>
-                <div className="modal-body">
-                    <div className="form-group">
-                        <label className="checkbox-label">
-                            <input
-                                type="checkbox"
-                                checked={dayOfEventEnabled}
-                                onChange={(e) => setDayOfEventEnabled(e.target.checked)}
-                            />
-                            Enable Day-of-Event Reminder
-                        </label>
-                        <p className="help-text">Sends a reminder on the morning of {new Date(wedding.date).toLocaleDateString()}</p>
-                        {wedding.reminder_sent_day_of && <span className="status-sent">Sent!</span>}
+
+                <div className="rm-body">
+                    {/* Day Of Event */}
+                    <div className="rm-card">
+                        <div className="rm-card-row">
+                            <div className="rm-icon-box"><i className="fas fa-calendar-day"></i></div>
+                            <div className="rm-card-info">
+                                <h4>Day-of-Event Reminder</h4>
+                                <p>Morning of {new Date(wedding.date).toLocaleDateString()}</p>
+                            </div>
+                            <label className="rm-toggle">
+                                <input type="checkbox" checked={dayOfEventEnabled} onChange={(e) => setDayOfEventEnabled(e.target.checked)} />
+                                <span className="rm-slider"></span>
+                            </label>
+                        </div>
+                        {wedding.reminder_sent_day_of && <div className="rm-sent-badge"><i className="fas fa-check-circle"></i> Sent!</div>}
                     </div>
 
-                    <div className="form-group">
-                        <label>Custom Reminder Timing</label>
-                        <div className="preset-buttons">
-                            <button
-                                className={`preset-btn ${presetOption === '1day' ? 'active' : ''}`}
-                                onClick={() => handlePresetChange('1day')}
-                            >
-                                1 Day Before
-                            </button>
-                            <button
-                                className={`preset-btn ${presetOption === '2days' ? 'active' : ''}`}
-                                onClick={() => handlePresetChange('2days')}
-                            >
-                                2 Days Before
-                            </button>
-                            <button
-                                className={`preset-btn ${presetOption === '1week' ? 'active' : ''}`}
-                                onClick={() => handlePresetChange('1week')}
-                            >
-                                1 Week Before
-                            </button>
-                            <button
-                                className={`preset-btn ${presetOption === 'custom' ? 'active' : ''}`}
-                                onClick={() => setPresetOption('custom')}
-                            >
-                                Custom Date
-                            </button>
+                    {/* Custom Timing */}
+                    <div className="rm-card">
+                        <h4><i className="fas fa-clock"></i> Custom Timing</h4>
+                        <div className="rm-presets">
+                            {['1day', '2days', '1week', 'custom'].map(opt => (
+                                <button
+                                    key={opt}
+                                    className={`rm-preset ${presetOption === opt ? 'rm-preset-on' : ''}`}
+                                    onClick={() => handlePresetChange(opt)}
+                                >
+                                    {opt === '1day' ? '1 Day' : opt === '2days' ? '2 Days' : opt === '1week' ? '1 Week' : 'Custom'}
+                                </button>
+                            ))}
                         </div>
-
                         <input
                             type="datetime-local"
                             value={customDate}
-                            onChange={(e) => {
-                                setCustomDate(e.target.value);
-                                setPresetOption('custom');
-                            }}
-                            className="form-input"
-                            style={{ marginTop: '0.5rem' }}
+                            onChange={(e) => { setCustomDate(e.target.value); setPresetOption('custom'); }}
+                            className="rm-input"
                         />
-                        {wedding.reminder_sent_custom && <span className="status-sent">Sent!</span>}
+                        {wedding.reminder_sent_custom && <div className="rm-sent-badge" style={{ marginTop: '10px' }}><i className="fas fa-check-circle"></i> Sent!</div>}
                     </div>
 
-                    <div className="test-email-section">
-                        <h4>Test Reminder</h4>
-                        <div className="test-email-inputs">
+                    {/* Test Email */}
+                    <div className="rm-card">
+                        <h4><i className="fas fa-vial"></i> Send Test</h4>
+                        <div className="rm-test-row">
                             <input
                                 type="email"
-                                placeholder="Enter email for test"
+                                placeholder="Test email address"
                                 value={testEmail}
                                 onChange={(e) => setTestEmail(e.target.value)}
-                                className="form-input"
+                                className="rm-input"
                             />
-                            <button
-                                className="action-btn secondary"
-                                onClick={sendTestEmail}
-                                disabled={sending}
-                            >
-                                {sending ? 'Sending...' : 'Send Test'}
+                            <button className="rm-btn-test" onClick={sendTestEmail} disabled={sending}>
+                                {sending ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-paper-plane"></i>}
                             </button>
                         </div>
                     </div>
                 </div>
-                <div className="modal-footer">
-                    <button className="action-btn cancel" onClick={onClose}>Cancel</button>
-                    <button className="action-btn primary" onClick={handleSave}>Save Settings</button>
+
+                <div className="rm-footer">
+                    <button className="rm-btn-save" onClick={handleSave}>
+                        <i className="fas fa-check"></i> Save Schedule
+                    </button>
                 </div>
             </div>
+
             <style jsx>{`
-                .modal-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0, 0, 0, 0.5);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    z-index: 2000;
-                    backdrop-filter: blur(4px);
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+                
+                .rm-overlay {
+                    position: fixed; inset: 0;
+                    background: rgba(18, 18, 28, 0.6);
+                    backdrop-filter: blur(8px);
+                    z-index: 3000;
+                    display: flex; align-items: flex-end; justify-content: center;
+                    font-family: 'Inter', sans-serif;
                 }
-                .modal-content {
-                    background: white;
-                    border-radius: 1rem;
-                    width: 90%;
-                    max-width: 500px;
-                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+                .rm-sheet {
+                    background: #f4f5f7;
+                    width: 100%; max-width: 420px;
+                    border-radius: 32px 32px 0 0;
                     overflow: hidden;
-                    animation: slideUp 0.3s ease-out;
+                    box-shadow: 0 -10px 40px rgba(0,0,0,.2);
+                    animation: sheetUp .3s cubic-bezier(.34,1.56,.64,1);
+                    display: flex; flex-direction: column;
+                    max-height: 90vh;
                 }
-                @keyframes slideUp {
-                    from { transform: translateY(20px); opacity: 0; }
-                    to { transform: translateY(0); opacity: 1; }
+                @keyframes sheetUp {
+                    from { transform: translateY(100%); }
+                    to { transform: translateY(0); }
                 }
-                .modal-header {
-                    padding: 1.5rem;
-                    border-bottom: 1px solid #e5e7eb;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    background: #f9fafb;
+
+                /* HEADER */
+                .rm-header {
+                    background: #12121c; color: #fff;
+                    padding: 1rem 1.5rem 1.5rem;
+                    position: relative; text-align: center;
                 }
-                .modal-header h3 {
-                    margin: 0;
-                    font-size: 1.125rem;
-                    color: #1f2937;
+                .rm-drag-pill {
+                    width: 40px; height: 5px; border-radius: 10px;
+                    background: rgba(255,255,255,.2);
+                    margin: 0 auto 1rem;
                 }
-                .close-btn {
-                    background: #f3f4f6;
-                    border: 1px solid #e5e7eb;
-                    font-size: 1.25rem;
-                    color: #374151;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    width: 40px;
-                    height: 40px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    border-radius: 0.5rem;
-                    line-height: 1;
+                .rm-header h3 { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.2rem; }
+                .rm-header p { font-size: 0.8rem; color: rgba(255,255,255,.6); }
+                .rm-close {
+                    position: absolute; top: 1.2rem; right: 1.2rem;
+                    width: 32px; height: 32px; border-radius: 50%; border: none;
+                    background: rgba(255,255,255,.1); color: #fff;
+                    cursor: pointer; display: flex; align-items: center; justify-content: center;
+                    transition: all .2s;
+                }
+                .rm-close:hover { background: rgba(255,255,255,.2); }
+
+                /* BODY */
+                .rm-body {
+                    padding: 1.5rem; overflow-y: auto;
+                    display: flex; flex-direction: column; gap: 1rem;
+                }
+                .rm-card {
+                    background: #fff; border-radius: 20px; padding: 1.2rem;
+                    box-shadow: 0 2px 10px rgba(0,0,0,.04);
+                }
+                .rm-card h4 { font-size: .9rem; font-weight: 700; color: #111; margin-bottom: .8rem; display: flex; align-items: center; gap: .4rem; }
+                .rm-card h4 i { color: #9ca3af; }
+
+                /* ROW LAYOUT */
+                .rm-card-row {
+                    display: flex; align-items: center; gap: 1rem;
+                }
+                .rm-icon-box {
+                    width: 44px; height: 44px; border-radius: 14px;
+                    background: #f0fdf4; color: #16a34a;
+                    display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
                     flex-shrink: 0;
                 }
-                .close-btn:hover {
-                    color: #ffffff;
-                    background: #ef4444;
-                    border-color: #ef4444;
-                    transform: scale(1.05);
+                .rm-card-info { flex: 1; min-width: 0; }
+                .rm-card-info h4 { margin-bottom: 0.1rem; }
+                .rm-card-info p { font-size: .75rem; color: #6b7280; }
+
+                /* TOGGLE */
+                .rm-toggle { position: relative; display: inline-block; width: 46px; height: 26px; flex-shrink:0; }
+                .rm-toggle input { opacity: 0; width: 0; height: 0; }
+                .rm-slider {
+                    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+                    background-color: #e5e7eb; transition: .3s; border-radius: 34px;
                 }
-                .modal-body {
-                    padding: 1.5rem;
+                .rm-slider:before {
+                    position: absolute; content: ""; height: 20px; width: 20px;
+                    left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%;
+                    box-shadow: 0 2px 4px rgba(0,0,0,.1);
                 }
-                .form-group {
-                    margin-bottom: 1.5rem;
+                input:checked + .rm-slider { background-color: #a3e635; }
+                input:checked + .rm-slider:before { transform: translateX(20px); }
+
+                /* PRESETS */
+                .rm-presets {
+                    display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem;
                 }
-                .form-group label {
-                    display: block;
-                    font-weight: 500;
-                    margin-bottom: 0.5rem;
-                    color: #374151;
+                .rm-preset {
+                    padding: .4rem .8rem; border: none; border-radius: 10px;
+                    background: #f3f4f6; color: #4b5563; font-size: .75rem; font-weight: 600;
+                    cursor: pointer; transition: all .15s; font-family: inherit;
                 }
-                .checkbox-label {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    cursor: pointer;
+                .rm-preset-on {
+                    background: #12121c; color: #a3e635; box-shadow: 0 4px 10px rgba(0,0,0,.15);
                 }
-                .help-text {
-                    font-size: 0.875rem;
-                    color: #6b7280;
-                    margin-top: 0.25rem;
-                    margin-left: 1.7rem;
+
+                /* INPUTS */
+                .rm-input {
+                    width: 100%; padding: .75rem 1rem;
+                    background: #f9fafb; border: 1.5px solid #e5e7eb; border-radius: 12px;
+                    font-size: .85rem; font-family: inherit; outline: none; color: #111;
+                    transition: all .2s;
                 }
-                .form-input, .form-textarea {
-                    width: 100%;
-                    padding: 0.75rem;
-                    border: 1px solid #d1d5db;
-                    border-radius: 0.5rem;
-                    font-size: 0.95rem;
-                    transition: border-color 0.2s;
+                .rm-input:focus { border-color: #a3e635; background: #fff; box-shadow: 0 0 0 3px rgba(163,230,53,.15); }
+
+                .rm-test-row { display: flex; gap: .5rem; }
+                .rm-btn-test {
+                    width: 46px; height: 46px; border-radius: 12px; border: none;
+                    background: #12121c; color: #a3e635; font-size: 1rem;
+                    cursor: pointer; display: flex; align-items: center; justify-content: center;
+                    flex-shrink: 0; transition: all .2s;
                 }
-                .form-input:focus, .form-textarea:focus {
-                    outline: none;
-                    border-color: #6366f1;
-                    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+                .rm-btn-test:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+                .rm-btn-test:disabled { opacity: .5; cursor: not-allowed; }
+
+                /* BADGE */
+                .rm-sent-badge {
+                    display: inline-flex; align-items: center; gap: 4px;
+                    background: #dcfce7; color: #15803d; font-size: .7rem; font-weight: 700;
+                    padding: .2rem .6rem; border-radius: 999px; margin-top: .6rem;
                 }
-                .test-email-section {
-                    background: #f3f4f6;
-                    padding: 1rem;
-                    border-radius: 0.5rem;
-                    margin-top: 1rem;
+
+                /* FOOTER */
+                .rm-footer { padding: 1rem 1.5rem 2rem; background: #fff; border-top: 1px solid #f1f5f9; }
+                .rm-btn-save {
+                    width: 100%; padding: 1rem; border-radius: 16px; border: none;
+                    background: #a3e635; color: #12121c; font-size: .95rem; font-weight: 800;
+                    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: .5rem;
+                    transition: all .2s; font-family: inherit;
+                    box-shadow: 0 6px 20px rgba(163,230,53,.3);
                 }
-                .test-email-section h4 {
-                    margin-top: 0;
-                    margin-bottom: 0.75rem;
-                    font-size: 0.9rem;
-                    color: #4b5563;
-                }
-                .test-email-inputs {
-                    display: flex;
-                    gap: 0.75rem;
-                }
-                .status-sent {
-                    display: inline-block;
-                    margin-left: 0.5rem;
-                    padding: 0.125rem 0.5rem;
-                    border-radius: 9999px;
-                    background-color: #d1fae5;
-                    color: #065f46;
-                    font-size: 0.75rem;
-                    font-weight: 600;
-                }
-                .modal-footer {
-                    padding: 1rem 1.5rem;
-                    background: #f9fafb;
-                    border-top: 1px solid #e5e7eb;
-                    display: flex;
-                    justify-content: flex-end;
-                    gap: 0.75rem;
-                }
-                .action-btn {
-                    padding: 0.625rem 1.25rem;
-                    border-radius: 0.5rem;
-                    font-weight: 500;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    border: 1px solid transparent;
-                }
-                .action-btn.primary {
-                    background: #6366f1;
-                    color: white;
-                }
-                .action-btn.primary:hover {
-                    background: #4f46e5;
-                }
-                .action-btn.secondary {
-                    background: #e5e7eb;
-                    color: #374151;
-                }
-                .action-btn.secondary:hover {
-                    background: #d1d5db;
-                }
-                .action-btn.cancel {
-                    background: white;
-                    border: 1px solid #d1d5db;
-                    color: #374151;
-                }
-                .action-btn.cancel:hover {
-                    background: #f9fafb;
-                }
-                .action-btn.cancel:hover {
-                    background: #f9fafb;
-                }
-                .action-btn:disabled {
-                    opacity: 0.6;
-                    cursor: not-allowed;
-                }
-                .preset-buttons {
-                    display: flex;
-                    gap: 0.5rem;
-                    margin-bottom: 0.5rem;
-                    flex-wrap: wrap;
-                }
-                .preset-btn {
-                    padding: 0.4rem 0.8rem;
-                    border: 1px solid #d1d5db;
-                    border-radius: 0.375rem;
-                    background: white;
-                    font-size: 0.875rem;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-                .preset-btn:hover {
-                    background: #f3f4f6;
-                }
-                .preset-btn.active {
-                    background: #e0e7ff;
-                    border-color: #6366f1;
-                    color: #4338ca;
-                    font-weight: 500;
+                .rm-btn-save:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(163,230,53,.4); }
+                
+                @media (min-width: 480px) {
+                    .rm-overlay { align-items: center; }
+                    .rm-sheet { border-radius: 32px; max-height: 85vh; }
+                    .rm-drag-pill { display: none; }
+                    .rm-footer { padding-bottom: 1.5rem; }
                 }
             `}</style>
         </div>

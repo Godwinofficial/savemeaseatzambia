@@ -386,127 +386,271 @@ const AddBridalShower = () => {
     );
 
     return (
-        <div className="admin-page">
-            {/* Forced Clean Light-Mode Styles Overrides */}
+        <div className="rr-page">
+            <div className="phone-shell">
+                <header className="bd-admin-header" style={{ background: '#12121c', color: '#fff', padding: '0.85rem 1.25rem', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                        <button onClick={() => navigate('/admin')} style={{ background: 'none', border: 'none', color: '#a3e635', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <i className="fas fa-arrow-left"></i> Dashboard
+                        </button>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{isEditMode ? 'Edit Shower' : 'New Shower'}</span>
+                        {formData.slug ? (
+                            <a href={`/bridal-shower/${formData.slug}`} target="_blank" rel="noopener noreferrer" style={{ color: '#c5a059', fontSize: '0.85rem', fontWeight: 700, textDecoration: 'none' }}>
+                                Preview
+                            </a>
+                        ) : (
+                            <div style={{ width: 45 }}></div>
+                        )}
+                    </div>
+                </header>
+
+                <div className="scroll-area" style={{ background: '#f4f5f7' }}>
+                    <div className="content-pad" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {/* Page Title Card */}
+                        <div className="page-title-card" style={{ background: '#fff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                            <h1 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#12121c', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <i className={isEditMode ? "fas fa-edit" : "fas fa-plus-circle"} style={{ color: '#c5a059' }}></i>
+                                {isEditMode ? 'Edit Bridal Shower' : 'Create Bridal Shower'}
+                            </h1>
+                            <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>Set up a beautiful bridal shower page for the bride-to-be.</p>
+                        </div>
+
+                        {/* Progress Stepper */}
+                        <div className="progress-section" style={{ background: '#fff', borderRadius: '16px', padding: '1rem', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                            <div className="form-steps" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
+                                {steps.map((step, idx) => (
+                                    <div key={idx} className={`step ${currentStep === idx ? 'active' : ''} ${currentStep > idx ? 'completed' : ''}`} onClick={() => setCurrentStep(idx)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, cursor: 'pointer' }}>
+                                        <div className="step-number" style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', transition: 'all 0.2s' }}>
+                                            {currentStep > idx ? <i className="fas fa-check"></i> : <i className={`fas ${step.icon}`}></i>}
+                                        </div>
+                                        <span className="step-label" style={{ fontSize: '0.6rem', fontWeight: 700, marginTop: '4px', textAlign: 'center', display: 'block' }}>{step.label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Form Content Card */}
+                        <div className="form-content-card" style={{ background: '#fff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                            <div className="form-content">
+                                {currentStep === 0 && renderStep1()}
+                                {currentStep === 1 && renderStep2()}
+                                {currentStep === 2 && renderStep3()}
+                                {currentStep === 3 && renderStep4()}
+                            </div>
+                        </div>
+
+                        {/* Form Actions */}
+                        <div className="form-actions" style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginTop: '0.5rem', marginBottom: '1.5rem' }}>
+                            <button className="btn btn-secondary" disabled={currentStep === 0} onClick={() => setCurrentStep(p => p - 1)} type="button" style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 600, border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer' }}>
+                                <i className="fas fa-arrow-left"></i> Previous
+                            </button>
+                            {currentStep < steps.length - 1 ? (
+                                <button className="btn btn-primary" onClick={() => setCurrentStep(p => p + 1)} type="button" style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, background: '#c5a059', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                                    Next <i className="fas fa-arrow-right"></i>
+                                </button>
+                            ) : (
+                                <button className="btn btn-primary" onClick={handleSubmit} disabled={loading} type="button" style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, background: '#c5a059', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                                    {loading ? <><i className="fas fa-spinner fa-spin"></i> Saving...</> : <><i className="fas fa-rocket"></i> {isEditMode ? "Update" : "Publish"}</>}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <style>{`
-                html, body, #root, .admin-page, .add-bridal-shower-container, .form-content-card {
-                    background-color: #fdfbf7 !important;
-                    background: #fdfbf7 !important;
-                    color: #1b2424 !important;
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+                .rr-page {
+                    min-height: 100vh;
+                    background: #d8dce3;
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 2rem 0;
                 }
 
-                .admin-header {
-                    background: rgba(253, 251, 247, 0.9) !important;
-                    backdrop-filter: blur(16px) !important;
-                    -webkit-backdrop-filter: blur(16px) !important;
-                    border-bottom: 1px solid #e9e4d9 !important;
+                .phone-shell {
+                    width: 100%; max-width: 420px;
+                    height: 90vh;
+                    max-height: 860px;
+                    min-height: 600px;
+                    background: #f4f5f7;
+                    border-radius: 44px;
+                    overflow: hidden;
+                    box-shadow: 0 32px 80px rgba(0,0,0,.22), 0 0 0 8px rgba(0,0,0,.07);
+                    display: flex;
+                    flex-direction: column;
                 }
 
-                .form-content-card, .page-title-card, .progress-section {
-                    background: #ffffff !important;
-                    border: 1px solid #e9e4d9 !important;
-                    box-shadow: 0 4px 15px rgba(45, 58, 58, 0.04) !important;
+                .scroll-area {
+                    flex: 1;
+                    min-height: 0;
+                    overflow-y: auto;
+                    display: flex;
+                    flex-direction: column;
+                    -webkit-overflow-scrolling: touch;
+                    scrollbar-width: none;
+                }
+                .scroll-area::-webkit-scrollbar { display: none; }
+
+                .step-number {
+                    background: #f3f4f6;
+                    border: 1.5px solid #e5e7eb;
+                    color: #9ca3af;
                 }
 
-                 .step.active .step-number {
-                    background: #ea8612 !important;
+                .step.active .step-number {
+                    background: #c5a059 !important;
                     color: #ffffff !important;
-                    border-color: #ea8612 !important;
+                    border-color: #c5a059 !important;
                 }
 
                 .step.active .step-label {
-                    color: #ea8612 !important;
+                    color: #c5a059 !important;
                 }
 
                 .step.completed .step-number {
-                    background: var(--success) !important;
+                    background: #10b981 !important;
                     color: #ffffff !important;
-                    border-color: var(--success) !important;
+                    border-color: #10b981 !important;
                 }
 
-                .step-number {
-                    background: #f5f2eb !important;
-                    border: 1.5px solid #e9e4d9 !important;
-                    color: var(--text-muted) !important;
+                .form-group {
+                    margin-bottom: 1rem;
                 }
 
-                .form-input, .form-textarea, .form-select {
-                    background: #f5f2eb !important;
-                    border: 1.5px solid #e9e4d9 !important;
-                    color: #1b2424 !important;
+                .form-label {
+                    display: block;
+                    font-size: 0.8rem;
+                    font-weight: 700;
+                    color: #374151;
+                    margin-bottom: 0.35rem;
                 }
 
-                .form-input:focus, .form-textarea:focus, .form-select:focus {
-                    border-color: #ea8612 !important;
+                .form-input, .form-select {
+                    width: 100%;
+                    padding: 0.65rem 0.85rem;
+                    background: #f9fafb !important;
+                    border: 1.5px solid #e5e7eb !important;
+                    border-radius: 10px !important;
+                    font-size: 0.85rem !important;
+                    color: #111827 !important;
+                    outline: none;
+                    transition: all 0.2s;
+                }
+
+                .form-input:focus, .form-select:focus {
+                    border-color: #c5a059 !important;
                     background: #ffffff !important;
                 }
 
-                .btn-primary {
-                    background: linear-gradient(135deg, #f7901b 0%, #ea8612 100%) !important;
-                    color: #ffffff !important;
-                    border: none !important;
+                .grid-2 {
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    gap: 0.75rem;
                 }
 
-                .btn-secondary {
-                    background: #f5f2eb !important;
-                    border: 1px solid #e9e4d9 !important;
-                    color: #1b2424 !important;
+                .image-upload-wrapper {
+                    border: 2px dashed #d1d5db;
+                    border-radius: 12px;
+                    padding: 1.5rem;
+                    text-align: center;
+                    cursor: pointer;
+                    background: #f9fafb;
+                    transition: all 0.2s;
+                }
+
+                .image-upload-wrapper:hover {
+                    border-color: #c5a059;
+                    background: #fcfbfa;
+                }
+
+                .upload-placeholder {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 0.5rem;
+                    color: #6b7280;
+                }
+
+                .upload-placeholder i {
+                    font-size: 1.5rem;
+                    color: #c5a059;
+                }
+
+                .image-preview {
+                    position: relative;
+                    border-radius: 8px;
+                    overflow: hidden;
+                }
+
+                .image-preview img {
+                    width: 100%;
+                    height: 120px;
+                    object-fit: cover;
+                }
+
+                .remove-image {
+                    position: absolute;
+                    top: 5px;
+                    right: 5px;
+                    background: rgba(0,0,0,0.6);
+                    color: #fff;
+                    border: none;
+                    border-radius: 50%;
+                    width: 24px;
+                    height: 24px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 0.8rem;
+                }
+
+                .array-item {
+                    border: 1px solid #e5e7eb;
+                    border-radius: 12px;
+                    padding: 0.85rem;
+                    margin-bottom: 0.75rem;
+                    background: #f9fafb;
+                }
+
+                .add-item-btn {
+                    width: 100%;
+                    padding: 0.65rem;
+                    border: 2px dashed #d1d5db;
+                    border-radius: 10px;
+                    background: #fff;
+                    color: #4b5563;
+                    font-weight: 600;
+                    font-size: 0.8rem;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .add-item-btn:hover {
+                    border-color: #c5a059;
+                    color: #c5a059;
+                }
+
+                .remove-item-btn {
+                    background: none;
+                    border: none;
+                    color: #ef4444;
+                    cursor: pointer;
+                    font-size: 0.85rem;
+                }
+
+                @media (max-width: 480px) {
+                    .rr-page { padding: 0; align-items: stretch; }
+                    .phone-shell { border-radius: 0; box-shadow: none; max-width: 100%; width: 100%; height: 100vh; max-height: 100vh; }
                 }
             `}</style>
-            <header className="admin-header">
-                <div className="admin-header-content">
-                    <div className="admin-logo">
-                        <div className="admin-logo-icon"><i className="fas fa-female"></i></div>
-                        <div className="admin-logo-text"><h1>SaveMeASeat</h1><p>Bridal Shower Admin</p></div>
-                    </div>
-                    <nav className="admin-nav">
-                        <button className="admin-nav-btn secondary" onClick={() => navigate('/admin')}><i className="fas fa-th-large"></i> Dashboard</button>
-                        <button className="admin-nav-btn primary" onClick={() => window.open(`/bridal-shower/${formData.slug}`, '_blank')}><i className="fas fa-eye"></i> Preview</button>
-                    </nav>
-                </div>
-            </header>
-
-            <div className="add-bridal-shower-container">
-                <div className="page-title-card">
-                    <div className="page-title-content">
-                        <h1><i className={isEditMode ? "fas fa-edit" : "fas fa-plus-circle"}></i>{isEditMode ? 'Edit Bridal Shower' : 'Create Bridal Shower'}</h1>
-                        <p>Set up a beautiful bridal shower page for the bride-to-be.</p>
-                    </div>
-                </div>
-
-                <div className="progress-section">
-                    <div className="form-steps">
-                        {steps.map((step, idx) => (
-                            <div key={idx} className={`step ${currentStep === idx ? 'active' : ''} ${currentStep > idx ? 'completed' : ''}`} onClick={() => setCurrentStep(idx)}>
-                                <div className="step-number">{currentStep > idx ? <i className="fas fa-check"></i> : <i className={`fas ${step.icon}`}></i>}</div>
-                                <div className="step-info"><span className="step-label">{step.label}</span><span className="step-description">{step.description}</span></div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="form-content-card">
-                    <div className="form-content">
-                        {currentStep === 0 && renderStep1()}
-                        {currentStep === 1 && renderStep2()}
-                        {currentStep === 2 && renderStep3()}
-                        {currentStep === 3 && renderStep4()}
-                    </div>
-                </div>
-
-                <div className="form-actions">
-                    <button className="btn btn-secondary" disabled={currentStep === 0} onClick={() => setCurrentStep(p => p - 1)} type="button"><i className="fas fa-arrow-left"></i> Previous</button>
-                    {currentStep < steps.length - 1 ? (
-                        <button className="btn btn-primary" onClick={() => setCurrentStep(p => p + 1)} type="button">Next <i className="fas fa-arrow-right"></i></button>
-                    ) : (
-                        <button className="btn btn-primary" onClick={handleSubmit} disabled={loading} type="button">
-                            {loading ? <><i className="fas fa-spinner fa-spin"></i> Saving...</> : <><i className="fas fa-rocket"></i> {isEditMode ? "Update" : "Publish"}</>}
-                        </button>
-                    )}
-                </div>
-            </div>
         </div>
     );
 };
 
 export default AddBridalShower;
+
