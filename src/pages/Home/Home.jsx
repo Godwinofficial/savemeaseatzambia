@@ -1260,6 +1260,20 @@ const VendorDirectory = () => {
         }
     ];
 
+    const parseVendorPortfolio = (portfolio) => {
+        if (!portfolio) return [];
+        if (Array.isArray(portfolio)) return portfolio;
+        if (typeof portfolio === 'string') {
+            try {
+                const parsed = JSON.parse(portfolio);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch {
+                return [];
+            }
+        }
+        return [];
+    };
+
     useEffect(() => {
         const getVendors = async () => {
             try {
@@ -1269,7 +1283,10 @@ const VendorDirectory = () => {
                     .order('created_at', { ascending: true });
                 if (error) throw error;
                 if (data && data.length > 0) {
-                    setVendors(data);
+                    setVendors(data.map(vendor => ({
+                        ...vendor,
+                        portfolio: parseVendorPortfolio(vendor.portfolio)
+                    })));
                 } else {
                     setVendors(fallbackVendors);
                 }

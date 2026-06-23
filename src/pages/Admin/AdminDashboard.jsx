@@ -278,6 +278,20 @@ const AdminDashboard = () => {
 
     const navigate = useNavigate();
 
+    const parsePortfolio = (portfolio) => {
+        if (!portfolio) return [];
+        if (Array.isArray(portfolio)) return portfolio;
+        if (typeof portfolio === 'string') {
+            try {
+                const parsed = JSON.parse(portfolio);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch {
+                return [];
+            }
+        }
+        return [];
+    };
+
     useEffect(() => {
         window.scrollTo(0, 0);
         fetchWeddings();
@@ -607,7 +621,7 @@ const AdminDashboard = () => {
             image: vendor.image || '',
             rating: vendor.rating || '5.0 Verified',
             description: vendor.description || '',
-            portfolio: vendor.portfolio || []
+            portfolio: parsePortfolio(vendor.portfolio)
         });
         setShowVendorModal(true);
     };
