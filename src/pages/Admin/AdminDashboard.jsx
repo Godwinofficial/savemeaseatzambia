@@ -1531,6 +1531,138 @@ const AdminDashboard = () => {
                 </div>
             )}
 
+            {showVendorModal && (
+                <div className="vm-overlay" onClick={() => setShowVendorModal(false)}>
+                    <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '1.5rem', maxWidth: '520px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <div>
+                                <h4 className="vm-name">{editingVendor ? 'Edit Vendor' : 'Add Vendor'}</h4>
+                                <p className="vm-desc">{editingVendor ? 'Update existing vendor details.' : 'Add a new vendor to the ecosystem.'}</p>
+                            </div>
+                            <button onClick={() => setShowVendorModal(false)} style={{ border: 'none', background: 'transparent', fontSize: '1.2rem', cursor: 'pointer', color: '#6b7280' }}>&times;</button>
+                        </div>
+
+                        <form onSubmit={handleSaveVendor} style={{ display: 'grid', gap: '1rem' }}>
+                            <label style={{ display: 'grid', gap: '0.35rem' }}>
+                                Vendor Name
+                                <input
+                                    type="text"
+                                    value={vendorForm.name}
+                                    onChange={e => setVendorForm(prev => ({ ...prev, name: e.target.value }))}
+                                    required
+                                    style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '12px', border: '1px solid #d1d5db', background: '#f8fafc' }}
+                                />
+                            </label>
+
+                            <label style={{ display: 'grid', gap: '0.35rem' }}>
+                                Category
+                                <select
+                                    value={vendorForm.category}
+                                    onChange={e => setVendorForm(prev => ({ ...prev, category: e.target.value }))}
+                                    required
+                                    style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '12px', border: '1px solid #d1d5db', background: '#f8fafc' }}
+                                >
+                                    <option>Makeup</option>
+                                    <option>Photography</option>
+                                    <option>Venue</option>
+                                    <option>Catering</option>
+                                    <option>Attire</option>
+                                    <option>Decor</option>
+                                    <option>Entertainment</option>
+                                    <option>Florist</option>
+                                </select>
+                            </label>
+
+                            <label style={{ display: 'grid', gap: '0.35rem' }}>
+                                City
+                                <input
+                                    type="text"
+                                    value={vendorForm.city}
+                                    onChange={e => setVendorForm(prev => ({ ...prev, city: e.target.value }))}
+                                    required
+                                    style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '12px', border: '1px solid #d1d5db', background: '#f8fafc' }}
+                                />
+                            </label>
+
+                            <label style={{ display: 'grid', gap: '0.35rem' }}>
+                                Rating
+                                <input
+                                    type="text"
+                                    value={vendorForm.rating}
+                                    onChange={e => setVendorForm(prev => ({ ...prev, rating: e.target.value }))}
+                                    style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '12px', border: '1px solid #d1d5db', background: '#f8fafc' }}
+                                />
+                            </label>
+
+                            <label style={{ display: 'grid', gap: '0.35rem' }}>
+                                Description
+                                <textarea
+                                    value={vendorForm.description}
+                                    onChange={e => setVendorForm(prev => ({ ...prev, description: e.target.value }))}
+                                    rows={4}
+                                    style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '12px', border: '1px solid #d1d5db', background: '#f8fafc', resize: 'vertical' }}
+                                />
+                            </label>
+
+                            <label style={{ display: 'grid', gap: '0.35rem' }}>
+                                Cover Image URL
+                                <input
+                                    type="text"
+                                    value={vendorForm.image}
+                                    onChange={e => setVendorForm(prev => ({ ...prev, image: e.target.value }))}
+                                    placeholder="Paste image URL or upload below"
+                                    style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '12px', border: '1px solid #d1d5db', background: '#f8fafc' }}
+                                />
+                            </label>
+
+                            <label className="file-upload-label" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.95rem 1rem', borderRadius: '12px', border: '1px dashed #d1d5db', cursor: 'pointer' }}>
+                                <span>{uploadingCover ? 'Uploading cover...' : 'Upload cover image'}</span>
+                                <input type="file" accept="image/*" onChange={handleCoverUploadChange} style={{ display: 'none' }} />
+                            </label>
+
+                            <label style={{ display: 'grid', gap: '0.35rem' }}>
+                                Portfolio Upload
+                                <input
+                                    type="file"
+                                    accept="image/*,video/*"
+                                    multiple
+                                    onChange={handlePortfolioUploadChange}
+                                    style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '12px', border: '1px solid #d1d5db', background: '#f8fafc' }}
+                                />
+                            </label>
+
+                            {vendorForm.portfolio?.length > 0 && (
+                                <div style={{ display: 'grid', gap: '0.5rem', background: '#f8fafc', padding: '0.85rem', borderRadius: '12px' }}>
+                                    <strong style={{ color: '#111', fontSize: '0.95rem' }}>Portfolio Items</strong>
+                                    <div style={{ display: 'grid', gap: '0.5rem' }}>
+                                        {vendorForm.portfolio.map((item, index) => (
+                                            <div key={`${item.url}-${index}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', padding: '0.8rem', borderRadius: '12px', background: '#fff', border: '1px solid #e5e7eb' }}>
+                                                <span style={{ fontSize: '0.85rem', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.type.toUpperCase()} • {item.url}</span>
+                                                <button type="button" onClick={() => {
+                                                    setVendorForm(prev => ({
+                                                        ...prev,
+                                                        portfolio: prev.portfolio.filter((_, idx) => idx !== index)
+                                                    }));
+                                                }} style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer' }}>Remove</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                                <button type="button" onClick={() => setShowVendorModal(false)} style={{ padding: '0.95rem 1.2rem', borderRadius: '12px', border: '1px solid #d1d5db', background: '#f8fafc', color: '#374151', cursor: 'pointer' }}>
+                                    Cancel
+                                </button>
+                                <button type="submit" style={{ padding: '0.95rem 1.2rem', borderRadius: '12px', border: 'none', background: '#10b981', color: '#fff', cursor: 'pointer', fontWeight: 700 }}>
+                                    {editingVendor ? 'Update Vendor' : 'Create Vendor'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             <style jsx>{`
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
                 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
