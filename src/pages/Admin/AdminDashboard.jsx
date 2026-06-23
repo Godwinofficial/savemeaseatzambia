@@ -434,7 +434,10 @@ const AdminDashboard = () => {
                 .select('*')
                 .order('created_at', { ascending: false });
             if (error) throw error;
-            setVendors(data || []);
+            setVendors((data || []).map(vendor => ({
+                ...vendor,
+                portfolio: parsePortfolio(vendor.portfolio)
+            })));
         } catch (err) {
             console.error('Error fetching vendors:', err);
         } finally {
@@ -1619,48 +1622,85 @@ const AdminDashboard = () => {
                             </label>
 
                             <label style={{ display: 'grid', gap: '0.35rem' }}>
-                                Cover Image URL
-                                <input
-                                    type="text"
-                                    value={vendorForm.image}
-                                    onChange={e => setVendorForm(prev => ({ ...prev, image: e.target.value }))}
-                                    placeholder="Paste image URL or upload below"
-                                    style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '12px', border: '1px solid #d1d5db', background: '#f8fafc' }}
-                                />
-                            </label>
-
-                            <label className="file-upload-label" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.95rem 1rem', borderRadius: '12px', border: '1px dashed #d1d5db', cursor: 'pointer' }}>
-                                <span>{uploadingCover ? 'Uploading cover...' : 'Upload cover image'}</span>
-                                <input type="file" accept="image/*" onChange={handleCoverUploadChange} style={{ display: 'none' }} />
+                                Cover Image
+                                <div style={{ display: 'grid', gap: '0.5rem' }}>
+                                    {vendorForm.image && (
+                                        <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', border: '2px solid #269691', background: '#f0f0f0', height: '180px' }}>
+                                            <img src={vendorForm.image} alt="Cover preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <button
+                                                type="button"
+                                                onClick={() => setVendorForm(prev => ({ ...prev, image: '' }))}
+                                                style={{ position: 'absolute', top: '8px', right: '8px', background: '#ef4444', border: 'none', color: '#fff', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    )}
+                                    <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '1rem', borderRadius: '12px', border: '2px dashed #269691', cursor: 'pointer', background: '#e0f2f1', width: '100%', position: 'relative' }}>
+                                        <input type="file" accept="image/*" onChange={handleCoverUploadChange} style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
+                                        <div style={{ pointerEvents: 'none', textAlign: 'center' }}>
+                                            <div style={{ fontSize: '1.5rem', marginBottom: '0.3rem' }}></div>
+                                            <span style={{ color: '#269691', fontWeight: 600, fontSize: '0.9rem' }}>
+                                                {uploadingCover ? 'Uploading cover...' : 'Click or drag to upload cover image'}
+                                            </span>
+                                        </div>
+                                    </label>
+                                </div>
                             </label>
 
                             <label style={{ display: 'grid', gap: '0.35rem' }}>
-                                Portfolio Upload
-                                <input
-                                    type="file"
-                                    accept="image/*,video/*"
-                                    multiple
-                                    onChange={handlePortfolioUploadChange}
-                                    style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '12px', border: '1px solid #d1d5db', background: '#f8fafc' }}
-                                />
+                                Sample Work (Upload Images/Videos)
+                                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '1.5rem', borderRadius: '12px', border: '2px dashed #269691', cursor: 'pointer', background: '#e0f2f1', width: '100%', position: 'relative' }}>
+                                    <input
+                                        type="file"
+                                        accept="image/*,video/*"
+                                        multiple
+                                        onChange={handlePortfolioUploadChange}
+                                        style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
+                                    />
+                                    <div style={{ textAlign: 'center', pointerEvents: 'none' }}>
+                                             <span style={{ color: '#269691', fontWeight: 600 }}>
+                                            {uploadingPortfolio ? 'Uploading samples...' : 'Click or drag to upload images/videos'}
+                                        </span>
+                                    </div>
+                                </div>
                             </label>
 
                             {vendorForm.portfolio?.length > 0 && (
-                                <div style={{ display: 'grid', gap: '0.5rem', background: '#f8fafc', padding: '0.85rem', borderRadius: '12px' }}>
-                                    <strong style={{ color: '#111', fontSize: '0.95rem' }}>Portfolio Items</strong>
-                                    <div style={{ display: 'grid', gap: '0.5rem' }}>
+                                <div style={{ display: 'grid', gap: '0.5rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+                                    <strong style={{ color: '#111', fontSize: '0.95rem' }}>Sample Work Preview</strong>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '0.75rem' }}>
                                         {vendorForm.portfolio.map((item, index) => (
-                                            <div key={`${item.url}-${index}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', padding: '0.8rem', borderRadius: '12px', background: '#fff', border: '1px solid #e5e7eb' }}>
-                                                <span style={{ fontSize: '0.85rem', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.type.toUpperCase()} • {item.url}</span>
-                                                <button type="button" onClick={() => {
-                                                    setVendorForm(prev => ({
-                                                        ...prev,
-                                                        portfolio: prev.portfolio.filter((_, idx) => idx !== index)
-                                                    }));
-                                                }} style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer' }}>Remove</button>
+                                            <div key={`${item.url}-${index}`} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', border: '1px solid #d1d5db', background: '#000', aspectRatio: '1' }}>
+                                                {item.type === 'video' ? (
+                                                    <div style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <video src={item.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        <div style={{ position: 'absolute', fontSize: '1.5rem' }}></div>
+                                                    </div>
+                                                ) : (
+                                                    <img src={item.url} alt={`Sample ${index + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setVendorForm(prev => ({
+                                                            ...prev,
+                                                            portfolio: prev.portfolio.filter((_, idx) => idx !== index)
+                                                        }));
+                                                    }}
+                                                    style={{
+                                                        position: 'absolute', top: '4px', right: '4px',
+                                                        background: 'rgba(0,0,0,0.7)', border: 'none', color: '#fff',
+                                                        width: '24px', height: '24px', borderRadius: '50%', cursor: 'pointer',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem'
+                                                    }}
+                                                >
+                                                    ×
+                                                </button>
                                             </div>
                                         ))}
                                     </div>
+                                    <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>Total: {vendorForm.portfolio.length} item(s)</span>
                                 </div>
                             )}
 
@@ -1789,7 +1829,8 @@ const AdminDashboard = () => {
 
                 /* WHITE CONTENT PADDING */
                 .content-pad {
-                    background: #f4f5f7;
+                     <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>📸 📹</div>
+                                  background: #f4f5f7;
                     flex: 1;
                     padding: 1.2rem 1.2rem 1rem;
                     display: flex;

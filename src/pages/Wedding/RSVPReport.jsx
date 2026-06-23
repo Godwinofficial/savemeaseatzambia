@@ -103,13 +103,43 @@ const RSVPReport = () => {
     const [vendors, setVendors] = useState([]);
     const [selectedVendorFilter, setSelectedVendorFilter] = useState('all');
     const [activeVendor, setActiveVendor] = useState(null);
+    const [lightboxIndex, setLightboxIndex] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+
+    const parseVendorPortfolio = (portfolio) => {
+        if (!portfolio) return [];
+        if (Array.isArray(portfolio)) return portfolio;
+        if (typeof portfolio === 'string') {
+            try {
+                const parsed = JSON.parse(portfolio);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch {
+                return [];
+            }
+        }
+        return [];
+    };
 
     useEffect(() => {
         const prev = document.querySelector('meta[name="theme-color"]')?.content;
         setThemeColor('#12121c');
         return () => { if (prev) setThemeColor(prev); else setThemeColor('#ffffff'); };
     }, []);
+
+    useEffect(() => {
+        if (lightboxIndex === null || !activeVendor || !activeVendor.portfolio) return;
+        const handleKeyDown = (e) => {
+            if (e.key === 'ArrowRight') {
+                setLightboxIndex(prev => prev < activeVendor.portfolio.length - 1 ? prev + 1 : 0);
+            } else if (e.key === 'ArrowLeft') {
+                setLightboxIndex(prev => prev > 0 ? prev - 1 : activeVendor.portfolio.length - 1);
+            } else if (e.key === 'Escape') {
+                setLightboxIndex(null);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [lightboxIndex, activeVendor]);
 
     useEffect(() => { fetchReportData(); }, [slug]);
 
@@ -138,8 +168,17 @@ const RSVPReport = () => {
             try {
                 const { data: vendorsData, error: vendorsError } = await supabase
                     .from('vendors').select('*').order('created_at', { ascending: true });
-                setVendors(!vendorsError && vendorsData?.length > 0 ? vendorsData : fallbackVendors);
-            } catch { setVendors(fallbackVendors); }
+                if (!vendorsError && vendorsData?.length > 0) {
+                    setVendors(vendorsData.map(vendor => ({
+                        ...vendor,
+                        portfolio: parseVendorPortfolio(vendor.portfolio)
+                    })));
+                } else {
+                    setVendors(fallbackVendors);
+                }
+            } catch {
+                setVendors(fallbackVendors);
+            }
         } catch (err) {
             setError(err.message);
         } finally {
@@ -386,7 +425,205 @@ const RSVPReport = () => {
                                 <span className="vm-tag vm-tag-amber"><i className="fas fa-star"></i> {activeVendor.rating?.split(' ')[0] || '5.0'}</span>
                             </div>
                             <p className="vm-desc">{activeVendor.description || `Top-rated ${activeVendor.category} professional in ${activeVendor.city}.`}</p>
+
+                            {activeVendor.portfolio && activeVendor.portfolio.length > 0 && (
+                                <div style={{ marginTop: '1.25rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                                        <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#111' }}>Sample Work</h4>
+                                        <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{activeVendor.portfolio.length} item(s)</span>
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '0.75rem' }}>
+                                        {activeVendor.portfolio.map((item, idx) => (
+                                            <div
+                                                key={`${item.url}-${idx}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setLightboxIndex(idx);
+                                                }}
+                                                style={{
+                                                    position: 'relative',
+                                                    borderRadius: '16px',
+                                                    overflow: 'hidden',
+                                                    minHeight: '100px',
+                                                    background: '#f8fafc',
+                                                    border: '1px solid #e5e7eb',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                {item.type === 'video' ? (
+                                                    <video
+                                                        src={item.url}
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                        muted
+                                                        playsInline
+                                                        controls={false}
+                                                    />
+                                                ) : (
+                                                    <img
+                                                        src={item.url}
+                                                        alt={`Sample work ${idx + 1}`}
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    />
+                                                )}
+                                                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0.5rem', background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.5) 100%)', color: '#fff', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                    <span>{item.type === 'video' ? 'Video' : 'Image'}</span>
+                                                    <span style={{ opacity: 0.85 }}>{idx + 1}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {lightboxIndex !== null && activeVendor && activeVendor.portfolio && activeVendor.portfolio[lightboxIndex] && (
+                <div
+                    onClick={() => setLightboxIndex(null)}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(10, 10, 12, 0.95)',
+                        backdropFilter: 'blur(15px)',
+                        zIndex: 4500,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '1.5rem',
+                        userSelect: 'none'
+                    }}
+                >
+                    <button
+                        onClick={() => setLightboxIndex(null)}
+                        style={{
+                            position: 'absolute',
+                            top: '25px',
+                            right: '25px',
+                            background: 'rgba(255,255,255,0.1)',
+                            border: 'none',
+                            fontSize: '1.25rem',
+                            color: '#fff',
+                            cursor: 'pointer',
+                            width: '44px',
+                            height: '44px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 10,
+                            transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                    >
+                        <i className="fas fa-times"></i>
+                    </button>
+
+                    {activeVendor.portfolio.length > 1 && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setLightboxIndex(prev => prev > 0 ? prev - 1 : activeVendor.portfolio.length - 1);
+                            }}
+                            style={{
+                                position: 'absolute',
+                                left: '25px',
+                                background: 'rgba(255,255,255,0.1)',
+                                border: 'none',
+                                fontSize: '1.25rem',
+                                color: '#fff',
+                                cursor: 'pointer',
+                                width: '50px',
+                                height: '50px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                zIndex: 10,
+                                transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                        >
+                            <i className="fas fa-chevron-left"></i>
+                        </button>
+                    )}
+
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            maxWidth: '90%',
+                            maxHeight: '80vh',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            position: 'relative'
+                        }}
+                    >
+                        {activeVendor.portfolio[lightboxIndex].type === 'video' ? (
+                            <video
+                                src={activeVendor.portfolio[lightboxIndex].url}
+                                controls
+                                autoPlay
+                                playsInline
+                                style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}
+                            />
+                        ) : (
+                            <img
+                                src={activeVendor.portfolio[lightboxIndex].url}
+                                alt={`Work preview ${lightboxIndex}`}
+                                style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}
+                            />
+                        )}
+                    </div>
+
+                    {activeVendor.portfolio.length > 1 && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setLightboxIndex(prev => prev < activeVendor.portfolio.length - 1 ? prev + 1 : 0);
+                            }}
+                            style={{
+                                position: 'absolute',
+                                right: '25px',
+                                background: 'rgba(255,255,255,0.1)',
+                                border: 'none',
+                                fontSize: '1.25rem',
+                                color: '#fff',
+                                cursor: 'pointer',
+                                width: '50px',
+                                height: '50px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                zIndex: 10,
+                                transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                        >
+                            <i className="fas fa-chevron-right"></i>
+                        </button>
+                    )}
+
+                    <div style={{
+                        position: 'absolute',
+                        bottom: '30px',
+                        background: 'rgba(0,0,0,0.6)',
+                        color: '#fff',
+                        fontSize: '0.85rem',
+                        padding: '6px 14px',
+                        borderRadius: '20px',
+                        fontWeight: 600,
+                        border: '1px solid rgba(255,255,255,0.1)'
+                    }}>
+                        {lightboxIndex + 1} / {activeVendor.portfolio.length}
                     </div>
                 </div>
             )}
