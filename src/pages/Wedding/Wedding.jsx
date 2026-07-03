@@ -2979,7 +2979,7 @@ const WeddingTemplate = () => {
               {weddingData.ceremony.date && (
                 <div className="details-card" id="ceremony-item">
                   <div className="details-card-icon">
-                    <i className="fas fa-church"></i>
+                    <i className="fas fa-building"></i>
                   </div>
                   <h3>Marriage Blessings</h3>
                   <span className="details-card-date">{formatDate(weddingData.ceremony.date)}</span>

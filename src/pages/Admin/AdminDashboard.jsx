@@ -1183,7 +1183,7 @@ const AdminDashboard = () => {
                                                     copyType: 'birthday',
                                                     editUrl: `/editBirthday/${bday.id}`,
                                                     rawEvent: bday,
-                                                    reportUrl: `/report/${bday.slug}`,
+                                                    reportUrl: `/b-report/${bday.slug}`,
                                                     onDownload: () => downloadBirthdayRSVPs(bday.id, bday.celebrant_name),
                                                     onDelete: () => handleDeleteBirthday(bday.id, `${bday.celebrant_name}'s Birthday`)
                                                 });
@@ -1390,7 +1390,7 @@ const AdminDashboard = () => {
                                                                         copyType: 'birthday',
                                                                         editUrl: `/editBirthday/${bday.id}`,
                                                                         rawEvent: bday,
-                                                                        reportUrl: `/report/${bday.slug}`,
+                                                                        reportUrl: `/b-report/${bday.slug}`,
                                                                         onDownload: () => downloadBirthdayRSVPs(bday.id, `${bday.celebrant_name}_Birthday`),
                                                                         onDelete: () => handleDeleteBirthday(bday.id, `${bday.celebrant_name}'s Birthday`)
                                                                     });
@@ -1436,7 +1436,7 @@ const AdminDashboard = () => {
                                                                         copyType: 'bridal_shower',
                                                                         editUrl: `/editBridalShower/${shower.id}`,
                                                                         rawEvent: shower,
-                                                                        reportUrl: `/report/${shower.slug}`,
+                                                                        reportUrl: `/bs-report/${shower.slug}`,
                                                                         onDownload: () => downloadBridalShowerRSVPs(shower.id, `${shower.bride_name}_Bridal_Shower`),
                                                                         onDelete: () => handleDeleteBridalShower(shower.id, `${shower.bride_name}'s Bridal Shower`)
                                                                     });

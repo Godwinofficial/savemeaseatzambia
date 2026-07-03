@@ -1337,7 +1337,7 @@ const AddWedding = () => {
             <div className="ceremony-reception-grid">
                 <div className="ceremony-card">
                     <div className="event-card-header">
-                        <i className="fas fa-church"></i>
+                        <i className="fas fa-building"></i>
                         <h3>Ceremony Details</h3>
                     </div>
                     <div className="grid-2">
