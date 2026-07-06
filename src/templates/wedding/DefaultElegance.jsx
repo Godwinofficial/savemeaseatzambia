@@ -2546,14 +2546,14 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
             <button className="mobile-menu-btn" aria-label="Toggle navigation menu" onClick={() => setIsMenuOpen(!isMenuOpen)}>
               <i className={isMenuOpen ? "fas fa-times" : "fas fa-bars"}></i>
             </button>
-            <div className={`flex flex-col lg:flex-row gap-8 lg:gap-10 items-center fixed lg:relative top-0 ${isMenuOpen ? 'right-0' : '-right-full'} lg:right-0 w-[80%] lg:w-auto h-screen lg:h-auto bg-white lg:bg-transparent shadow-2xl lg:shadow-none justify-center lg:justify-end transition-all duration-500 z-[1000] lg:z-auto`}>
-              <a href="#home" className="uppercase text-sm tracking-widest font-medium hover:text-black transition-colors" onClick={() => setIsMenuOpen(false)}>Home</a>
-              <a href="#about" className="uppercase text-sm tracking-widest font-medium hover:text-black transition-colors" onClick={() => setIsMenuOpen(false)}>Our Story</a>
-              <a href="#party" className="uppercase text-sm tracking-widest font-medium hover:text-black transition-colors" onClick={() => setIsMenuOpen(false)}>Wedding Party</a>
-              <a href="#details" className="uppercase text-sm tracking-widest font-medium hover:text-black transition-colors" onClick={() => setIsMenuOpen(false)}>Details</a>
-              <a href="#location-map" className="uppercase text-sm tracking-widest font-medium hover:text-black transition-colors" onClick={() => setIsMenuOpen(false)}>Location</a>
-              <a href="#rsvp" className="bg-black text-white px-8 py-3 rounded-sm uppercase text-xs tracking-widest font-medium hover:bg-opacity-90 transition-all" onClick={() => setIsMenuOpen(false)}>RSVP</a>
-            </div>
+            <ul className={`nav-links ${isMenuOpen ? 'active' : ''}`}>
+              <li><a href="#home" onClick={() => setIsMenuOpen(false)}>Home</a></li>
+              <li><a href="#about" onClick={() => setIsMenuOpen(false)}>Our Story</a></li>
+              <li><a href="#party" onClick={() => setIsMenuOpen(false)}>Wedding Party</a></li>
+              <li><a href="#details" onClick={() => setIsMenuOpen(false)}>Details</a></li>
+              <li><a href="#location-map" onClick={() => setIsMenuOpen(false)}>Location</a></li>
+              <li><a href="#rsvp" style={{ background: 'var(--black)', color: 'var(--white)', padding: '10px 24px', borderRadius: '2px', display: 'inline-block' }} onClick={() => setIsMenuOpen(false)}>RSVP</a></li>
+            </ul>
           </nav>
         </div>
       </header>
