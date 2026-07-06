@@ -3850,3 +3850,363 @@
   text-transform: uppercase;
   text-align: center;
 }
+
+/* ================================================================
+   WEDDING TEMPLATES PREVIEW SECTION
+   ================================================================ */
+
+/* ================================================================
+   WEDDING TEMPLATES PREVIEW GALLERY (ChungDoi Professional Style)
+   ================================================================ */
+
+.home-page .wedding-templates-preview {
+  padding: 100px 0;
+  background: var(--light);
+  border-bottom: 1px solid var(--light-gray);
+}
+
+/* Card Grid Layout */
+.home-page .tmpl-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+  margin-top: 50px;
+  margin-bottom: 60px;
+}
+
+.home-page .tmpl-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(15, 23, 42, 0.04);
+  transition: var(--transition);
+  display: flex;
+  flex-direction: column;
+}
+
+.home-page .tmpl-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-lg);
+  border-color: rgba(var(--primary-rgb), 0.15);
+}
+
+/* Visual Card Thumbnail Area */
+.home-page .tmpl-card-thumb {
+  display: block;
+  position: relative;
+  aspect-ratio: 16 / 10;
+  width: 100%;
+  overflow: hidden;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* Beautiful simulated preview frame inside thumbnail */
+.home-page .tmpl-preview-inner {
+  width: 100%;
+  height: 100%;
+  padding: 30px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: center;
+  user-select: none;
+}
+
+.home-page .tmpl-preview-header {
+  padding: 12px 8px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.home-page .tmpl-preview-ornament {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.home-page .tmpl-preview-tagline {
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.home-page .tmpl-preview-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.home-page .tmpl-preview-divider {
+  width: 40px;
+  height: 1px;
+}
+
+.home-page .tmpl-preview-couple {
+  font-size: 2.2rem;
+  font-weight: 300;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.home-page .tmpl-preview-amp {
+  font-size: 1.8rem;
+  font-style: italic;
+}
+
+.home-page .tmpl-preview-date {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+}
+
+.home-page .tmpl-preview-footer {
+  padding-top: 15px;
+}
+
+/* Badges on cards */
+.home-page .tmpl-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  padding: 6px 14px;
+  border-radius: 50px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  z-index: 5;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.home-page .tmpl-badge-new {
+  background: #ff007f;
+  color: var(--white);
+}
+
+.home-page .tmpl-badge-popular {
+  background: #c8a96e;
+  color: #fff;
+}
+
+/* Card Hover Overlay Details */
+.home-page .tmpl-card-hover-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  backdrop-filter: blur(4px);
+}
+
+.home-page .tmpl-card-thumb:hover .tmpl-card-hover-overlay {
+  opacity: 1;
+}
+
+.home-page .tmpl-card-preview-btn {
+  padding: 12px 24px;
+  background: var(--white);
+  color: var(--dark);
+  font-weight: 700;
+  font-size: 0.88rem;
+  border-radius: 50px;
+  box-shadow: var(--shadow-md);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Info Section of Card */
+.home-page .tmpl-card-info {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.home-page .tmpl-card-name {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin: 0;
+  color: var(--dark);
+}
+
+.home-page .tmpl-card-tags {
+  display: flex;
+  gap: 8px;
+}
+
+.home-page .tmpl-card-tag {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gray);
+  background: var(--light-gray);
+  padding: 4px 12px;
+  border-radius: 50px;
+}
+
+.home-page .tmpl-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(15, 23, 42, 0.05);
+}
+
+.home-page .tmpl-card-used {
+  font-size: 0.8rem;
+  color: var(--gray);
+  font-weight: 500;
+}
+
+.home-page .tmpl-card-used i {
+  color: var(--primary);
+  margin-right: 4px;
+}
+
+.home-page .tmpl-card-order-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.home-page .tmpl-card-order-btn:hover {
+  color: var(--primary-dark);
+}
+
+/* See All Section */
+.home-page .tmpl-see-all-row {
+  text-align: center;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.home-page .tmpl-see-all-sub {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.home-page .tmpl-see-all-sub span {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--gray);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.home-page .tmpl-see-all-sub i {
+  color: var(--primary);
+}
+
+/* Responsive grid rules */
+@media (max-width: 992px) {
+  .home-page .tmpl-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+}
+
+@media (max-width: 600px) {
+  .home-page .tmpl-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .home-page .tmpl-see-all-sub {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+/* Vendor-styled Template Card Buttons and Badges */
+.home-page .v-row-badge-popular {
+    background: #fef3c7;
+    color: #d97706;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 50px;
+    text-transform: uppercase;
+    display: inline-block;
+}
+.home-page .v-row-badge-new {
+    background: #fce7f3;
+    color: #db2777;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 50px;
+    text-transform: uppercase;
+    display: inline-block;
+}
+.home-page .v-row-btn-preview {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border-radius: 50px;
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+.home-page .v-row-btn-preview:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+}
+.home-page .v-row-btn-select {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 24px;
+    border-radius: 50px;
+    background: #10b981;
+    border: none;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15);
+}
+.home-page .v-row-btn-select:hover {
+    background: #059669;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+@media (max-width: 768px) {
+    .home-page .v-row-right {
+        display: flex;
+        width: 100%;
+        gap: 10px;
+    }
+    .home-page .v-row-btn-preview, .home-page .v-row-btn-select {
+        flex: 1;
+        justify-content: center;
+        font-size: 0.75rem;
+        padding: 10px 12px;
+    }
+}

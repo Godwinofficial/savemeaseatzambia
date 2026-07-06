@@ -1,5 +1,6 @@
 // Home.jsx - Main Application Component (Enhanced UI/UX)
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import './Home.css';
 import sliderImage1 from '/src/assets/images/sliderImage1.jpg';
 import sliderImage2 from '/src/assets/images/sliderImage2.jpg';
@@ -173,6 +174,233 @@ const Hero = () => {
         </section>
     );
 };
+
+// ============================================================
+// WEDDING TEMPLATES GALLERY SECTION
+// ============================================================
+
+const ALL_TEMPLATES = [
+    {
+        id: 'terracotta-earth',
+        name: 'Terracotta Earth',
+        tags: ['Terracotta', 'Linen', 'Watercolor'],
+        usedBy: 870,
+        isNew: true,
+        isPopular: false,
+        route: '/templates/terracotta-earth',
+        preview: {
+            bg: 'linear-gradient(135deg, #fdf8f5 0%, #f4e3dc 100%)',
+            accentColor: '#d9745b',
+            textColor: '#5c2c1e',
+            fontFamily: '"Playfair Display", Georgia, serif',
+            couple: 'Kondwani & Natasha',
+            ornament: '✦',
+            taglineText: 'WEDDING INVITATION',
+            dateText: '20 · VI · 2026',
+            dark: false,
+        }
+    },
+    {
+        id: 'tropical-elegance',
+        name: 'Tropical Elegance',
+        tags: ['Tropical', 'Green', 'Gold'],
+        usedBy: 1420,
+        isNew: false,
+        isPopular: true,
+        route: '/templates/tropical-elegance',
+        preview: {
+            bg: 'linear-gradient(135deg, #f8fcf7 0%, #edf5eb 100%)',
+            accentColor: '#cba052',
+            textColor: '#072417',
+            fontFamily: '"Playfair Display", Georgia, serif',
+            couple: 'Sarfo & Cecilia',
+            ornament: '🌿',
+            taglineText: 'SAVE THE DATE',
+            dateText: '31 · V · 2026',
+            dark: false,
+        }
+    },
+    {
+        id: 'golden-romance',
+        name: 'Golden Romance',
+        tags: ['Elegant', 'Amber', 'Classic'],
+        usedBy: 980,
+        isNew: false,
+        isPopular: false,
+        route: '/templates/golden-romance',
+        preview: {
+            bg: 'linear-gradient(135deg, #fdfbf7 0%, #f5ecd7 100%)',
+            accentColor: '#c8863b',
+            textColor: '#2c1e16',
+            fontFamily: '"Playfair Display", Georgia, serif',
+            couple: 'Samuel & Gina',
+            ornament: '✦',
+            taglineText: 'THE WEDDING OF',
+            dateText: '28 · VIII · 2024',
+            dark: false,
+        }
+    },
+    {
+        id: 'botanical-olive',
+        name: 'Botanical Olive',
+        tags: ['Olive', 'Earthy', 'Cursive'],
+        usedBy: 1240,
+        isNew: false,
+        isPopular: false,
+        route: '/templates/botanical-olive',
+        preview: {
+            bg: 'linear-gradient(135deg, #fcfbf9 0%, #f5f3ee 100%)',
+            accentColor: '#606c38',
+            textColor: '#283618',
+            fontFamily: '"Cormorant Garamond", Georgia, serif',
+            couple: 'Taonga & Luyando',
+            ornament: '🍃',
+            taglineText: 'OUR CELEBRATION',
+            dateText: '12 · XII · 2026',
+            dark: false,
+        }
+    }
+];
+
+// Individual template card — CSS-rendered visual preview (no images, no simulation)
+// Individual template card — clean, small layout with Unsplash cover image & accent color details
+const TemplateHorizontalCard = ({ template }) => {
+    const p = template.preview;
+
+    return (
+        <div className="vendor-horizontal-card" style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
+                <div className="vhc-header" style={{ margin: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <h3>{template.name}</h3>
+                        {template.isPopular && <span className="v-row-badge-popular">★ Popular</span>}
+                        {template.isNew && <span className="v-row-badge-new">New</span>}
+                    </div>
+                    <p>{`Premium custom ${template.name.toLowerCase()} layout featuring guest RSVP portal and direction details.`}</p>
+                </div>
+            </div>
+
+            <div className="vhc-pill-bar" style={{ marginTop: '20px', display: 'flex', width: '100%' }}>
+                <div className="vhc-segment">
+                    <i className="fas fa-map-marker-alt"></i>
+                    <div className="vhc-seg-text">
+                        <span className="vhc-label">Location</span>
+                        <span className="vhc-value">Zambia</span>
+                    </div>
+                </div>
+
+                <div className="vhc-divider"></div>
+
+                <div className="vhc-segment">
+                    <i className="fas fa-envelope-open-text"></i>
+                    <div className="vhc-seg-text">
+                        <span className="vhc-label">Service</span>
+                        <span className="vhc-value">Wedding Invite</span>
+                    </div>
+                </div>
+
+                <div className="vhc-divider"></div>
+
+                <div className="vhc-segment">
+                    <i className="far fa-star"></i>
+                    <div className="vhc-seg-text">
+                        <span className="vhc-label">Rating</span>
+                        <span className="vhc-value">5.0 Verified</span>
+                    </div>
+                </div>
+
+                {/* Circular dynamic CSS-rendered avatar preview */}
+                <Link
+                    to={template.route}
+                    className="vhc-avatar-img"
+                    style={{
+                        background: p.bg,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: p.textColor,
+                        border: `2px solid ${p.accentColor}`,
+                        boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+                        textDecoration: 'none'
+                    }}
+                    title="Live Preview"
+                >
+                    <span style={{ fontSize: '0.9rem', fontFamily: p.fontFamily, fontWeight: 'bold' }}>
+                        {p.ornament}
+                    </span>
+                </Link>
+            </div>
+
+            {/* Bottom Actions Row */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px', width: '100%' }} className="v-row-right">
+                <Link
+                    to={template.route}
+                    className="v-row-btn-preview"
+                >
+                    Live Demo <i className="fas fa-external-link-alt"></i>
+                </Link>
+                <a
+                    href={`https://wa.me/260973848066?text=Hi! I'm interested in the *${template.name}* digital invitation template for my wedding.`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="v-row-btn-select"
+                >
+                    Select Template
+                </a>
+            </div>
+        </div>
+    );
+};
+
+const WeddingTemplatesPreview = () => {
+    const PREVIEW_COUNT = 3;
+
+    return (
+        <section className="wedding-templates-preview" id="wedding-templates" style={{ padding: '80px 0' }}>
+            <div className="container">
+
+                {/* ── Section Header ── */}
+                <div className="section-title-wrap">
+                    <span className="sub-title">WEDDING TEMPLATE COLLECTION</span>
+                    <h2>Handcrafted Wedding Invitation Templates</h2>
+                    <p className="section-desc">
+                        Each template is a fully functional digital invitation — live countdown, RSVP system, venue map, gift registry, dress code & more.
+                    </p>
+                </div>
+
+                {/* ── Template Cards list ── */}
+                <div className="vendors-grid-list" style={{ maxWidth: '800px', margin: '0 auto 40px auto' }}>
+                    {ALL_TEMPLATES.slice(0, PREVIEW_COUNT).map(tmpl => (
+                        <TemplateHorizontalCard key={tmpl.id} template={tmpl} />
+                    ))}
+                </div>
+
+                {/* ── See All CTA ── */}
+                <div className="tmpl-see-all-row">
+                    <Link
+                        to="/templates"
+                        className="hero-btn-dark"
+                        id="browseAllTemplatesBtn"
+                    >
+                        Browse All Templates <i className="fas fa-arrow-right btn-arrow"></i>
+                    </Link>
+                    <p className="tmpl-see-all-sub">
+                        <span><i className="fas fa-check-circle"></i> 4 Unique Designs</span>
+                        <span><i className="fas fa-check-circle"></i> Fully Customizable</span>
+                        <span><i className="fas fa-check-circle"></i> Live RSVP System</span>
+                    </p>
+                </div>
+
+            </div>
+        </section>
+    );
+};
+
+
+// ServiceCard Component
+
+
+
 
 // ServiceCard Component
 const ServiceCard = ({ icon, title, description, labelCode, index }) => (
@@ -2155,6 +2383,7 @@ function App() {
         <div className="home-page">
             <Header />
             <Hero />
+            <WeddingTemplatesPreview />
             <Services />
             <TemplateShowcase onSelectTemplate={setSelectedTemplate} />
             <TrustCloud />

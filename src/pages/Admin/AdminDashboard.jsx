@@ -276,7 +276,14 @@ const AdminDashboard = () => {
     const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
     const [vendorUploadProgress, setVendorUploadProgress] = useState({});
 
+    const [selectedTemplateId, setSelectedTemplateId] = useState(1);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (activeActionSheet && activeActionSheet.type === 'wedding') {
+            setSelectedTemplateId(activeActionSheet.rawEvent?.template_id || 1);
+        }
+    }, [activeActionSheet]);
 
     const parsePortfolio = (portfolio) => {
         if (!portfolio) return [];
@@ -716,13 +723,13 @@ const AdminDashboard = () => {
         navigate('/login');
     };
 
-    const copyLink = async (slug, type = 'website') => {
+    const copyLink = async (slug, type = 'website', templateId = null) => {
         let url = '';
         let message = 'Link copied to clipboard!';
 
         switch (type) {
             case 'website':
-                url = `${window.location.origin}/w/${slug}`;
+                url = `${window.location.origin}/w/${slug}${templateId ? `?template=${templateId}` : ''}`;
                 message = 'Website link copied to clipboard!';
                 break;
             case 'report':
@@ -730,7 +737,7 @@ const AdminDashboard = () => {
                 message = 'Report link copied to clipboard!';
                 break;
             case 'preview':
-                url = `${window.location.origin}/api/preview?slug=${slug}`;
+                url = `${window.location.origin}/api/preview?slug=${slug}${templateId ? `&template=${templateId}` : ''}`;
                 message = 'Preview link copied to clipboard!';
                 break;
             case 'preview-bd':
@@ -1520,15 +1527,105 @@ const AdminDashboard = () => {
             {/* Overlays (Action Sheets) */}
             {activeActionSheet && (
                 <div className="vm-overlay" onClick={() => setActiveActionSheet(null)}>
-                    <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '1.5rem' }}>
+                    <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '1.5rem', maxWidth: '400px', width: '90%' }}>
                         <h4 className="vm-name">{activeActionSheet.title}</h4>
                         <p className="vm-desc" style={{ marginBottom: '1.5rem' }}>{activeActionSheet.subtitle}</p>
 
+                        {/* Template Selector for Wedding */}
+                        {activeActionSheet.type === 'wedding' && (
+                            <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                                    <i className="fas fa-layer-group" style={{ marginRight: 6 }}></i> Choose Template to Share:
+                                </label>
+                                <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+                                    <select 
+                                        value={selectedTemplateId} 
+                                        onChange={(e) => setSelectedTemplateId(parseInt(e.target.value))}
+                                        style={{ 
+                                            flex: 1, 
+                                            padding: '0.75rem', 
+                                            borderRadius: '8px', 
+                                            border: '1px solid #d1d5db', 
+                                            fontSize: '0.85rem',
+                                            outline: 'none',
+                                            background: '#f9fafb',
+                                            fontWeight: 600
+                                        }}
+                                    >
+                                        <option value={1}>Default Elegance</option>
+                                        <option value={2}>Tropical Elegance</option>
+                                        <option value={3}>Golden Romance</option>
+                                        <option value={7}>Botanical Olive</option>
+                                        <option value={8}>Terracotta Earth</option>
+                                    </select>
+                                    
+                                    <button 
+                                        onClick={async () => {
+                                            try {
+                                                const { error } = await supabase
+                                                    .from('weddings')
+                                                    .update({ template_id: selectedTemplateId })
+                                                    .eq('id', activeActionSheet.rawEvent.id);
+                                                
+                                                if (error) throw error;
+                                                
+                                                setWeddings(prev => prev.map(w => 
+                                                    w.id === activeActionSheet.rawEvent.id 
+                                                        ? { ...w, template_id: selectedTemplateId } 
+                                                        : w
+                                                ));
+                                                
+                                                activeActionSheet.rawEvent.template_id = selectedTemplateId;
+                                                alert('Template set as default successfully!');
+                                            } catch (err) {
+                                                alert('Error saving default template: ' + err.message);
+                                            }
+                                        }}
+                                        className="ga-approve"
+                                        style={{ 
+                                            padding: '0.75rem 1rem', 
+                                            margin: 0, 
+                                            fontSize: '0.75rem', 
+                                            height: 'auto',
+                                            width: 'auto',
+                                            whiteSpace: 'nowrap',
+                                            background: '#2d3a3a',
+                                            color: '#fff',
+                                            borderRadius: '8px'
+                                        }}
+                                    >
+                                        Save Default
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            <a href={`${window.location.origin}${activeActionSheet.type === 'wedding' ? '/w/' : activeActionSheet.type === 'birthday' ? '/b/' : '/bridal-shower/'}${activeActionSheet.slug}`} target="_blank" rel="noopener noreferrer" className="ga-approve" style={{ padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem', textDecoration: 'none' }}>
+                            <a 
+                                href={
+                                    activeActionSheet.type === 'wedding'
+                                        ? `${window.location.origin}/w/${activeActionSheet.slug}?template=${selectedTemplateId}`
+                                        : `${window.location.origin}${activeActionSheet.type === 'birthday' ? '/b/' : '/bridal-shower/'}${activeActionSheet.slug}`
+                                } 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="ga-approve" 
+                                style={{ padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem', textDecoration: 'none' }}
+                            >
                                 <i className="fas fa-external-link-alt"></i> View Website
                             </a>
-                            <button onClick={() => { copyLink(activeActionSheet.slug, activeActionSheet.copyType); setActiveActionSheet(null); }} className="ga-approve" style={{ background: '#25D366', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem' }}>
+                            <button 
+                                onClick={() => { 
+                                    copyLink(
+                                        activeActionSheet.slug, 
+                                        activeActionSheet.copyType, 
+                                        activeActionSheet.type === 'wedding' ? selectedTemplateId : null
+                                    ); 
+                                    setActiveActionSheet(null); 
+                                }} 
+                                className="ga-approve" 
+                                style={{ background: '#25D366', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem' }}
+                            >
                                 <i className="fab fa-whatsapp"></i> Copy Link for WhatsApp
                             </button>
                             <Link to={activeActionSheet.reportUrl} target="_blank" className="ga-approve" style={{ background: '#3b82f6', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem', textDecoration: 'none' }}>

@@ -1,0 +1,318 @@
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../supabaseClient';
+import { weddingMockData } from './weddingMockData';
+
+const TropicalElegance = ({ weddingData }) => {
+  const d = weddingData || weddingMockData['tropical-elegance'];
+
+  const sliderImages = d.sliderImages?.length > 2 ? d.sliderImages : [
+    'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&q=80&w=800',
+    'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&q=80&w=800',
+    'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800'
+  ];
+
+  const bgCream = '#FDFBF9'; // Extremely light, almost white cream from image
+  const textBrown = '#5C3522'; // Dark brown text
+  const accentBrown = '#8F664E'; // Softer brown for cursive
+  const iconBg = '#5C3522';
+
+  const brideFirst = d.couple?.bride?.name?.split(' ')[0] || 'Bride';
+  const groomFirst = d.couple?.groom?.name?.split(' ')[0] || 'Groom';
+
+  const eventDate = d.date ? new Date(d.date) : new Date('2026-09-28T17:00:00');
+  const pad = (n) => String(n).padStart(2, '0');
+  const day = eventDate.getDate();
+  const englishMonths = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const month = englishMonths[eventDate.getMonth()];
+  const year = eventDate.getFullYear();
+  const timeStr = d.ceremony?.time || '17h pontualmente';
+
+  // RSVP Form State
+  const [form, setForm] = useState({ name: '', phone: '', guests: '1', attendance: 'yes' });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  // Countdown State
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const difference = eventDate.getTime() - Date.now();
+      if (difference <= 0) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+        clearInterval(timer);
+      } else {
+        setTimeLeft({
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+          minutes: Math.floor((difference / 1000 / 60) % 60),
+          seconds: Math.floor((difference / 1000) % 60)
+        });
+      }
+    }, 1000);
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
+
+    return () => {
+      clearInterval(timer);
+      observer.disconnect();
+    };
+  }, [eventDate]);
+
+  const handleRsvpSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim()) return;
+    setSubmitting(true);
+    try {
+      if (d.id && !d.id.startsWith('demo-')) {
+        await supabase.from('rsvps').insert([{ wedding_id: d.id, name: form.name, phone: form.phone, attending: form.attendance, guests_count: parseInt(form.guests) || 1, status: 'pending' }]);
+      }
+      setSubmitted(true);
+    } catch {
+      // ignore
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const SectionPill = ({ icon, topText, bottomText, iconLeft = true }) => (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      width: '100%', maxWidth: '320px', background: 'rgba(255, 255, 255, 0.7)',
+      border: '1px solid rgba(92, 53, 34, 0.15)', borderRadius: '50px',
+      padding: '5px', margin: '0 auto',
+      flexDirection: iconLeft ? 'row' : 'row-reverse',
+      boxShadow: '0 4px 15px rgba(0,0,0,0.02)'
+    }}>
+      <div style={{
+        width: '50px', height: '50px', backgroundColor: iconBg, borderRadius: '15px',
+        display: 'flex', justifyContent: 'center', alignItems: 'center',
+        color: '#fff', fontSize: '1.2rem', boxShadow: '0 4px 10px rgba(92, 53, 34, 0.2)'
+      }}>
+        <i className={`fas ${icon}`}></i>
+      </div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: '0.55rem', fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase', color: textBrown, marginBottom: '-2px' }}>
+          {topText}
+        </div>
+        <div style={{ fontFamily: "'Alex Brush', cursive", fontSize: '2.1rem', color: accentBrown, lineHeight: '0.9' }}>
+          {bottomText}
+        </div>
+      </div>
+    </div>
+  );
+
+  const FloralCluster = ({ top, right, bottom, left, rotate }) => (
+    <div style={{ position: 'absolute', top, right, bottom, left, transform: `rotate(${rotate}deg)`, opacity: 0.12, pointerEvents: 'none', zIndex: 1, width: '150px', height: '150px' }}>
+      <i className="fas fa-leaf" style={{ fontSize: '120px', color: '#5C3522', position: 'absolute', top: 0, left: 0 }}></i>
+      <i className="fas fa-seedling" style={{ fontSize: '80px', color: '#8F664E', position: 'absolute', top: '40px', left: '40px', transform: 'rotate(45deg)' }}></i>
+      <i className="fab fa-pagelines" style={{ fontSize: '100px', color: '#5C3522', position: 'absolute', top: '-20px', left: '60px', transform: 'rotate(-30deg)' }}></i>
+    </div>
+  );
+
+  const SquigglyDivider = () => (
+    <div style={{ display: 'flex', justifyContent: 'center', margin: '30px 0', opacity: 0.2, width: '100%' }}>
+      <svg width="150" height="10" viewBox="0 0 150 10">
+        <path d="M0,5 Q37.5,0 75,5 T150,5" fill="none" stroke={textBrown} strokeWidth="1" />
+      </svg>
+    </div>
+  );
+
+  return (
+    <>
+      <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Playfair+Display:ital,wght@0,400;1,400&family=Montserrat:wght@200;300;400;500;600&display=swap" rel="stylesheet" />
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+      <style>{`
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        .inv-wrapper {
+          width: 100%; min-height: 100vh; background-color: #2D1A10; display: flex; justify-content: center; align-items: flex-start;
+          font-family: 'Cormorant Garamond', serif; color: ${textBrown};
+        }
+
+        .inv-container {
+          width: 100%; max-width: 480px; min-height: 100vh; background-color: ${bgCream}; position: relative; overflow-x: hidden;
+          box-shadow: 0 0 50px rgba(0,0,0,0.8); display: flex; flex-direction: column; align-items: center; padding-bottom: 80px;
+        }
+
+        .animate-on-scroll { opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease-out, transform 0.8s ease-out; }
+        .animate-on-scroll.visible { opacity: 1; transform: translateY(0); }
+
+        .inv-main-img-wrap {
+          width: 100%; height: 480px; overflow: hidden; position: relative; z-index: 2;
+          -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+          mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+        }
+        .inv-main-img { width: 100%; height: 100%; object-fit: cover; }
+
+        .inv-intro {
+          font-family: 'Montserrat', sans-serif; font-size: 0.55rem; font-weight: 600; text-transform: uppercase;
+          letter-spacing: 3px; color: ${textBrown}; margin-bottom: 20px; text-align: center; z-index: 2; padding: 0 20px;
+        }
+
+        .inv-names {
+          font-family: 'Alex Brush', cursive; font-size: 4.8rem; line-height: 1; margin-bottom: 20px; text-align: center; padding: 0 20px; z-index: 2; color: ${textBrown};
+        }
+
+        .inv-sub-intro {
+          font-family: 'Montserrat', sans-serif; font-size: 0.6rem; font-weight: 500; text-transform: uppercase;
+          letter-spacing: 2px; color: ${textBrown}; text-align: center; line-height: 1.8; padding: 0 40px; margin-bottom: 40px; z-index: 2;
+        }
+
+        .inv-date-block { display: flex; flex-direction: column; align-items: center; margin-bottom: 40px; position: relative; z-index: 2; width: 100%; }
+        .inv-day { font-family: 'Cormorant Garamond', serif; font-size: 6.5rem; line-height: 0.75; color: ${textBrown}; font-weight: 400; }
+        .inv-month { font-family: 'Alex Brush', cursive; font-size: 3.5rem; color: ${accentBrown}; margin-top: -15px; margin-bottom: 15px; z-index: 2; }
+        .inv-year-time { font-family: 'Montserrat', sans-serif; font-size: 0.7rem; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: ${textBrown}; text-align: center; line-height: 1.6; }
+
+        .inv-timer-wrap { display: flex; justify-content: center; gap: 10px; margin: 0 0 50px; z-index: 2; width: 85%; }
+        .inv-timer-box { background: rgba(255,255,255,0.6); border: 1px solid rgba(92,53,34,0.1); border-radius: 12px; flex: 1; padding: 12px 5px; text-align: center; }
+        .inv-timer-val { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: ${textBrown}; line-height: 1; margin-bottom: 5px; }
+        .inv-timer-lbl { font-family: 'Montserrat', sans-serif; font-size: 0.45rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: ${accentBrown}; }
+
+        .inv-section-list { width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 2; position: relative; }
+        .inv-section-item { width: 100%; display: flex; flex-direction: column; align-items: center; position: relative; }
+
+        .inv-section-content { width: 85%; max-width: 300px; text-align: center; padding-top: 15px; padding-bottom: 5px; }
+        .inv-section-content p { font-family: 'Montserrat', sans-serif; font-size: 0.75rem; line-height: 1.6; color: ${textBrown}; margin-bottom: 15px; font-weight: 500; }
+        
+        .inv-map-btn {
+          display: inline-flex; align-items: center; justify-content: center; padding: 10px 25px; background: transparent;
+          border: 1px solid ${iconBg}; border-radius: 30px; color: ${iconBg}; font-family: 'Montserrat', sans-serif;
+          font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; text-decoration: none; transition: all 0.3s ease;
+        }
+        .inv-map-btn:hover { background: ${iconBg}; color: #fff; }
+
+        .inv-input { width: 100%; padding: 12px 15px; margin-bottom: 10px; border: 1px solid rgba(92,53,34,0.2); border-radius: 20px; background: rgba(255,255,255,0.7); font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: ${textBrown}; outline: none; text-align: center; }
+        .inv-submit { width: 100%; padding: 14px; background: ${iconBg}; color: #fff; border: none; border-radius: 30px; font-family: 'Montserrat', sans-serif; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
+        
+        .inv-footer-img { width: 100%; height: 350px; object-fit: cover; border-radius: 0 0 200px 200px; -webkit-mask-image: linear-gradient(to top, black 60%, transparent 100%); mask-image: linear-gradient(to top, black 60%, transparent 100%); margin-top: 50px; }
+      `}</style>
+
+      <div className="inv-wrapper">
+        <div className="inv-container">
+
+          <FloralCluster top="100px" left="-50px" rotate={45} />
+          <FloralCluster top="600px" right="-50px" rotate={-135} />
+          <FloralCluster bottom="400px" left="-50px" rotate={90} />
+          <FloralCluster bottom="100px" right="-30px" rotate={-45} />
+
+          <div className="inv-main-img-wrap animate-on-scroll">
+            <img src={sliderImages[0]} alt="Couple" className="inv-main-img" />
+          </div>
+
+          <div className="inv-intro animate-on-scroll">
+            Com a bênção de Deus e seus pais
+          </div>
+
+          <div className="inv-names animate-on-scroll">
+            {brideFirst} e {groomFirst}
+          </div>
+
+          <div className="inv-sub-intro animate-on-scroll">
+            Carinhosamente convidam para a<br />celebração de seu casamento a<br />ser realizada em
+          </div>
+
+          <div className="inv-date-block animate-on-scroll">
+            <div className="inv-day">{pad(day)}</div>
+            <div className="inv-month">{month}</div>
+            <div className="inv-year-time">de {year}<br />{timeStr}</div>
+          </div>
+
+          <div className="inv-timer-wrap animate-on-scroll">
+            <div className="inv-timer-box"><div className="inv-timer-val">{timeLeft.days}</div><div className="inv-timer-lbl">Dias</div></div>
+            <div className="inv-timer-box"><div className="inv-timer-val">{timeLeft.hours}</div><div className="inv-timer-lbl">Horas</div></div>
+            <div className="inv-timer-box"><div className="inv-timer-val">{timeLeft.minutes}</div><div className="inv-timer-lbl">Min</div></div>
+            <div className="inv-timer-box"><div className="inv-timer-val">{timeLeft.seconds}</div><div className="inv-timer-lbl">Seg</div></div>
+          </div>
+
+          <SquigglyDivider />
+
+          {/* Alternating Pill Sections - EXACTLY matching reference image layout */}
+          <div className="inv-section-list">
+
+            {/* Ceremony - Icon Left */}
+            <div className="inv-section-item animate-on-scroll">
+              <SectionPill icon="fa-church" topText="LOCALIZAÇÃO DA" bottomText="cerimônia" iconLeft={true} />
+              <div className="inv-section-content">
+                <p><strong>{d.venue?.name || 'Igreja Santa Teresinha'}</strong><br />{d.venue?.address || 'Av. Visc. de Guarapuava, 1787'}</p>
+                <a href="#" className="inv-map-btn">Abrir Mapa</a>
+              </div>
+            </div>
+
+            <SquigglyDivider />
+
+            {/* Reception - Icon Right */}
+            <div className="inv-section-item animate-on-scroll">
+              <SectionPill icon="fa-map-marker-alt" topText="LOCALIZAÇÃO DA" bottomText="recepção" iconLeft={false} />
+              <div className="inv-section-content">
+                <p><strong>{d.reception?.venue || 'Espaço Belvedere'}</strong><br />{d.reception?.address || 'Rua Canto Sereia, Zona Rural'}</p>
+                <a href="#" className="inv-map-btn">Abrir Mapa</a>
+              </div>
+            </div>
+
+            <SquigglyDivider />
+
+            {/* Website - Icon Left */}
+            <div className="inv-section-item animate-on-scroll">
+              <SectionPill icon="fa-rings-wedding" topText="SITE DOS" bottomText="noivos" iconLeft={true} />
+              <div className="inv-section-content">
+                <p>Descubra nossa história e mais detalhes do nosso grande dia.</p>
+                <a href="#" className="inv-map-btn">Acessar Site</a>
+              </div>
+            </div>
+
+            <SquigglyDivider />
+
+            {/* Gifts - Icon Right */}
+            <div className="inv-section-item animate-on-scroll">
+              <SectionPill icon="fa-gift" topText="SUGESTÃO DE" bottomText="presentes" iconLeft={false} />
+              <div className="inv-section-content">
+                <p>Sua presença é nosso maior presente. Para nos presentear:</p>
+                <div style={{ background: 'rgba(255,255,255,0.6)', padding: '15px', borderRadius: '15px', border: `1px solid rgba(92,53,34,0.1)`, textAlign: 'left', fontSize: '0.75rem', lineHeight: 1.6, fontFamily: 'Montserrat' }}>
+                  <strong>PIX:</strong> 123.456.789-00<br />
+                  <strong>Nome:</strong> {brideFirst} e {groomFirst}
+                </div>
+              </div>
+            </div>
+
+            <SquigglyDivider />
+
+            {/* RSVP - Icon Left */}
+            <div className="inv-section-item animate-on-scroll">
+              <SectionPill icon="fa-envelope-open-text" topText="CONFIRME SUA" bottomText="presença" iconLeft={true} />
+              <div className="inv-section-content">
+                {submitted ? (
+                  <div style={{ color: accentBrown, padding: '10px 0' }}>
+                    <i className="fas fa-check-circle" style={{ fontSize: '2rem', marginBottom: '10px' }}></i>
+                    <p>Obrigado! Presença confirmada.</p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleRsvpSubmit}>
+                    <input type="text" className="inv-input" placeholder="Nome Completo" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+                    <input type="tel" className="inv-input" placeholder="Telefone" required value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+                    <button type="submit" disabled={submitting} className="inv-submit">{submitting ? 'Enviando...' : 'Confirmar Presença'}</button>
+                  </form>
+                )}
+              </div>
+            </div>
+
+          </div>
+
+          <img src={sliderImages[1] || sliderImages[0]} alt="Couple" className="inv-footer-img animate-on-scroll" />
+
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default TropicalElegance;

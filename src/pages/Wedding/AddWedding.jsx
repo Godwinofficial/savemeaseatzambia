@@ -372,7 +372,7 @@
 //                 />
 //             </div>
 
-//             <div className="form-group" style={{ background: '#f0fdf4', padding: '20px', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
+//             <div className="form-group" style={{ background: 'var(--bg-surface-elevated)', padding: '20px', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
 //                 <label className="form-label" style={{ color: '#166534', fontWeight: 'bold' }}>Find Venue & Select Location</label>
 //                 <p style={{ fontSize: '0.9rem', color: '#166534', marginBottom: '15px' }}>
 //                     Type to search specific venues (e.g. "Twangale Park"). Select from the list or drag the pin on the map.
@@ -690,7 +690,7 @@
 
 
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useNavigate, useParams } from 'react-router-dom';
 import './AddWedding.css';
@@ -699,6 +699,8 @@ const AddWedding = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const isEditMode = !!id;
+
+    const iframeRef = useRef(null);
 
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -719,6 +721,7 @@ const AddWedding = () => {
         dress_code: "", dress_code_desc: "",
         map_location: "",
         tagline: "We are getting married",
+        template_id: 1,
         slider_images: [], bridesmaids: [], groomsmen: [], gifts: [], gallery_images: [], other_events: [],
         allowed_guests: ["1"],
         theme_colors: ['#A68A64', '#FAFAF9', '#E7E5E4', '#292524'],
@@ -739,6 +742,21 @@ const AddWedding = () => {
     const [tempDressHex, setTempDressHex] = useState("");
     const [editingThemeIdx, setEditingThemeIdx] = useState(null);
     const [editingDressIdx, setEditingDressIdx] = useState(null);
+
+    // Sync draft form data for real-time live preview
+    useEffect(() => {
+        try {
+            localStorage.setItem('savemeaseat_preview_data', JSON.stringify(formData));
+            if (iframeRef.current && iframeRef.current.contentWindow) {
+                iframeRef.current.contentWindow.postMessage({
+                    type: 'PREVIEW_UPDATE',
+                    data: formData
+                }, '*');
+            }
+        } catch (e) {
+            console.error("Preview sync error:", e);
+        }
+    }, [formData]);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -801,7 +819,8 @@ const AddWedding = () => {
                             }
                         } catch (e) { }
                         return [];
-                    })()
+                    })(),
+                    template_id: data.template_id || 1
                 });
             }
         } catch (error) {
@@ -1018,7 +1037,7 @@ const AddWedding = () => {
 
         return (
             <div className={`form-group ${className}`}>
-                <label className="form-label">{label}</label>
+                {label && <label className="form-label">{label}</label>}
                 <div className={`image-upload-wrapper ${progress > 0 || uploading ? 'uploading' : ''}`} onClick={() => document.getElementById(uploadId).click()}>
                     <input type="file" id={uploadId} onChange={handleFileChange} accept="image/*" multiple={multiple} style={{ display: 'none' }} />
                     {value && !multiple ? (
@@ -1036,7 +1055,7 @@ const AddWedding = () => {
                         </div>
                     ) : (
                         <div className="upload-placeholder">
-                            <div className="upload-icon">
+                            <div className="upload-icon-box">
                                 {progress > 0 || uploading ? (
                                     <div className="upload-progress">
                                         <div className="progress-circle">
@@ -1048,9 +1067,8 @@ const AddWedding = () => {
                                 )}
                             </div>
                             <div className="upload-text">
-                                <span className="upload-title">{multiple ? "Upload Photos" : "Upload Photo"}</span>
-                                <span className="upload-subtitle">Click to browse or drag & drop</span>
-                                <span className="upload-info">PNG, JPG up to 5MB</span>
+                                <span className="upload-title">{multiple ? "Drop your photos here or browse" : "Drop your photo here or browse"}</span>
+                                <span className="upload-subtitle">Max file size up to 5 MB</span>
                             </div>
                         </div>
                     )}
@@ -1095,6 +1113,7 @@ const AddWedding = () => {
                 'ceremony_date', 'ceremony_time',
                 'reception_date', 'reception_time'
             ];
+
 
             nullableFields.forEach(field => {
                 if (payload[field] === "") {
@@ -1259,6 +1278,65 @@ const AddWedding = () => {
                     placeholder="e.g. We are getting married, Kitchen Party, etc."
                 />
                 <small style={{ color: 'var(--gray)', fontSize: '0.85rem' }}>Text shown below names on the main page (Default: "We are getting married")</small>
+            </div>
+
+            <div className="section-header" style={{ marginTop: '30px' }}>
+                <h3 className="section-subtitle">
+                    <i className="fas fa-layer-group"></i>
+                    Choose Wedding Template
+                </h3>
+            </div>
+
+            <div className="template-options-grid">
+                <div
+                    className={`template-option-card ${formData.template_id === 1 ? 'active' : ''}`}
+                    onClick={() => setFormData(p => ({ ...p, template_id: 1 }))}
+                >
+                    <div className="template-preview-box" style={{ background: '#FAF8F5', color: '#1A1A1A', border: '1px solid #E7E5E4' }}>
+                        <span style={{ fontFamily: 'Cinzel, Cormorant Garamond, serif' }}>Default Elegance</span>
+                    </div>
+                    <span style={{ fontWeight: 600, fontSize: '0.8rem', color: '#374151' }}>Default Elegance</span>
+                </div>
+
+                <div
+                    className={`template-option-card ${formData.template_id === 2 ? 'active' : ''}`}
+                    onClick={() => setFormData(p => ({ ...p, template_id: 2 }))}
+                >
+                    <div className="template-preview-box" style={{ background: '#092F1D', color: '#D4AF37' }}>
+                        <span style={{ fontFamily: 'Playfair Display, serif' }}>Tropical Elegance</span>
+                    </div>
+                    <span style={{ fontWeight: 600, fontSize: '0.8rem', color: '#374151' }}>Tropical Elegance</span>
+                </div>
+
+                <div
+                    className={`template-option-card ${formData.template_id === 3 ? 'active' : ''}`}
+                    onClick={() => setFormData(p => ({ ...p, template_id: 3 }))}
+                >
+                    <div className="template-preview-box" style={{ background: '#121212', color: '#E5C158', border: '1px solid #333' }}>
+                        <span style={{ fontFamily: 'Cormorant Garamond, serif' }}>Golden Romance</span>
+                    </div>
+                    <span style={{ fontWeight: 600, fontSize: '0.8rem', color: '#374151' }}>Golden Romance</span>
+                </div>
+
+                <div
+                    className={`template-option-card ${formData.template_id === 7 ? 'active' : ''}`}
+                    onClick={() => setFormData(p => ({ ...p, template_id: 7 }))}
+                >
+                    <div className="template-preview-box" style={{ background: '#5E6B5C', color: '#F3EFE9' }}>
+                        <span style={{ fontFamily: 'Montserrat, sans-serif' }}>Botanical Olive</span>
+                    </div>
+                    <span style={{ fontWeight: 600, fontSize: '0.8rem', color: '#374151' }}>Botanical Olive</span>
+                </div>
+
+                <div
+                    className={`template-option-card ${formData.template_id === 8 ? 'active' : ''}`}
+                    onClick={() => setFormData(p => ({ ...p, template_id: 8 }))}
+                >
+                    <div className="template-preview-box" style={{ background: '#C05C3E', color: '#FFF8F4' }}>
+                        <span style={{ fontFamily: 'Playfair Display, serif' }}>Terracotta Earth</span>
+                    </div>
+                    <span style={{ fontWeight: 600, fontSize: '0.8rem', color: '#374151' }}>Terracotta Earth</span>
+                </div>
             </div>
         </div>
     );
@@ -1525,7 +1603,7 @@ const AddWedding = () => {
                                             setTempThemeHex("");
                                         }}
                                         style={{
-                                            background: editingThemeIdx !== null ? '#10b981' : '#111827',
+                                            background: editingThemeIdx !== null ? 'var(--primary)' : '#111827',
                                             color: '#ffffff',
                                             border: 'none',
                                             width: '28px',
@@ -1747,7 +1825,7 @@ const AddWedding = () => {
                                             setTempDressHex("");
                                         }}
                                         style={{
-                                            background: editingDressIdx !== null ? '#10b981' : '#111827',
+                                            background: editingDressIdx !== null ? 'var(--primary)' : '#111827',
                                             color: '#ffffff',
                                             border: 'none',
                                             width: '28px',
@@ -2143,238 +2221,186 @@ const AddWedding = () => {
             <div className="section-header">
                 <h2 className="section-title">
                     <i className="fas fa-images"></i>
-                    Photos & Wedding Party
+                    Photos &amp; Wedding Party
                 </h2>
                 <p className="section-description">Add your wedding party, gift options, and beautiful photos.</p>
             </div>
 
-            <div className="party-section">
-                <div className="party-header">
-                    <h3>
-                        <i className="fas fa-users"></i>
-                        Wedding Party
-                    </h3>
-                    <p className="party-description">Add bridesmaids and groomsmen with their roles and photos.</p>
-                </div>
-
-                <div className="party-grid">
-                    <div className="bridesmaids-card">
-                        <div className="party-card-header">
-                            <div className="party-icon bride-icon">
-                                <i className="fas fa-female"></i>
-                            </div>
-                            <h4>Bridesmaids</h4>
+            {/* Wedding Party — two side-by-side cards matching the couple layout */}
+            <div className="couple-grid">
+                {/* Bridesmaids */}
+                <div className="person-card">
+                    <div className="person-header">
+                        <div className="person-icon">
+                            <i className="fas fa-female"></i>
                         </div>
-                        <div className="party-list">
-                            {formData.bridesmaids.map((item, idx) => (
-                                <div key={idx} className="party-member">
-                                    <div className="member-actions">
-                                        <button className="btn-remove-member" onClick={() => removeItem('bridesmaids', idx)}>
-                                            <i className="fas fa-times"></i>
-                                        </button>
-                                        <span className="member-number">#{idx + 1}</span>
-                                    </div>
-                                    <div className="member-form">
-                                        <div className="form-group">
-                                            <label className="form-label">Name</label>
-                                            <input
-                                                className="form-input"
-                                                placeholder="Full name"
-                                                value={item.name}
-                                                onChange={(e) => updateItem('bridesmaids', idx, 'name', e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="form-label">Role</label>
-                                            <input
-                                                className="form-input"
-                                                placeholder="e.g., Maid of Honor, Bridesmaid"
-                                                value={item.role}
-                                                onChange={(e) => updateItem('bridesmaids', idx, 'role', e.target.value)}
-                                            />
-                                        </div>
-                                        <ImageUpload
-                                            label="Photo"
-                                            id={`bridesmaid-${idx}`}
-                                            value={item.photo}
-                                            onUpload={(url) => updateItem('bridesmaids', idx, 'photo', url)}
-                                            path="party"
-                                            className="member-photo-upload"
-                                        />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        <button className="btn-add-member" onClick={() => addItem('bridesmaids', { name: "", role: "", photo: "" })}>
-                            <i className="fas fa-plus"></i>
-                            Add Bridesmaid
-                        </button>
+                        <h3>Bridesmaids</h3>
                     </div>
-
-                    <div className="groomsmen-card">
-                        <div className="party-card-header">
-                            <div className="party-icon groom-icon">
-                                <i className="fas fa-male"></i>
-                            </div>
-                            <h4>Groomsmen</h4>
-                        </div>
-                        <div className="party-list">
-                            {formData.groomsmen.map((item, idx) => (
-                                <div key={idx} className="party-member">
-                                    <div className="member-actions">
-                                        <button className="btn-remove-member" onClick={() => removeItem('groomsmen', idx)}>
-                                            <i className="fas fa-times"></i>
-                                        </button>
-                                        <span className="member-number">#{idx + 1}</span>
-                                    </div>
-                                    <div className="member-form">
-                                        <div className="form-group">
-                                            <label className="form-label">Name</label>
-                                            <input
-                                                className="form-input"
-                                                placeholder="Full name"
-                                                value={item.name}
-                                                onChange={(e) => updateItem('groomsmen', idx, 'name', e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="form-label">Role</label>
-                                            <input
-                                                className="form-input"
-                                                placeholder="e.g., Best Man, Groomsman"
-                                                value={item.role}
-                                                onChange={(e) => updateItem('groomsmen', idx, 'role', e.target.value)}
-                                            />
-                                        </div>
-                                        <ImageUpload
-                                            label="Photo"
-                                            id={`groomsman-${idx}`}
-                                            value={item.photo}
-                                            onUpload={(url) => updateItem('groomsmen', idx, 'photo', url)}
-                                            path="party"
-                                            className="member-photo-upload"
-                                        />
-                                    </div>
+                    {formData.bridesmaids.map((item, idx) => (
+                        <div key={idx} className="story-card" style={{ marginBottom: '1rem', padding: '1.25rem' }}>
+                            <div className="story-card-header" style={{ justifyContent: 'space-between', marginBottom: '1rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--aw-text-muted)' }}>#{idx + 1}</span>
                                 </div>
-                            ))}
-                        </div>
-                        <button className="btn-add-member" onClick={() => addItem('groomsmen', { name: "", role: "", photo: "" })}>
-                            <i className="fas fa-plus"></i>
-                            Add Groomsman
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div className="gifts-section">
-                <div className="section-header">
-                    <h3>
-                        <i className="fas fa-gift"></i>
-                        Gift Options
-                    </h3>
-                    <p className="section-description">Add payment methods or registry links for wedding gifts.</p>
-                </div>
-
-                <div className="gifts-list">
-                    {formData.gifts.map((item, idx) => (
-                        <div key={idx} className="gift-card">
-                            <div className="gift-card-header">
-                                <div className="gift-number">
-                                    <i className="fas fa-gift"></i>
-                                    <span>Gift Option #{idx + 1}</span>
-                                </div>
-                                <button className="btn-remove-gift" onClick={() => removeItem('gifts', idx)}>
-                                    <i className="fas fa-trash"></i>
-                                    Remove
+                                <button
+                                    onClick={() => removeItem('bridesmaids', idx)}
+                                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.9rem' }}
+                                >
+                                    <i className="fas fa-times"></i>
                                 </button>
                             </div>
-                            <div className="gift-form">
-                                <div className="grid-2">
-                                    <div className="form-group">
-                                        <label className="form-label">Gift Type</label>
-                                        <select
-                                            className="form-select"
-                                            value={item.giftType}
-                                            onChange={(e) => updateItem('gifts', idx, 'giftType', e.target.value)}
-                                        >
-                                            <option value="Mobile Money">Mobile Money</option>
-                                            <option value="Bank Transfer">Bank Transfer</option>
-                                            <option value="Cash at Event">Cash at Event</option>
-                                            <option value="Gift Registry">Gift Registry</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">Provider / Bank</label>
-                                        <input
-                                            className="form-input"
-                                            placeholder="e.g., MTN, FNB, Amazon"
-                                            value={item.provider}
-                                            onChange={(e) => updateItem('gifts', idx, 'provider', e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-
-                                {(item.giftType === 'Mobile Money' || item.giftType === 'Bank Transfer' || item.giftType === 'Other') && (
-                                    <div className="grid-2">
-                                        <div className="form-group">
-                                            <label className="form-label">Account Name</label>
-                                            <input
-                                                className="form-input"
-                                                placeholder="Account holder name"
-                                                value={item.accountName}
-                                                onChange={(e) => updateItem('gifts', idx, 'accountName', e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="form-label">Account Number</label>
-                                            <input
-                                                className="form-input"
-                                                placeholder="Phone number or account number"
-                                                value={item.accountNumber}
-                                                onChange={(e) => updateItem('gifts', idx, 'accountNumber', e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="grid-2">
-                                    <div className="form-group">
-                                        <label className="form-label">Special Instructions</label>
-                                        <input
-                                            className="form-input"
-                                            placeholder="e.g., Use reference: Smith Wedding"
-                                            value={item.instructions}
-                                            onChange={(e) => updateItem('gifts', idx, 'instructions', e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">Registry Link (Optional)</label>
-                                        <input
-                                            className="form-input"
-                                            placeholder="https://..."
-                                            value={item.url}
-                                            onChange={(e) => updateItem('gifts', idx, 'url', e.target.value)}
-                                        />
-                                    </div>
-                                </div>
+                            <div className="form-group">
+                                <label className="form-label">Name</label>
+                                <input className="form-input" placeholder="Full name" value={item.name} onChange={(e) => updateItem('bridesmaids', idx, 'name', e.target.value)} />
                             </div>
+                            <div className="form-group">
+                                <label className="form-label">Role</label>
+                                <input className="form-input" placeholder="e.g., Maid of Honor" value={item.role} onChange={(e) => updateItem('bridesmaids', idx, 'role', e.target.value)} />
+                            </div>
+                            <ImageUpload
+                                label="Photo"
+                                id={`bridesmaid-${idx}`}
+                                value={item.photo}
+                                onUpload={(url) => updateItem('bridesmaids', idx, 'photo', url)}
+                                path="party"
+                                className="member-photo-upload"
+                            />
                         </div>
                     ))}
-                    <button className="btn-add-gift" onClick={() => addItem('gifts', { giftType: "Mobile Money", provider: "", accountName: "", accountNumber: "", instructions: "", url: "" })}>
-                        <i className="fas fa-plus-circle"></i>
-                        Add Gift Option
+                    <button className="btn-add-member" onClick={() => addItem('bridesmaids', { name: "", role: "", photo: "" })}>
+                        <i className="fas fa-plus"></i> Add Bridesmaid
+                    </button>
+                </div>
+
+                {/* Groomsmen */}
+                <div className="person-card">
+                    <div className="person-header">
+                        <div className="person-icon">
+                            <i className="fas fa-male"></i>
+                        </div>
+                        <h3>Groomsmen</h3>
+                    </div>
+                    {formData.groomsmen.map((item, idx) => (
+                        <div key={idx} className="story-card" style={{ marginBottom: '1rem', padding: '1.25rem' }}>
+                            <div className="story-card-header" style={{ justifyContent: 'space-between', marginBottom: '1rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--aw-text-muted)' }}>#{idx + 1}</span>
+                                </div>
+                                <button
+                                    onClick={() => removeItem('groomsmen', idx)}
+                                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.9rem' }}
+                                >
+                                    <i className="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Name</label>
+                                <input className="form-input" placeholder="Full name" value={item.name} onChange={(e) => updateItem('groomsmen', idx, 'name', e.target.value)} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Role</label>
+                                <input className="form-input" placeholder="e.g., Best Man" value={item.role} onChange={(e) => updateItem('groomsmen', idx, 'role', e.target.value)} />
+                            </div>
+                            <ImageUpload
+                                label="Photo"
+                                id={`groomsman-${idx}`}
+                                value={item.photo}
+                                onUpload={(url) => updateItem('groomsmen', idx, 'photo', url)}
+                                path="party"
+                                className="member-photo-upload"
+                            />
+                        </div>
+                    ))}
+                    <button className="btn-add-member" onClick={() => addItem('groomsmen', { name: "", role: "", photo: "" })}>
+                        <i className="fas fa-plus"></i> Add Groomsman
                     </button>
                 </div>
             </div>
 
-            <div className="gallery-section">
-                <div className="gallery-header">
-                    <h3>
+            {/* Gift Options */}
+            <div className="person-card" style={{ marginTop: '2rem' }}>
+                <div className="person-header">
+                    <div className="person-icon">
+                        <i className="fas fa-gift"></i>
+                    </div>
+                    <div>
+                        <h3>Gift Options</h3>
+                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'var(--aw-text-muted)', fontWeight: 400 }}>Add payment methods or registry links for wedding gifts.</p>
+                    </div>
+                </div>
+
+                {formData.gifts.map((item, idx) => (
+                    <div key={idx} className="event-card" style={{ marginBottom: '1.25rem' }}>
+                        <div className="event-card-header" style={{ justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <i className="fas fa-gift" style={{ fontSize: '1.1rem', color: 'var(--aw-primary)' }}></i>
+                                <span style={{ fontWeight: 700, color: 'var(--aw-text)', fontFamily: "'Outfit', sans-serif" }}>Gift Option #{idx + 1}</span>
+                            </div>
+                            <button
+                                onClick={() => removeItem('gifts', idx)}
+                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, fontSize: '0.85rem' }}
+                            >
+                                <i className="fas fa-trash"></i> Remove
+                            </button>
+                        </div>
+                        <div className="grid-2">
+                            <div className="form-group">
+                                <label className="form-label">Gift Type</label>
+                                <select className="form-select" value={item.giftType} onChange={(e) => updateItem('gifts', idx, 'giftType', e.target.value)}>
+                                    <option value="Mobile Money">Mobile Money</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="Cash at Event">Cash at Event</option>
+                                    <option value="Gift Registry">Gift Registry</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Provider / Bank</label>
+                                <input className="form-input" placeholder="e.g., MTN, FNB, Amazon" value={item.provider} onChange={(e) => updateItem('gifts', idx, 'provider', e.target.value)} />
+                            </div>
+                        </div>
+
+                        {(item.giftType === 'Mobile Money' || item.giftType === 'Bank Transfer' || item.giftType === 'Other') && (
+                            <div className="grid-2">
+                                <div className="form-group">
+                                    <label className="form-label">Account Name</label>
+                                    <input className="form-input" placeholder="Account holder name" value={item.accountName} onChange={(e) => updateItem('gifts', idx, 'accountName', e.target.value)} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Account Number</label>
+                                    <input className="form-input" placeholder="Phone number or account number" value={item.accountNumber} onChange={(e) => updateItem('gifts', idx, 'accountNumber', e.target.value)} />
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="grid-2">
+                            <div className="form-group">
+                                <label className="form-label">Special Instructions</label>
+                                <input className="form-input" placeholder="e.g., Use reference: Smith Wedding" value={item.instructions} onChange={(e) => updateItem('gifts', idx, 'instructions', e.target.value)} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Registry Link (Optional)</label>
+                                <input className="form-input" placeholder="https://..." value={item.url} onChange={(e) => updateItem('gifts', idx, 'url', e.target.value)} />
+                            </div>
+                        </div>
+                    </div>
+                ))}
+                <button className="btn-add-gift" onClick={() => addItem('gifts', { giftType: "Mobile Money", provider: "", accountName: "", accountNumber: "", instructions: "", url: "" })}>
+                    <i className="fas fa-plus-circle"></i>
+                    Add Gift Option
+                </button>
+            </div>
+
+            {/* Photo Gallery */}
+            <div className="person-card" style={{ marginTop: '2rem' }}>
+                <div className="person-header">
+                    <div className="person-icon">
                         <i className="fas fa-camera"></i>
-                        Photo Gallery
-                    </h3>
-                    <p className="gallery-description">Add photos for your wedding website gallery.</p>
+                    </div>
+                    <div>
+                        <h3>Photo Gallery</h3>
+                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'var(--aw-text-muted)', fontWeight: 400 }}>Add photos for your wedding website gallery.</p>
+                    </div>
                 </div>
 
                 <div className="gallery-grid">
@@ -2392,11 +2418,15 @@ const AddWedding = () => {
                     ))}
                     <div className="gallery-upload-item">
                         <ImageUpload
-                            label="Add Gallery Photo"
+                            label="Add Photos (select multiple)"
                             value=""
-                            onUpload={(url) => setFormData(p => ({ ...p, slider_images: [...p.slider_images, url] }))}
+                            onUpload={(urls) => {
+                                const newUrls = Array.isArray(urls) ? urls : [urls];
+                                setFormData(p => ({ ...p, slider_images: [...p.slider_images, ...newUrls] }));
+                            }}
                             path="gallery"
                             id="gallery-upload"
+                            multiple={true}
                         />
                     </div>
                 </div>
@@ -2405,670 +2435,166 @@ const AddWedding = () => {
     );
 
     return (
-        <div className="rr-page">
-            <div className="phone-shell">
-                <header className="bd-admin-header" style={{ background: '#ffffff', color: '#111827', padding: '0.85rem 1.25rem', borderBottom: '3px solid #15803d', flexShrink: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                        <button onClick={() => navigate('/admin')} style={{ background: 'none', border: 'none', color: '#15803d', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <i className="fas fa-arrow-left"></i> Dashboard
+        <div className="modern-builder-container">
+
+            {/* Left Sidebar Steps Navigation */}
+            <div className="builder-sidebar">
+                <div className="sidebar-logo">
+                    <i className="fas fa-chair logo-icon"></i>
+                    <span>SaveMeASeat</span>
+                </div>
+
+                <div className="sidebar-steps">
+                    {steps.map((step, idx) => (
+                        <button
+                            key={idx}
+                            type="button"
+                            className={`sidebar-step-btn ${currentStep === idx ? 'active' : ''} ${currentStep > idx ? 'completed' : ''}`}
+                            onClick={() => { setCurrentStep(idx); }}
+                        >
+                            <span className="step-indicator">
+                                {currentStep > idx ? <i className="fas fa-check"></i> : idx + 1}
+                            </span>
+                            <div className="step-label-group">
+                                <span className="step-title-text">{step.label}</span>
+                                <span className="step-desc-text">{step.description}</span>
+                            </div>
                         </button>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{isEditMode ? 'Edit Wedding' : 'New Wedding'}</span>
-                        {formData.slug ? (
-                            <a href={`/w/${formData.slug}`} target="_blank" rel="noopener noreferrer" style={{ color: '#15803d', fontSize: '0.85rem', fontWeight: 700, textDecoration: 'none' }}>
-                                Preview
-                            </a>
-                        ) : (
-                            <div style={{ width: 45 }}></div>
-                        )}
+                    ))}
+                </div>
+
+                <div className="sidebar-footer">
+                    <button className="btn-back-dashboard" onClick={() => navigate('/admin')}>
+                        <i className="fas fa-arrow-left"></i>
+                        Back to Dashboard
+                    </button>
+                </div>
+            </div>
+
+            {/* Central Form Editor Area */}
+            <div className="builder-editor-area">
+                <div className="editor-header">
+                    {/* Left: text content */}
+                    <div className="editor-header-text">
+                        <div className="header-meta">
+                            <span className="step-badge">Step {currentStep + 1} of {steps.length}</span>
+                            {formData.slug && (
+                                <a href={`/w/${formData.slug}`} target="_blank" rel="noopener noreferrer" className="live-preview-link">
+                                    <i className="fas fa-external-link-alt"></i> View live website
+                                </a>
+                            )}
+                        </div>
+                        <h1>{steps[currentStep].label}</h1>
+                        <p className="editor-subtitle">{steps[currentStep].description}</p>
+
+                        {/* Mobile Horizontal Progress Tracker */}
+                        <div className="mobile-steps-tracker">
+                            {steps.map((_, idx) => (
+                                <div
+                                    key={idx}
+                                    className={`mobile-step-dot ${currentStep === idx ? 'active' : ''} ${currentStep > idx ? 'completed' : ''}`}
+                                />
+                            ))}
+                        </div>
                     </div>
-                </header>
 
-                <div className="scroll-area" style={{ background: '#effaf5' }}>
-                    <div className="content-pad" style={{ padding: '1rem', display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
-                        <aside className="sidebar-panel">
-                            <div className="sidebar-card">
-                                <div className="sidebar-card-header">
-                                    <h3>Quick navigation</h3>
-                                    <p>Jump to any section instantly.</p>
-                                </div>
-                                <div className="section-nav">
-                                    {steps.map((step, idx) => (
-                                        <button
-                                            key={idx}
-                                            type="button"
-                                            className={`section-nav-button ${currentStep === idx ? 'active' : ''}`}
-                                            onClick={() => { setCurrentStep(idx); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                        >
-                                            {step.label}
-                                        </button>
-                                    ))}
-                                </div>
+                    {/* Right: inline mini phone preview (mobile only) */}
+                    <div className="editor-header-phone">
+                        <div className="header-phone-frame">
+                            <div className="header-phone-speaker"></div>
+                            <div className="header-phone-screen">
+                                <iframe
+                                    src={`/wedding?preview=true&template=${formData.template_id}`}
+                                    className="header-phone-iframe"
+                                    title="Live Preview"
+                                />
                             </div>
+                        </div>
+                        <span className="header-phone-label">Live Preview</span>
+                    </div>
+                </div>
 
-                            <div className="sidebar-card sidebar-progress-card">
-                                <div className="sidebar-card-header">
-                                    <h3>Progress</h3>
-                                </div>
-                                <div className="sidebar-progress-summary">
-                                    <span className="progress-label">Current step</span>
-                                    <strong>{steps[currentStep].label}</strong>
-                                    <span className="progress-description">{steps[currentStep].description}</span>
-                                </div>
-                                <div className="progress-bar">
-                                    <div className="progress-fill" style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}></div>
-                                </div>
-                                <div className="progress-count">Step {currentStep + 1} of {steps.length}</div>
+                <div className="editor-body">
+                    {loading ? (
+                        <div className="loading-state">
+                            <i className="fas fa-circle-notch fa-spin"></i>
+                            <p>Loading details...</p>
+                        </div>
+                    ) : (
+                        <div className="clean-form-container">
+                            <div className="form-steps-container">
+                                {currentStep === 0 && renderStep1()}
+                                {currentStep === 1 && renderStep2()}
+                                {currentStep === 2 && renderStep3()}
+                                {currentStep === 3 && renderStep4()}
                             </div>
+                        </div>
+                    )}
+                </div>
 
-                            <div className="sidebar-card sidebar-actions-card">
-                                <button className="sidebar-link dashboard-link" onClick={() => navigate('/admin')}>
-                                    <i className="fas fa-th-large"></i> Dashboard
-                                </button>
-                                {formData.slug && (
-                                    <button className="sidebar-link preview-link" onClick={() => window.open(`/w/${formData.slug}`, '_blank')}>
-                                        <i className="fas fa-eye"></i> Preview site
-                                    </button>
-                                )}
-                            </div>
-                        </aside>
+                {/* Sticky Editor Footer Navigation */}
+                <div className="editor-footer">
+                    <button
+                        className="footer-btn btn-back"
+                        disabled={currentStep === 0}
+                        onClick={() => { setCurrentStep(p => p - 1); }}
+                        type="button"
+                    >
+                        Back
+                    </button>
 
-                        <main className="main-panel">
-                            <div className="page-title-card" style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                                <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#111827', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                                    <i className={isEditMode ? "fas fa-edit" : "fas fa-plus-circle"} style={{ color: '#15803d' }}></i>
-                                    {isEditMode ? 'Edit Wedding Details' : 'Create Wedding Website'}
-                                </h2>
-                                <p style={{ fontSize: '0.75rem', color: '#4b5563', marginTop: '0.25rem', margin: 0 }}>
-                                    {isEditMode ? 'Update wedding details and info.' : 'Build your dream wedding website step by step.'}
-                                </p>
-                            </div>
+                    {currentStep < steps.length - 1 ? (
+                        <button
+                            className="footer-btn btn-next"
+                            onClick={() => { setCurrentStep(p => p + 1); }}
+                            type="button"
+                        >
+                            Next Step
+                        </button>
+                    ) : (
+                        <button
+                            className="footer-btn btn-submit"
+                            onClick={handleSubmit}
+                            disabled={loading}
+                            type="button"
+                        >
+                            {loading ? <><i className="fas fa-circle-notch fa-spin"></i> Launching...</> : "Launch Website"}
+                        </button>
+                    )}
+                </div>
+            </div>
 
-                            <div className="form-container-card" style={{ background: '#fff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', marginTop: '1rem' }}>
-                                {loading ? (
-                                    <div style={{ textAlign: 'center', padding: '3rem' }}>
-                                        <i className="fas fa-spinner fa-spin" style={{ fontSize: '2rem', color: '#15803d' }}></i>
-                                        <p style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.5rem' }}>Loading wedding details...</p>
-                                    </div>
-                                ) : (
-                                    <>
-                                        {currentStep === 0 && renderStep1()}
-                                        {currentStep === 1 && renderStep2()}
-                                        {currentStep === 2 && renderStep3()}
-                                        {currentStep === 3 && renderStep4()}
-                                    </>
-                                )}
-                            </div>
+            {/* Right Live Preview Panel */}
+            <div className="builder-preview-area">
+                <div className="preview-toolbar">
+                    <div className="toolbar-info">
+                        <span className="live-pulse"></span>
+                        <span className="live-text">Live Preview</span>
+                    </div>
+                    <div className="device-select">
+                        <button className="device-btn active" title="Mobile view">
+                            <i className="fas fa-mobile-alt"></i>
+                        </button>
+                    </div>
+                </div>
 
-                            <div className="form-actions" style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginTop: '1.25rem', marginBottom: '1.5rem' }}>
-                                <button className="btn btn-secondary" disabled={currentStep === 0} onClick={() => { setCurrentStep(p => p - 1); window.scrollTo(0, 0); }} type="button" style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 600, border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer' }}>
-                                    <i className="fas fa-arrow-left"></i> Previous
-                                </button>
-                                {currentStep < steps.length - 1 ? (
-                                    <button className="btn btn-primary" onClick={() => { setCurrentStep(p => p + 1); window.scrollTo(0, 0); }} type="button" style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, background: '#15803d', color: '#fff', border: 'none', cursor: 'pointer' }}>
-                                        Next <i className="fas fa-arrow-right"></i>
-                                    </button>
-                                ) : (
-                                    <button className="btn btn-primary" onClick={handleSubmit} disabled={loading} type="button" style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, background: '#15803d', color: '#fff', border: 'none', cursor: 'pointer' }}>
-                                        {loading ? <><i className="fas fa-spinner fa-spin"></i> Saving...</> : <><i className="fas fa-rocket"></i> {isEditMode ? "Update" : "Publish"}</>}
-                                    </button>
-                                )}
-                            </div>
-                        </main>
+                <div className="preview-frame-container">
+                    <div className="iphone-mockup">
+                        <div className="iphone-speaker"></div>
+                        <div className="iphone-screen">
+                            <iframe
+                                ref={iframeRef}
+                                src={`/wedding?preview=true&template=${formData.template_id}`}
+                                className="preview-iframe"
+                                title="Invitation Live Preview"
+                            />
+                        </div>
+                        <div className="iphone-home-button"></div>
                     </div>
                 </div>
             </div>
 
-            <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
-                .rr-page {
-                    min-height: 100vh;
-                    background: #ecfdf5;
-                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-                    display: flex;
-                    align-items: flex-start;
-                    justify-content: center;
-                    padding: 2rem 0;
-                }
-
-                .phone-shell {
-                    width: 100%; max-width: 1200px;
-                    min-height: 100vh;
-                    background: #f8fafc;
-                    border-radius: 28px;
-                    overflow: hidden;
-                    box-shadow: 0 32px 80px rgba(0,0,0,.12), 0 0 0 6px rgba(0,0,0,.04);
-                    display: flex;
-                    flex-direction: column;
-                }
-
-                .content-pad {
-                    width: 100%;
-                    display: flex;
-                    gap: 1.5rem;
-                    align-items: flex-start;
-                }
-
-                .sidebar-panel {
-                    flex: 0 0 295px;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1rem;
-                    position: sticky;
-                    top: 1rem;
-                    align-self: flex-start;
-                    max-height: calc(100vh - 4rem);
-                    padding: 0.75rem;
-                    background: #ffffff;
-                    border: 1px solid #e5e7eb;
-                    border-radius: 24px;
-                    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
-                }
-
-                .sidebar-card {
-                    background: transparent;
-                    border: none;
-                    border-radius: 0;
-                    padding: 0;
-                    box-shadow: none;
-                }
-
-                .sidebar-card-header h3 {
-                    margin: 0;
-                    font-size: 1rem;
-                    font-weight: 700;
-                    color: #0f172a;
-                }
-
-                .sidebar-card-header p {
-                    margin: 0.5rem 0 0;
-                    font-size: 0.82rem;
-                    color: #475569;
-                    line-height: 1.5;
-                }
-
-                .section-nav {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.65rem;
-                    margin-top: 1rem;
-                }
-
-                .section-nav-button {
-                    padding: 0.85rem 1rem;
-                    border-radius: 999px;
-                    border: 1px solid #d1d5db;
-                    background: #f8fafc;
-                    color: #334155;
-                    font-size: 0.85rem;
-                    font-weight: 700;
-                    text-align: left;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                }
-
-                .section-nav-button.active {
-                    background: #15803d;
-                    border-color: #15803d;
-                    color: #ffffff;
-                }
-
-                .section-nav-button:hover {
-                    background: #dcfce7;
-                    border-color: #bbf7d0;
-                }
-
-                .sidebar-progress-summary {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.65rem;
-                    margin-top: 1rem;
-                }
-
-                .progress-label {
-                    font-size: 0.8rem;
-                    color: #64748b;
-                    text-transform: uppercase;
-                    letter-spacing: 0.08em;
-                }
-
-                .sidebar-progress-summary strong {
-                    color: #0f172a;
-                    font-size: 1rem;
-                }
-
-                .progress-description {
-                    font-size: 0.85rem;
-                    color: #475569;
-                    line-height: 1.5;
-                }
-
-                .progress-bar {
-                    width: 100%;
-                    height: 10px;
-                    background: #ecfccb;
-                    border-radius: 999px;
-                    overflow: hidden;
-                    margin-top: 0.75rem;
-                }
-
-                .progress-fill {
-                    height: 100%;
-                    background: linear-gradient(135deg, #15803d 0%, #22c55e 100%);
-                    border-radius: 999px;
-                }
-
-                .progress-count {
-                    font-size: 0.8rem;
-                    color: #64748b;
-                    margin-top: 0.65rem;
-                }
-
-                .sidebar-actions-card {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.75rem;
-                }
-
-                .sidebar-link {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 0.6rem;
-                    justify-content: center;
-                    padding: 0.85rem 1rem;
-                    border-radius: 14px;
-                    font-weight: 700;
-                    border: 1px solid transparent;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-
-                .dashboard-link {
-                    color: #15803d;
-                    background: #ecfdf5;
-                    border-color: #bbf7d0;
-                }
-
-                .dashboard-link:hover {
-                    background: #dcfce7;
-                }
-
-                .preview-link {
-                    color: #ffffff;
-                    background: #15803d;
-                }
-
-                .preview-link:hover {
-                    background: #166534;
-                }
-
-                .main-panel {
-                    flex: 1;
-                    min-width: 0;
-                }
-
-                @media (max-width: 1100px) {
-                    .content-pad {
-                        flex-direction: row;
-                    }
-
-                    .sidebar-panel {
-                        position: sticky;
-                        top: 1rem;
-                        max-height: calc(100vh - 6rem);
-                        flex: 0 0 220px;
-                        min-width: 220px;
-                        background: #ffffff;
-                        border-right: 1px solid #d1fae5;
-                    }
-
-                    .main-panel {
-                        margin-left: 0;
-                    }
-
-                    .page-title-card,
-                    .form-container-card,
-                    .sidebar-card {
-                        border-radius: 16px;
-                    }
-
-                    .sidebar-card {
-                        padding: 0.85rem;
-                    }
-
-                    .section-nav-button {
-                        white-space: normal;
-                        font-size: 0.78rem;
-                        padding: 0.75rem 0.95rem;
-                        width: 100%;
-                        justify-content: flex-start;
-                        display: inline-flex;
-                    }
-                }
-
-                @media (max-width: 768px) {
-                    .content-pad {
-                        gap: 0.85rem;
-                    }
-
-                    .sidebar-panel {
-                        position: fixed;
-                        left: 0;
-                        top: 72px;
-                        width: 220px;
-                        max-height: calc(100vh - 72px);
-                        overflow-y: auto;
-                        background: #ffffff;
-                        border-right: 1px solid #d1fae5;
-                        box-shadow: 2px 0 20px rgba(15, 23, 42, 0.05);
-                        z-index: 20;
-                    }
-
-                    .main-panel {
-                        margin-left: 240px;
-                    }
-
-                    .scroll-area {
-                        padding-left: 0;
-                    }
-
-                    .sidebar-card {
-                        padding: 1rem;
-                    }
-
-                    .section-nav-button {
-                        font-size: 0.78rem;
-                    }
-                }
-
-                .scroll-area {
-                    flex: 1;
-                    min-height: 0;
-                    overflow-y: auto;
-                    display: flex;
-                    flex-direction: column;
-                    -webkit-overflow-scrolling: touch;
-                    scrollbar-width: none;
-                }
-                .scroll-area::-webkit-scrollbar { display: none; }
-
-                .step-number {
-                    background: #f3f4f6;
-                    border: 1.5px solid #e5e7eb;
-                    color: #9ca3af;
-                }
-
-                .step.active .step-number {
-                    background: #15803d !important;
-                    color: #ffffff !important;
-                    border-color: #15803d !important;
-                }
-
-                .step.active .step-label {
-                    color: #15803d !important;
-                }
-
-                .step.completed .step-number {
-                    background: #10b981 !important;
-                    color: #ffffff !important;
-                    border-color: #10b981 !important;
-                }
-
-                /* Form Components */
-                .form-group {
-                    margin-bottom: 1rem;
-                }
-
-                .form-label {
-                    display: block;
-                    font-size: 0.8rem;
-                    font-weight: 700;
-                    color: #374151;
-                    margin-bottom: 0.35rem;
-                }
-
-                .form-input, .form-textarea, .form-select {
-                    width: 100%;
-                    padding: 0.65rem 0.85rem;
-                    background: #f9fafb !important;
-                    border: 1.5px solid #e5e7eb !important;
-                    border-radius: 10px !important;
-                    font-size: 0.85rem !important;
-                    color: #111827 !important;
-                    outline: none;
-                    transition: all 0.2s;
-                }
-
-                .form-input:focus, .form-textarea:focus, .form-select:focus {
-                    border-color: #15803d !important;
-                    background: #ffffff !important;
-                }
-
-                .form-textarea {
-                    min-height: 100px;
-                    resize: vertical;
-                }
-
-                .grid-2, .couple-grid, .ceremony-reception-grid, .party-grid {
-                    display: grid;
-                    grid-template-columns: 1fr;
-                    gap: 0.75rem;
-                }
-
-                /* Cards */
-                .person-card, .event-card, .ceremony-card, .reception-card, .story-card, .highlight-card, .bridesmaids-card, .groomsmen-card, .gift-card {
-                    background: #f9fafb;
-                    border: 1px solid #e5e7eb;
-                    border-radius: 14px;
-                    padding: 1rem;
-                    margin-bottom: 1rem;
-                }
-
-                .person-header, .event-card-header, .party-card-header, .gift-card-header {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    margin-bottom: 1rem;
-                }
-
-                .person-icon, .event-card-header i, .party-icon {
-                    width: 36px;
-                    height: 36px;
-                    border-radius: 10px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 1rem;
-                    color: #fff;
-                    background: #15803d;
-                }
-
-                .person-title, .event-card-header h3, .party-card-header h4, .gift-number {
-                    font-size: 0.9rem;
-                    font-weight: 700;
-                    color: #111827;
-                    margin: 0;
-                }
-
-                /* Image Upload */
-                .image-upload-wrapper {
-                    border: 2px dashed #d1d5db;
-                    border-radius: 12px;
-                    padding: 1.5rem;
-                    text-align: center;
-                    cursor: pointer;
-                    background: #f9fafb;
-                    transition: all 0.2s;
-                    position: relative;
-                }
-
-                .image-upload-wrapper:hover {
-                    border-color: #15803d;
-                    background: #fcfbfa;
-                }
-
-                .upload-placeholder {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 0.5rem;
-                    color: #4b5563;
-                }
-
-                .upload-placeholder i {
-                    font-size: 1.5rem;
-                    color: #15803d;
-                }
-
-                .image-preview {
-                    position: relative;
-                    border-radius: 8px;
-                    overflow: hidden;
-                    width: 100%;
-                }
-
-                .image-preview img {
-                    width: 100%;
-                    height: 140px;
-                    object-fit: cover;
-                }
-
-                .remove-image, .btn-remove-gallery {
-                    position: absolute;
-                    top: 5px;
-                    right: 5px;
-                    background: rgba(0,0,0,0.6);
-                    color: #fff;
-                    border: none;
-                    border-radius: 50%;
-                    width: 24px;
-                    height: 24px;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 0.8rem;
-                    z-index: 10;
-                }
-
-                .gallery-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-                    gap: 0.5rem;
-                }
-
-                .section-nav {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 0.65rem;
-                    align-items: center;
-                    padding: 0.75rem;
-                    background: #ffffff;
-                    border: 1px solid #d1fae5;
-                    border-radius: 16px;
-                    box-shadow: 0 8px 24px rgba(22, 163, 74, 0.08);
-                }
-
-                .section-nav-button {
-                    padding: 0.7rem 1rem;
-                    border-radius: 999px;
-                    border: 1px solid #d1d5db;
-                    background: #f8fafc;
-                    color: #334155;
-                    font-size: 0.78rem;
-                    font-weight: 700;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                }
-
-                .section-nav-button.active {
-                    background: #15803d;
-                    border-color: #15803d;
-                    color: #ffffff;
-                }
-
-                .section-nav-button:hover {
-                    background: #dcfce7;
-                    border-color: #a7f3d0;
-                    color: #166534;
-                }
-
-                .gallery-item {
-                    position: relative;
-                    border-radius: 8px;
-                    overflow: hidden;
-                    aspect-ratio: 1;
-                }
-
-                .gallery-item img {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                }
-
-                /* Buttons */
-                .btn-add-member, .btn-add-gift {
-                    width: 100%;
-                    padding: 0.65rem;
-                    border: 2px dashed #d1d5db;
-                    border-radius: 10px;
-                    background: #fff;
-                    color: #4b5563;
-                    font-weight: 600;
-                    font-size: 0.8rem;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 0.35rem;
-                }
-
-                .btn-add-member:hover, .btn-add-gift:hover {
-                    border-color: #15803d;
-                    color: #15803d;
-                }
-
-                .btn-remove-member, .btn-remove-gift {
-                    background: none;
-                    border: none;
-                    color: #ef4444;
-                    cursor: pointer;
-                    font-size: 0.85rem;
-                }
-
-                .party-member {
-                    border: 1px solid #e5e7eb;
-                    border-radius: 12px;
-                    padding: 0.85rem;
-                    margin-bottom: 0.75rem;
-                    background: #fff;
-                }
-
-                .member-actions {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 0.5rem;
-                }
-
-                .member-number {
-                    font-size: 0.75rem;
-                    color: #9ca3af;
-                    fontWeight: 700;
-                }
-
-                /* Color swatches */
-                .color-swatch-circle {
-                    cursor: pointer;
-                    position: relative;
-                }
-
-                @media (max-width: 480px) {
-                    .rr-page { padding: 0; align-items: stretch; }
-                    .phone-shell { border-radius: 0; box-shadow: none; max-width: 100%; width: 100%; height: 100vh; max-height: 100vh; }
-                }
-            `}</style>
+            
         </div>
     );
 };
