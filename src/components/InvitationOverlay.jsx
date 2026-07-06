@@ -149,7 +149,7 @@ const InvitationOverlay = ({ weddingData, onEnter, onStartClose }) => {
           height: 100dvh;
           z-index: 999999;
           overflow: hidden;
-          background: #000;
+          background: #fff;
           transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1), transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
         }
         .invitation-overlay-container.fade-out {
