@@ -49,7 +49,7 @@ const GoldenRomance = ({ weddingData }) => {
   const [activeTab, setActiveTab] = useState('home'); // 'home', 'story', 'itinerary', 'rsvp'
   const [currentBgIndex, setCurrentBgIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-  const [rsvpForm, setRsvpForm] = useState({ name: '', phone: '', guests: '1', attending: 'yes' });
+  const [rsvpForm, setRsvpForm] = useState({ name: '', phone: '', email: '', guests: '1', attending: 'yes' });
   const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
   const [tabAnimating, setTabAnimating] = useState(false);
 
@@ -101,7 +101,7 @@ const GoldenRomance = ({ weddingData }) => {
   const handleRsvpSubmit = (e) => {
     e.preventDefault();
     setRsvpSubmitted(true);
-    const text = `Wedding RSVP\n\nName: ${rsvpForm.name}\nPhone: ${rsvpForm.phone}\nAttending: ${rsvpForm.attending}\nGuests: ${rsvpForm.guests}`;
+    const text = `Wedding RSVP\n\nName: ${rsvpForm.name}\nEmail: ${rsvpForm.email}\nPhone: ${rsvpForm.phone}\nAttending: ${rsvpForm.attending}\nGuests: ${rsvpForm.guests}`;
     const encoded = encodeURIComponent(text);
     setTimeout(() => {
       window.open(`https://wa.me/260973848066?text=${encoded}`, '_blank');
@@ -470,30 +470,9 @@ const GoldenRomance = ({ weddingData }) => {
         .gh-input::placeholder { color: rgba(42,40,37,0.5); }
         .gh-input:focus, .gh-select:focus { border-bottom-color: ${champagneGold}; }
         
-        .gh-radio-wrap {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          margin: 20px 0 40px;
-        }
-        .gh-radio-label {
-          padding: 15px;
-          border-radius: 40px;
-          border: 1px solid rgba(212,175,55,0.4);
-          font-size: 0.75rem;
-          letter-spacing: 2px;
-          text-transform: uppercase;
-          color: rgba(42,40,37,0.6);
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-        .gh-radio-label.active {
-          background: rgba(212,175,55,0.15);
-          border-color: ${champagneGold};
-          color: ${champagneGold};
-          font-weight: 600;
-        }
-        .gh-radio-label input { display: none; }
+        .gh-radio-container { display: flex; justify-content: center; gap: 20px; margin-top: 10px; margin-bottom: 30px; }
+        .gh-radio { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; cursor: pointer; color: ${darkCharcoal}; }
+        .gh-radio input { accent-color: ${champagneGold}; width: 16px; height: 16px; }
 
         .gh-submit {
           width: 100%;
@@ -565,6 +544,17 @@ const GoldenRomance = ({ weddingData }) => {
                     <i>and</i>
                     {groomFirst}
                   </div>
+                  
+                  {(d.couple?.bride?.image || d.couple?.groom?.image) && (
+                    <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', marginTop: '20px' }}>
+                      {d.couple?.bride?.image && (
+                        <img src={d.couple.bride.image} alt={brideFirst} style={{ width: '120px', height: '120px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #D4AF37' }} />
+                      )}
+                      {d.couple?.groom?.image && (
+                        <img src={d.couple.groom.image} alt={groomFirst} style={{ width: '120px', height: '120px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #D4AF37' }} />
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -633,11 +623,27 @@ const GoldenRomance = ({ weddingData }) => {
                     <div style={{ fontSize: '0.8rem', color: 'rgba(42,40,37,0.7)', marginBottom: '15px' }}>
                       Your presence is pure gold. If you wish to gift us, please consider:
                     </div>
-                    <div style={{ fontFamily: 'Playfair Display', fontSize: '1.2rem', color: champagneGold }}>Zanaco Bank</div>
-                    <div style={{ fontSize: '0.8rem', marginBottom: '15px' }}>{groomFirst} & {brideFirst}<br />1029384756</div>
+                    {d.gifts && d.gifts.length > 0 ? (
+                      d.gifts.map((gift, idx) => (
+                        <div key={idx} style={{ marginBottom: '15px' }}>
+                          <div style={{ fontFamily: 'Playfair Display', fontSize: '1.2rem', color: champagneGold }}>
+                            {gift.provider || gift.bank || 'Gift'}
+                          </div>
+                          <div style={{ fontSize: '0.8rem' }}>
+                            {gift.accountName && <>{gift.accountName}<br /></>}
+                            {gift.accountNumber}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <>
+                        <div style={{ fontFamily: 'Playfair Display', fontSize: '1.2rem', color: champagneGold }}>Zanaco Bank</div>
+                        <div style={{ fontSize: '0.8rem', marginBottom: '15px' }}>{groomFirst} & {brideFirst}<br />1029384756</div>
 
-                    <div style={{ fontFamily: 'Playfair Display', fontSize: '1.2rem', color: champagneGold }}>Mobile Money</div>
-                    <div style={{ fontSize: '0.8rem' }}>MTN: +260 973 848066<br />Airtel: +260 762 123456</div>
+                        <div style={{ fontFamily: 'Playfair Display', fontSize: '1.2rem', color: champagneGold }}>Mobile Money</div>
+                        <div style={{ fontSize: '0.8rem' }}>MTN: +260 973 848066<br />Airtel: +260 762 123456</div>
+                      </>
+                    )}
                   </div>
 
                   <h2 className="gh-view-title" style={{ marginBottom: '10px' }}>RSVP</h2>
@@ -648,31 +654,34 @@ const GoldenRomance = ({ weddingData }) => {
                       <input type="text" className="gh-input" placeholder="Your Full Name" required
                         value={rsvpForm.name} onChange={e => setRsvpForm({ ...rsvpForm, name: e.target.value })} />
 
+                      <input type="email" className="gh-input" placeholder="Email Address" required
+                        value={rsvpForm.email} onChange={e => setRsvpForm({ ...rsvpForm, email: e.target.value })} />
+
                       <input type="tel" className="gh-input" placeholder="Phone Number" required
                         value={rsvpForm.phone} onChange={e => setRsvpForm({ ...rsvpForm, phone: e.target.value })} />
 
                       <select className="gh-select" value={rsvpForm.guests} onChange={e => setRsvpForm({ ...rsvpForm, guests: e.target.value })}>
                         <option value="" disabled>Number of Guests</option>
-                        <option value="1">Just Me (1)</option>
-                        <option value="2">Plus One (2)</option>
-                        <option value="3">Three Guests (3)</option>
-                        <option value="4">Four Guests (4)</option>
+                        <option value="1">1 Guest</option>
+                        <option value="2">2 Guests</option>
+                        <option value="3">3 Guests</option>
+                        <option value="4">4 Guests</option>
                       </select>
 
-                      <div className="gh-radio-wrap">
-                        <label className={`gh-radio-label ${rsvpForm.attending === 'yes' ? 'active' : ''}`}>
-                          <input type="radio" name="attending" value="yes"
+                      <div className="gh-radio-container">
+                        <label className="gh-radio">
+                          <input type="radio" name="attending" value="yes" checked={rsvpForm.attending === 'yes'}
                             onChange={e => setRsvpForm({ ...rsvpForm, attending: e.target.value })} />
                           Joyfully Accept
                         </label>
-                        <label className={`gh-radio-label ${rsvpForm.attending === 'no' ? 'active' : ''}`}>
-                          <input type="radio" name="attending" value="no"
+                        <label className="gh-radio">
+                          <input type="radio" name="attending" value="no" checked={rsvpForm.attending === 'no'}
                             onChange={e => setRsvpForm({ ...rsvpForm, attending: e.target.value })} />
                           Regretfully Decline
                         </label>
                       </div>
 
-                      <button type="submit" className="gh-submit">Send Reply</button>
+                      <button type="submit" className="gh-submit">Confirm</button>
                     </form>
                   ) : (
                     <div style={{ padding: '40px 0' }}>

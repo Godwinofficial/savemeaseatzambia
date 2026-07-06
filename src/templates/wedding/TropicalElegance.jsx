@@ -22,10 +22,10 @@ const TropicalElegance = ({ weddingData }) => {
   const eventDate = d.date ? new Date(d.date) : new Date('2026-09-28T17:00:00');
   const pad = (n) => String(n).padStart(2, '0');
   const day = eventDate.getDate();
-  const englishMonths = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const englishMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const month = englishMonths[eventDate.getMonth()];
   const year = eventDate.getFullYear();
-  const timeStr = d.ceremony?.time || '17h pontualmente';
+  const timeStr = d.ceremony?.time || '5:00 PM Sharp';
 
   // RSVP Form State
   const [form, setForm] = useState({ name: '', phone: '', guests: '1', attendance: 'yes' });
@@ -34,6 +34,16 @@ const TropicalElegance = ({ weddingData }) => {
 
   // Countdown State
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+  // Hero Carousel State
+  const [currentBgIndex, setCurrentBgIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentBgIndex(prev => (prev + 1) % sliderImages.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [sliderImages]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -73,7 +83,7 @@ const TropicalElegance = ({ weddingData }) => {
     setSubmitting(true);
     try {
       if (d.id && !d.id.startsWith('demo-')) {
-        await supabase.from('rsvps').insert([{ wedding_id: d.id, name: form.name, phone: form.phone, attending: form.attendance, guests_count: parseInt(form.guests) || 1, status: 'pending' }]);
+        await supabase.from('rsvps').insert([{ wedding_id: d.id, name: form.name, email: form.email, phone: form.phone, attending: form.attendance, guests_count: parseInt(form.guests) || 1, status: 'pending' }]);
       }
       setSubmitted(true);
     } catch {
@@ -93,7 +103,7 @@ const TropicalElegance = ({ weddingData }) => {
       boxShadow: '0 4px 15px rgba(0,0,0,0.02)'
     }}>
       <div style={{
-        width: '50px', height: '50px', backgroundColor: iconBg, borderRadius: '15px',
+        width: '50px', height: '50px', backgroundColor: iconBg, borderRadius: '50%',
         display: 'flex', justifyContent: 'center', alignItems: 'center',
         color: '#fff', fontSize: '1.2rem', boxShadow: '0 4px 10px rgba(92, 53, 34, 0.2)'
       }}>
@@ -144,15 +154,21 @@ const TropicalElegance = ({ weddingData }) => {
           box-shadow: 0 0 50px rgba(0,0,0,0.8); display: flex; flex-direction: column; align-items: center; padding-bottom: 80px;
         }
 
-        .animate-on-scroll { opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease-out, transform 0.8s ease-out; }
-        .animate-on-scroll.visible { opacity: 1; transform: translateY(0); }
+        .animate-on-scroll { opacity: 0; transform: translateY(60px) scale(0.95); transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1); }
+        .animate-on-scroll.visible { opacity: 1; transform: translateY(0) scale(1); }
 
         .inv-main-img-wrap {
           width: 100%; height: 480px; overflow: hidden; position: relative; z-index: 2;
           -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
           mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
         }
-        .inv-main-img { width: 100%; height: 100%; object-fit: cover; }
+        .inv-main-img { 
+          position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;
+          opacity: 0; transition: opacity 2s ease-in-out, transform 8s linear; transform: scale(1);
+        }
+        .inv-main-img.active {
+          opacity: 1; transform: scale(1.08);
+        }
 
         .inv-intro {
           font-family: 'Montserrat', sans-serif; font-size: 0.55rem; font-weight: 600; text-transform: uppercase;
@@ -191,8 +207,32 @@ const TropicalElegance = ({ weddingData }) => {
         }
         .inv-map-btn:hover { background: ${iconBg}; color: #fff; }
 
-        .inv-input { width: 100%; padding: 12px 15px; margin-bottom: 10px; border: 1px solid rgba(92,53,34,0.2); border-radius: 20px; background: rgba(255,255,255,0.7); font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: ${textBrown}; outline: none; text-align: center; }
-        .inv-submit { width: 100%; padding: 14px; background: ${iconBg}; color: #fff; border: none; border-radius: 30px; font-family: 'Montserrat', sans-serif; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
+        .inv-form { display: flex; flex-direction: column; gap: 20px; width: 100%; text-align: left; }
+        .inv-input-group { position: relative; }
+        .inv-input {
+          width: 100%; padding: 15px 0; background: transparent; border: none; border-bottom: 1px solid rgba(92,53,34,0.4);
+          color: ${textBrown}; font-family: 'Montserrat', sans-serif; font-size: 0.9rem; outline: none; transition: border-color 0.3s;
+        }
+        .inv-input::placeholder { color: rgba(92,53,34,0.6); }
+        .inv-input:focus { border-bottom-color: ${textBrown}; }
+        
+        .inv-select {
+          width: 100%; padding: 15px 0; background: transparent; border: none; border-bottom: 1px solid rgba(92,53,34,0.4);
+          color: ${textBrown}; font-family: 'Montserrat', sans-serif; font-size: 0.9rem; outline: none; cursor: pointer;
+        }
+        .inv-select option { color: ${textBrown}; background: #FFF; }
+        
+        .inv-radio-container { display: flex; justify-content: center; gap: 20px; margin-top: 10px; }
+        .inv-radio { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; cursor: pointer; color: ${textBrown}; }
+        .inv-radio input { accent-color: ${accentBrown}; width: 16px; height: 16px; }
+        
+        .inv-submit {
+          background: ${textBrown}; color: #FFF; padding: 18px; border: none; font-family: 'Montserrat', sans-serif;
+          font-size: 0.8rem; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; margin-top: 20px; cursor: pointer;
+          transition: transform 0.3s, box-shadow 0.3s; border-radius: 8px; width: 100%;
+        }
+        .inv-submit:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
+        .inv-submit:disabled { opacity: 0.7; cursor: not-allowed; }
         
         .inv-footer-img { width: 100%; height: 350px; object-fit: cover; border-radius: 0 0 200px 200px; -webkit-mask-image: linear-gradient(to top, black 60%, transparent 100%); mask-image: linear-gradient(to top, black 60%, transparent 100%); margin-top: 50px; }
       `}</style>
@@ -206,32 +246,54 @@ const TropicalElegance = ({ weddingData }) => {
           <FloralCluster bottom="100px" right="-30px" rotate={-45} />
 
           <div className="inv-main-img-wrap animate-on-scroll">
-            <img src={sliderImages[0]} alt="Couple" className="inv-main-img" />
+            {sliderImages.map((img, idx) => (
+              <img
+                key={idx}
+                src={img}
+                alt="Couple"
+                className={`inv-main-img ${idx === currentBgIndex ? 'active' : ''}`}
+              />
+            ))}
           </div>
 
           <div className="inv-intro animate-on-scroll">
-            Com a bênção de Deus e seus pais
+            With the blessing of God and our parents
           </div>
 
           <div className="inv-names animate-on-scroll">
-            {brideFirst} e {groomFirst}
+            {brideFirst} & {groomFirst}
           </div>
 
+          {(d.couple?.bride?.image || d.couple?.groom?.image) && (
+            <div className="animate-on-scroll" style={{ display: 'flex', gap: '30px', margin: '10px 20px 30px', zIndex: 2, justifyContent: 'center' }}>
+              {d.couple?.bride?.image && (
+                <div style={{ textAlign: 'center' }}>
+                  <img src={d.couple.bride.image} alt={brideFirst} style={{ width: '120px', height: '120px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #8F664E', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }} />
+                </div>
+              )}
+              {d.couple?.groom?.image && (
+                <div style={{ textAlign: 'center' }}>
+                  <img src={d.couple.groom.image} alt={groomFirst} style={{ width: '120px', height: '120px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #8F664E', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }} />
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="inv-sub-intro animate-on-scroll">
-            Carinhosamente convidam para a<br />celebração de seu casamento a<br />ser realizada em
+            Joyfully invite you to the<br />celebration of our wedding to<br />be held on
           </div>
 
           <div className="inv-date-block animate-on-scroll">
             <div className="inv-day">{pad(day)}</div>
             <div className="inv-month">{month}</div>
-            <div className="inv-year-time">de {year}<br />{timeStr}</div>
+            <div className="inv-year-time">{year}<br />{timeStr}</div>
           </div>
 
           <div className="inv-timer-wrap animate-on-scroll">
-            <div className="inv-timer-box"><div className="inv-timer-val">{timeLeft.days}</div><div className="inv-timer-lbl">Dias</div></div>
-            <div className="inv-timer-box"><div className="inv-timer-val">{timeLeft.hours}</div><div className="inv-timer-lbl">Horas</div></div>
-            <div className="inv-timer-box"><div className="inv-timer-val">{timeLeft.minutes}</div><div className="inv-timer-lbl">Min</div></div>
-            <div className="inv-timer-box"><div className="inv-timer-val">{timeLeft.seconds}</div><div className="inv-timer-lbl">Seg</div></div>
+            <div className="inv-timer-box"><div className="inv-timer-val">{timeLeft.days}</div><div className="inv-timer-lbl">Days</div></div>
+            <div className="inv-timer-box"><div className="inv-timer-val">{timeLeft.hours}</div><div className="inv-timer-lbl">Hours</div></div>
+            <div className="inv-timer-box"><div className="inv-timer-val">{timeLeft.minutes}</div><div className="inv-timer-lbl">Mins</div></div>
+            <div className="inv-timer-box"><div className="inv-timer-val">{timeLeft.seconds}</div><div className="inv-timer-lbl">Secs</div></div>
           </div>
 
           <SquigglyDivider />
@@ -241,10 +303,24 @@ const TropicalElegance = ({ weddingData }) => {
 
             {/* Ceremony - Icon Left */}
             <div className="inv-section-item animate-on-scroll">
-              <SectionPill icon="fa-church" topText="LOCALIZAÇÃO DA" bottomText="cerimônia" iconLeft={true} />
+              <SectionPill icon="fa-church" topText="LOCATION OF" bottomText="Marriage Blessings" iconLeft={true} />
               <div className="inv-section-content">
-                <p><strong>{d.venue?.name || 'Igreja Santa Teresinha'}</strong><br />{d.venue?.address || 'Av. Visc. de Guarapuava, 1787'}</p>
-                <a href="#" className="inv-map-btn">Abrir Mapa</a>
+                <p>
+                  <strong>{typeof d.ceremony?.venue === 'string' ? d.ceremony.venue : (d.venue?.name || 'Igreja Santa Teresinha')}</strong><br />
+                  <span style={{ fontSize: '0.85rem', color: accentBrown, fontWeight: 600 }}>{d.ceremony?.time || '5:00 PM'}</span><br />
+                  {typeof d.ceremony?.venue === 'string' ? '' : (d.venue?.address || 'Av. Visc. de Guarapuava, 1787')}
+                </p>
+                <div style={{ width: '100%', height: '200px', borderRadius: '20px', overflow: 'hidden', marginTop: '15px', border: `1px solid rgba(92,53,34,0.2)` }}>
+                  <iframe
+                    src={d.mapLocation || d.venue?.mapLocation || `https://maps.google.com/maps?q=${encodeURIComponent((d.venue?.name || '') + ' ' + (d.venue?.address || ''))}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen=""
+                    loading="lazy"
+                    title="Ceremony Map"
+                  ></iframe>
+                </div>
               </div>
             </div>
 
@@ -252,35 +328,49 @@ const TropicalElegance = ({ weddingData }) => {
 
             {/* Reception - Icon Right */}
             <div className="inv-section-item animate-on-scroll">
-              <SectionPill icon="fa-map-marker-alt" topText="LOCALIZAÇÃO DA" bottomText="recepção" iconLeft={false} />
+              <SectionPill icon="fa-glass-cheers" topText="RECEPTION" bottomText="Party" iconLeft={false} />
               <div className="inv-section-content">
-                <p><strong>{d.reception?.venue || 'Espaço Belvedere'}</strong><br />{d.reception?.address || 'Rua Canto Sereia, Zona Rural'}</p>
-                <a href="#" className="inv-map-btn">Abrir Mapa</a>
+                <p>
+                  <strong>{typeof d.reception?.venue === 'string' ? d.reception.venue : (d.reception?.venue?.name || 'Espaço Klaine')}</strong><br />
+                  <span style={{ fontSize: '0.85rem', color: accentBrown, fontWeight: 600 }}>{d.reception?.time || '6:30 PM'}</span><br />
+                  {typeof d.reception?.venue === 'string' ? (d.reception?.address || '') : (d.reception?.venue?.address || 'R. Bom Jesus de Iguape, 7122')}
+                </p>
+                <div style={{ width: '100%', height: '200px', borderRadius: '20px', overflow: 'hidden', marginTop: '15px', border: `1px solid rgba(92,53,34,0.2)` }}>
+                  <iframe
+                    src={d.mapLocation || d.reception?.venue?.mapLocation || `https://maps.google.com/maps?q=${encodeURIComponent((d.reception?.venue?.name || '') + ' ' + (d.reception?.venue?.address || ''))}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen=""
+                    loading="lazy"
+                    title="Reception Map"
+                  ></iframe>
+                </div>
               </div>
             </div>
 
             <SquigglyDivider />
 
-            {/* Website - Icon Left */}
-            <div className="inv-section-item animate-on-scroll">
-              <SectionPill icon="fa-rings-wedding" topText="SITE DOS" bottomText="noivos" iconLeft={true} />
-              <div className="inv-section-content">
-                <p>Descubra nossa história e mais detalhes do nosso grande dia.</p>
-                <a href="#" className="inv-map-btn">Acessar Site</a>
-              </div>
-            </div>
 
-            <SquigglyDivider />
 
             {/* Gifts - Icon Right */}
             <div className="inv-section-item animate-on-scroll">
-              <SectionPill icon="fa-gift" topText="SUGESTÃO DE" bottomText="presentes" iconLeft={false} />
+              <SectionPill icon="fa-gift" topText="GIFT" bottomText="Registry" iconLeft={true} />
               <div className="inv-section-content">
-                <p>Sua presença é nosso maior presente. Para nos presentear:</p>
-                <div style={{ background: 'rgba(255,255,255,0.6)', padding: '15px', borderRadius: '15px', border: `1px solid rgba(92,53,34,0.1)`, textAlign: 'left', fontSize: '0.75rem', lineHeight: 1.6, fontFamily: 'Montserrat' }}>
-                  <strong>PIX:</strong> 123.456.789-00<br />
-                  <strong>Nome:</strong> {brideFirst} e {groomFirst}
-                </div>
+                <p>Your presence is our biggest gift. If you'd like to gift us:</p>
+                {d.gifts && d.gifts.length > 0 ? (
+                  d.gifts.map((gift, idx) => (
+                    <div key={idx} style={{ background: 'rgba(255,255,255,0.6)', padding: '15px', borderRadius: '15px', border: `1px solid rgba(92,53,34,0.1)`, textAlign: 'left', fontSize: '0.75rem', lineHeight: 1.6, fontFamily: 'Montserrat', marginBottom: '10px' }}>
+                      <strong>{gift.provider || gift.bank || 'Account'}:</strong> {gift.accountNumber}<br />
+                      {gift.accountName && <span><strong>Name:</strong> {gift.accountName}</span>}
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ background: 'rgba(255,255,255,0.6)', padding: '15px', borderRadius: '15px', border: `1px solid rgba(92,53,34,0.1)`, textAlign: 'left', fontSize: '0.75rem', lineHeight: 1.6, fontFamily: 'Montserrat' }}>
+                    <strong>Mobile Money:</strong> +260 973 848066<br />
+                    <strong>Name:</strong> {brideFirst} & {groomFirst}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -288,18 +378,44 @@ const TropicalElegance = ({ weddingData }) => {
 
             {/* RSVP - Icon Left */}
             <div className="inv-section-item animate-on-scroll">
-              <SectionPill icon="fa-envelope-open-text" topText="CONFIRME SUA" bottomText="presença" iconLeft={true} />
+              <SectionPill icon="fa-envelope-open-text" topText="CONFIRM YOUR" bottomText="Attendance" iconLeft={false} />
               <div className="inv-section-content">
                 {submitted ? (
                   <div style={{ color: accentBrown, padding: '10px 0' }}>
                     <i className="fas fa-check-circle" style={{ fontSize: '2rem', marginBottom: '10px' }}></i>
-                    <p>Obrigado! Presença confirmada.</p>
+                    <p>Thank you! RSVP Confirmed.</p>
                   </div>
                 ) : (
-                  <form onSubmit={handleRsvpSubmit}>
-                    <input type="text" className="inv-input" placeholder="Nome Completo" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-                    <input type="tel" className="inv-input" placeholder="Telefone" required value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
-                    <button type="submit" disabled={submitting} className="inv-submit">{submitting ? 'Enviando...' : 'Confirmar Presença'}</button>
+                  <form className="inv-form" onSubmit={handleRsvpSubmit}>
+                    <div className="inv-input-group">
+                      <input type="text" className="inv-input" placeholder="Your Name" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+                    </div>
+                    <div className="inv-input-group">
+                      <input type="email" className="inv-input" placeholder="Email Address" required value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+                    </div>
+                    <div className="inv-input-group">
+                      <input type="tel" className="inv-input" placeholder="Phone Number" required value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+                    </div>
+                    <div className="inv-input-group">
+                      <select className="inv-select" value={form.guests} onChange={e => setForm({ ...form, guests: e.target.value })}>
+                        <option value="" disabled>Number of Guests</option>
+                        <option value="1">1 Guest</option>
+                        <option value="2">2 Guests</option>
+                        <option value="3">3 Guests</option>
+                        <option value="4">4 Guests</option>
+                      </select>
+                    </div>
+                    <div className="inv-radio-container">
+                      <label className="inv-radio">
+                        <input type="radio" name="attending" value="yes" checked={form.attendance === 'yes'}
+                          onChange={e => setForm({ ...form, attendance: e.target.value })} /> Joyfully Accept
+                      </label>
+                      <label className="inv-radio">
+                        <input type="radio" name="attending" value="no" checked={form.attendance === 'no'}
+                          onChange={e => setForm({ ...form, attendance: e.target.value })} /> Regretfully Decline
+                      </label>
+                    </div>
+                    <button type="submit" disabled={submitting} className="inv-submit">{submitting ? 'Sending...' : 'Confirm RSVP'}</button>
                   </form>
                 )}
               </div>

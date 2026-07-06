@@ -50,7 +50,7 @@ const BotanicalOlive = ({ weddingData }) => {
 
   // State
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-  const [rsvpForm, setRsvpForm] = useState({ name: '', phone: '', guests: '1', attending: 'yes' });
+  const [rsvpForm, setRsvpForm] = useState({ name: '', phone: '', email: '', guests: '1', attending: 'yes' });
   const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
 
   // Countdown
@@ -90,7 +90,7 @@ const BotanicalOlive = ({ weddingData }) => {
   const handleRsvpSubmit = (e) => {
     e.preventDefault();
     setRsvpSubmitted(true);
-    const text = `Wedding RSVP\n\nName: ${rsvpForm.name}\nPhone: ${rsvpForm.phone}\nAttending: ${rsvpForm.attending}\nGuests: ${rsvpForm.guests}`;
+    const text = `Wedding RSVP\n\nName: ${rsvpForm.name}\nEmail: ${rsvpForm.email}\nPhone: ${rsvpForm.phone}\nAttending: ${rsvpForm.attending}\nGuests: ${rsvpForm.guests}`;
     const encoded = encodeURIComponent(text);
     setTimeout(() => {
       window.open(`https://wa.me/260973848066?text=${encoded}`, '_blank');
@@ -778,33 +778,26 @@ const BotanicalOlive = ({ weddingData }) => {
                 Your presence is the greatest gift. However, if you wish to honor us with a gift, a contribution would be deeply appreciated.
               </p>
               <div className="bo-gift-cards-container">
-                <div className="bo-gift-card bo-fade-up">
-                  <h4>Bank Transfer</h4>
-                  <div className="bo-gift-details">
-                    <strong>Bank</strong>
-                    Zambia National Commercial Bank (Zanaco)
-                    
-                    <strong>Account Name</strong>
-                    {groomFirst} & {brideFirst}
-                    
-                    <strong>Account Number</strong>
-                    1029384756
-                    
-                    <strong>Branch</strong>
-                    Lusaka Corporate
+                {d.gifts && d.gifts.length > 0 ? (
+                  d.gifts.map((gift, idx) => (
+                    <div key={idx} className="bo-gift-card bo-fade-up">
+                      <h4>{gift.provider || gift.bank || 'Gift'}</h4>
+                      <div className="bo-gift-details">
+                        {gift.accountName && <><br/><strong>Account Name</strong>{gift.accountName}</>}
+                        {gift.accountNumber && <><br/><strong>Account Number</strong>{gift.accountNumber}</>}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="bo-gift-card bo-fade-up">
+                    <h4>Bank Transfer</h4>
+                    <div className="bo-gift-details">
+                      <strong>Bank</strong> Zanaco<br/>
+                      <strong>Account Name</strong> {groomFirst} & {brideFirst}<br/>
+                      <strong>Account Number</strong> 1029384756
+                    </div>
                   </div>
-                </div>
-
-                <div className="bo-gift-card bo-fade-up" style={{ transitionDelay: '0.2s' }}>
-                  <h4>Mobile Money</h4>
-                  <div className="bo-gift-details">
-                    <strong>MTN Money</strong>
-                    +260 973 848066
-                    
-                    <strong>Airtel Money</strong>
-                    +260 762 123456
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -820,6 +813,9 @@ const BotanicalOlive = ({ weddingData }) => {
                   <form onSubmit={handleRsvpSubmit}>
                     <input type="text" className="bo-input" placeholder="Your Name" required 
                       value={rsvpForm.name} onChange={e => setRsvpForm({...rsvpForm, name: e.target.value})} />
+                    
+                    <input type="email" className="bo-input" placeholder="Email Address" required 
+                      value={rsvpForm.email} onChange={e => setRsvpForm({...rsvpForm, email: e.target.value})} />
                     
                     <input type="tel" className="bo-input" placeholder="Phone Number" required 
                       value={rsvpForm.phone} onChange={e => setRsvpForm({...rsvpForm, phone: e.target.value})} />

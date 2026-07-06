@@ -1124,6 +1124,11 @@ const AddWedding = () => {
             // Clean theme_colors of any prefix tags if saving normally
             payload.theme_colors = (payload.theme_colors || []).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:"));
 
+            // Remove template_id if it's the fallback '1' to prevent uuid error
+            if (payload.template_id === 1 || payload.template_id === "1") {
+                delete payload.template_id;
+            }
+
             let error;
             if (isEditMode) {
                 const { error: updateError } = await supabase.from('weddings').update(payload).eq('id', id);

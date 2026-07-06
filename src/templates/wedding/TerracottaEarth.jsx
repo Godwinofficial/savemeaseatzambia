@@ -126,7 +126,7 @@ const TerracottaEarth = ({ weddingData }) => {
   const handleRsvpSubmit = (e) => {
     e.preventDefault();
     setRsvpSubmitted(true);
-    const text = `Wedding RSVP\n\nFull Name: ${rsvpForm.name}\nPhone: ${rsvpForm.phone}\nAttending: ${rsvpForm.attending === 'yes' ? 'Yes' : 'No'}\nGuests: ${rsvpForm.guests}\nMessage: ${rsvpForm.message || 'None'}`;
+    const text = `Wedding RSVP\n\nFull Name: ${rsvpForm.name}\nEmail: ${rsvpForm.email}\nPhone: ${rsvpForm.phone}\nAttending: ${rsvpForm.attending === 'yes' ? 'Yes' : 'No'}\nGuests: ${rsvpForm.guests}\nMessage: ${rsvpForm.message || 'None'}`;
     const encoded = encodeURIComponent(text);
     setTimeout(() => {
       window.open(`https://wa.me/260973848066?text=${encoded}`, '_blank');
@@ -753,6 +753,8 @@ const TerracottaEarth = ({ weddingData }) => {
               <div className="te-couple-names">{groomFirst}</div>
               <div className="te-couple-and">&</div>
               <div className="te-couple-names">{brideFirst}</div>
+
+
               
               <div className="te-hero-date-box">
                 {String(dayNum).padStart(2,'0')}.{String(monthNum+1).padStart(2,'0')}.{year}
@@ -810,7 +812,7 @@ const TerracottaEarth = ({ weddingData }) => {
                   <div className="te-timeline-dot"></div>
                   <div className="te-timeline-content">
                     <div className="te-timeline-time">{d.ceremony.time.replace(/\s*(AM|PM)/i, '')}</div>
-                    <div className="te-timeline-event">Ceremony</div>
+                    <div className="te-timeline-event">Marriage Blessings</div>
                   </div>
                 </div>
               )}
@@ -873,7 +875,7 @@ const TerracottaEarth = ({ weddingData }) => {
               </p>
               <div className="te-map-wrap">
                 <iframe
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent((d.venue?.name || '') + ' ' + (d.venue?.address || d.location || ''))}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+                  src={d.mapLocation || `https://maps.google.com/maps?q=${encodeURIComponent((d.venue?.name || '') + ' ' + (d.venue?.address || d.location || ''))}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
@@ -899,6 +901,10 @@ const TerracottaEarth = ({ weddingData }) => {
                 <div className="te-input-group">
                   <input type="tel" className="te-input" placeholder="Phone Number" required 
                     value={rsvpForm.phone} onChange={e => setRsvpForm({...rsvpForm, phone: e.target.value})} />
+                </div>
+                <div className="te-input-group">
+                  <input type="email" className="te-input" placeholder="Email Address" required 
+                    value={rsvpForm.email} onChange={e => setRsvpForm({...rsvpForm, email: e.target.value})} />
                 </div>
                 <div className="te-input-group">
                   <select className="te-select" value={rsvpForm.guests} onChange={e => setRsvpForm({...rsvpForm, guests: e.target.value})}>
