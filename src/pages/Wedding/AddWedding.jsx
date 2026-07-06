@@ -2410,15 +2410,24 @@ const AddWedding = () => {
 
                 <div className="gallery-grid">
                     {formData.slider_images.map((img, idx) => (
-                        <div key={idx} className="gallery-item">
-                            <img src={img} alt={`Gallery ${idx + 1}`} />
-                            <button className="btn-remove-gallery" onClick={() => {
-                                const newArray = [...formData.slider_images];
-                                newArray.splice(idx, 1);
-                                setFormData(p => ({ ...p, slider_images: newArray }));
-                            }}>
-                                <i className="fas fa-times"></i>
-                            </button>
+                        <div key={idx} className="gallery-item" style={{ overflow: 'visible', border: 'none', background: 'transparent' }}>
+                            <ImageUpload
+                                value={img}
+                                multiple={false}
+                                id={`gallery-edit-${idx}-${Date.now()}`}
+                                path="gallery"
+                                onUpload={(newUrl) => {
+                                    if (!newUrl) {
+                                        const newArray = [...formData.slider_images];
+                                        newArray.splice(idx, 1);
+                                        setFormData(p => ({ ...p, slider_images: newArray }));
+                                    } else {
+                                        const newArray = [...formData.slider_images];
+                                        newArray[idx] = newUrl;
+                                        setFormData(p => ({ ...p, slider_images: newArray }));
+                                    }
+                                }}
+                            />
                         </div>
                     ))}
                     <div className="gallery-upload-item">
