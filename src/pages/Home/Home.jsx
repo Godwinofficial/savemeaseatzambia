@@ -141,9 +141,9 @@ const Hero = () => {
                         <a href="#pricing" className="hero-btn-dark">
                             Get Started <i className="fas fa-arrow-right btn-arrow"></i>
                         </a>
-                        <a href="#demo" className="hero-btn-line-link">
+                        <Link to="/templates" className="hero-btn-line-link">
                             <span className="btn-inline-line"></span>VIEW DEMO
-                        </a>
+                        </Link>
                     </div>
 
                     <div className="hero-social-proof animate-fade-in-up delay-3">
@@ -151,10 +151,10 @@ const Hero = () => {
                             <img src={avatar1} alt="User" className="avatar-img" />
                             <img src={avatar2} alt="User" className="avatar-img" />
                             <img src={avatar3} alt="User" className="avatar-img" />
-                            <div className="avatar-overflow">+2h</div>
+                            <div className="avatar-overflow">+2k</div>
                         </div>
                         <div className="social-proof-text">
-                            <strong>Trusted by 200+</strong> hosts and planners across Zambia.
+                            <strong>Trusted by 2K+</strong> hosts and planners across Zambia.
                         </div>
                     </div>
                 </div>
@@ -1240,7 +1240,7 @@ const Pricing = ({ onOpenPackage }) => {
     const plans = [
         {
             title: 'Starter Package',
-            price: 'ZMW 450',
+            price: 'ZMW 550',
             features: [
                 'Up to 100 Guests limit',
                 'Premium digital invitation',
@@ -1320,7 +1320,7 @@ const Pricing = ({ onOpenPackage }) => {
             <div className="container">
                 <div className="section-title-wrap">
                     <span className="sub-title">PRICING PACKAGES</span>
-                    <h2>Digital Invitations Starting From Just ZMW 450</h2>
+                    <h2>Digital Invitations Starting From Just ZMW 550</h2>
                     <p className="section-desc">
                         Whether it's a wedding, birthday, bridal shower, kitchen party, graduation, or corporate event, SaveMeASeat helps you create stunning digital invitations that impress your guests and simplify event management.
                     </p>
