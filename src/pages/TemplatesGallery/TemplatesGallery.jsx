@@ -49,8 +49,8 @@ const ALL_TEMPLATES = [
         name: 'Tropical Elegance',
         tags: ['Tropical', 'Green', 'Gold'],
         usedBy: 1420,
-        isNew: false,
-        isPopular: true,
+        isNew: true,
+        isPopular: false,
         route: '/templates/tropical-elegance',
         preview: {
             bg: 'linear-gradient(135deg, #f8fcf7 0%, #edf5eb 100%)',
@@ -69,7 +69,7 @@ const ALL_TEMPLATES = [
         name: 'Golden Romance',
         tags: ['Elegant', 'Amber', 'Classic'],
         usedBy: 980,
-        isNew: false,
+        isNew: true,
         isPopular: false,
         route: '/templates/golden-romance',
         preview: {
@@ -89,7 +89,7 @@ const ALL_TEMPLATES = [
         name: 'Botanical Olive',
         tags: ['Olive', 'Earthy', 'Cursive'],
         usedBy: 1240,
-        isNew: false,
+        isNew: true,
         isPopular: false,
         route: '/templates/botanical-olive',
         preview: {
@@ -233,13 +233,16 @@ const TemplateHorizontalCard = ({ template }) => {
 
     return (
         <div className="vendor-horizontal-card" style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-            <div className="vhc-header">
-                <h3>{template.name}</h3>
+            <div className="vhc-header" style={{ margin: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <h3>{template.name}</h3>
+                    {template.isPopular && <span className="v-row-badge-popular">★ Popular</span>}
+                    {template.isNew && <span className="v-row-badge-new">New</span>}
+                </div>
                 <p style={{
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    margin: '4px 0 0 0'
+                    whiteSpace: 'normal',
+                    lineHeight: '1.5',
+                    marginTop: '8px'
                 }}>
                     {`Premium custom ${template.name.toLowerCase()} invitation with RSVP tracking.`}
                 </p>
@@ -379,7 +382,7 @@ const TemplatesGallery = () => {
                 <div className="hero-mesh-bg"></div>
                 <div className="container" style={{ textAlign: 'center', position: 'relative', zIndex: 2 }}>
                     <span className="hero-badge animate-fade-in-up" style={{ display: 'inline-block', marginBottom: '16px' }}>
-                        10 Premium Wedding Layouts
+                        Premium Wedding Layouts
                     </span>
                     <h1 className="animate-fade-in-up delay-1" style={{ fontSize: '2.5rem', marginBottom: '15px', lineHeight: 1.2 }}>
                         Digital Wedding <span className="highlight-text">Invitation Templates</span>

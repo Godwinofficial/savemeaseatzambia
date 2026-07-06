@@ -3595,9 +3595,9 @@
   color: var(--gray);
   font-size: 0.9rem;
   font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  line-height: 1.5;
+  margin-top: 8px;
 }
 
 .home-page .vhc-pill-bar {
@@ -4134,8 +4134,10 @@
     gap: 20px;
   }
   .home-page .tmpl-see-all-sub {
-    flex-direction: column;
-    gap: 10px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
   }
 }
 

@@ -37,13 +37,13 @@ const TemplatePreviewWrapper = ({ children, slug }) => {
         } else {
           query = query.order('created_at', { ascending: false }).limit(1);
         }
-        
+
         const { data, error } = await query;
         if (error) throw error;
-        
+
         if (data && data.length > 0) {
           const dbData = data[0];
-          
+
           let finalName = dbData.venue_name || dbData.reception_venue || dbData.ceremony_venue || "";
           let finalAddress = dbData.venue_address || dbData.reception_address || "";
           if (!finalName && dbData.location) {
@@ -110,15 +110,15 @@ const TemplatePreviewWrapper = ({ children, slug }) => {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, [slug]);
 
   if (loading) {
-    return <div style={{width:'100vw', height:'100vh', display:'flex', justifyContent:'center', alignItems:'center', background:'#f8f9fa'}}>
-      <div style={{fontFamily:'Montserrat, sans-serif', fontSize:'1.2rem', color:'#333', display:'flex', flexDirection:'column', alignItems:'center', gap:'15px'}}>
-        <i className="fas fa-circle-notch fa-spin" style={{fontSize:'2rem', color:'#C16E5A'}}></i>
-        Loading dynamic template...
+    return <div style={{ width: '100vw', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f8f9fa' }}>
+      <div style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '1.2rem', color: '#333', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+        <i className="fas fa-circle-notch fa-spin" style={{ fontSize: '2rem', color: '#C16E5A' }}></i>
+        Loading template...
       </div>
     </div>;
   }
@@ -127,9 +127,9 @@ const TemplatePreviewWrapper = ({ children, slug }) => {
   return (
     <>
       {showOverlay && (
-        <InvitationOverlay 
-          weddingData={weddingData} 
-          onEnter={() => setShowOverlay(false)} 
+        <InvitationOverlay
+          weddingData={weddingData}
+          onEnter={() => setShowOverlay(false)}
         />
       )}
       {React.cloneElement(children, { weddingData })}

@@ -1,11 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import heroVideo from '../assets/videos/hero.MP4';
 
-const InvitationOverlay = ({ weddingData, onEnter }) => {
+const InvitationOverlay = ({ weddingData, onEnter, onStartClose }) => {
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const videoRef = useRef(null);
 
   useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.defaultMuted = true;
+      videoRef.current.muted = true;
+      videoRef.current.play().catch(e => console.log("Autoplay blocked:", e));
+    }
+
     // Dynamically load elegant fonts for the cursive names and clean date
     const link = document.createElement('link');
     link.href = 'https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@300;400;600&display=swap';
@@ -46,6 +53,7 @@ const InvitationOverlay = ({ weddingData, onEnter }) => {
 
   const handleEnterClick = () => {
     setIsFadingOut(true);
+    if (onStartClose) onStartClose(); // Trigger mounting of main site immediately for animations
     setTimeout(() => {
       onEnter();
     }, 800); // Match transition duration (800ms)
@@ -58,12 +66,23 @@ const InvitationOverlay = ({ weddingData, onEnter }) => {
     >
       {/* Video Background */}
       <video
+        ref={videoRef}
         autoPlay
-        // muted
+        muted
+        defaultMuted
         loop
         playsInline
         className="overlay-video-bg"
         style={videoBgStyle}
+        onTimeUpdate={() => {
+          if (videoRef.current) {
+            // Smooth seamless loop: reset 0.2s before the very end to prevent the browser 'ended' flash
+            if (videoRef.current.duration - videoRef.current.currentTime <= 0.2) {
+              videoRef.current.currentTime = 0;
+              videoRef.current.play().catch(() => { });
+            }
+          }
+        }}
       >
         <source src={heroVideo} type="video/mp4" />
         Your browser does not support the video tag.
@@ -213,6 +232,8 @@ const videoBgStyle = {
   height: '100%',
   objectFit: 'cover',
   zIndex: 1,
+  // transform: 'scale(1.25)', // More aggressive crop
+  // transformOrigin: 'top left', // Forces the bottom right to be pushed off-screen
 };
 
 const darkenerStyle = {

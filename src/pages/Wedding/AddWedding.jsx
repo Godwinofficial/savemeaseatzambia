@@ -2480,7 +2480,7 @@ const AddWedding = () => {
                             <span className="step-badge">Step {currentStep + 1} of {steps.length}</span>
                             {formData.slug && (
                                 <a href={`/w/${formData.slug}`} target="_blank" rel="noopener noreferrer" className="live-preview-link">
-                                    <i className="fas fa-external-link-alt"></i> View live website
+                                    <i className="fas fa-external-link-alt"></i> Live
                                 </a>
                             )}
                         </div>
@@ -2594,7 +2594,7 @@ const AddWedding = () => {
                 </div>
             </div>
 
-            
+
         </div>
     );
 };

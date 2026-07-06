@@ -907,7 +907,7 @@
     
     .mobile-steps-tracker {
         display: flex;
-        justify-content: center;
+        justify-content: flex-start;
         align-items: center;
         gap: 0.5rem;
         margin-top: 1.25rem;
@@ -1002,7 +1002,6 @@
         background: #ffffff;
         transform: scale(0.247); /* 94px / 375px ≈ 0.25 */
         transform-origin: top left;
-        pointer-events: none;
     }
 
     .header-phone-label {

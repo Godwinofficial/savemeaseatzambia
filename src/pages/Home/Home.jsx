@@ -181,6 +181,26 @@ const Hero = () => {
 
 const ALL_TEMPLATES = [
     {
+        id: 'default-elegance',
+        name: 'Classic Elegance',
+        tags: ['Classic', 'Minimal', 'Elegant'],
+        usedBy: 2150,
+        isNew: false,
+        isPopular: true,
+        route: '/templates/default-elegance',
+        preview: {
+            bg: 'linear-gradient(135deg, #ffffff 0%, #f4f4f4 100%)',
+            accentColor: '#000000',
+            textColor: '#333333',
+            fontFamily: '"Montserrat", sans-serif',
+            couple: 'Chris & Sasha',
+            ornament: '♡',
+            taglineText: 'WEDDING INVITATION',
+            dateText: '10 · X · 2026',
+            dark: false,
+        }
+    },
+    {
         id: 'terracotta-earth',
         name: 'Terracotta Earth',
         tags: ['Terracotta', 'Linen', 'Watercolor'],
@@ -205,8 +225,8 @@ const ALL_TEMPLATES = [
         name: 'Tropical Elegance',
         tags: ['Tropical', 'Green', 'Gold'],
         usedBy: 1420,
-        isNew: false,
-        isPopular: true,
+        isNew: true,
+        isPopular: false,
         route: '/templates/tropical-elegance',
         preview: {
             bg: 'linear-gradient(135deg, #f8fcf7 0%, #edf5eb 100%)',
@@ -225,7 +245,7 @@ const ALL_TEMPLATES = [
         name: 'Golden Romance',
         tags: ['Elegant', 'Amber', 'Classic'],
         usedBy: 980,
-        isNew: false,
+        isNew: true,
         isPopular: false,
         route: '/templates/golden-romance',
         preview: {
@@ -245,7 +265,7 @@ const ALL_TEMPLATES = [
         name: 'Botanical Olive',
         tags: ['Olive', 'Earthy', 'Cursive'],
         usedBy: 1240,
-        isNew: false,
+        isNew: true,
         isPopular: false,
         route: '/templates/botanical-olive',
         preview: {

@@ -160,19 +160,21 @@ const BirthdayReport = () => {
     };
 
     const handleDelete = async (id, name, isPending = false) => {
-        if (!window.confirm(`Remove "${name}" from the ${isPending ? 'pending' : 'guest'} list?`)) return;
+        if (!window.confirm(`Mark "${name}" as declined?`)) return;
 
         setProcessingAction(`${id}-delete`);
         try {
             const guest = isPending ? pendingGuests.find(g => g.id === id) : guests.find(g => g.id === id);
-            const { error } = await supabase.from('birthday_rsvps').delete().eq('id', id);
+            const { error } = await supabase.from('birthday_rsvps')
+                .update({ attending: false, status: 'approved' })
+                .eq('id', id);
             if (error) throw error;
             if (guest?.email) await sendEmail(guest, "removal");
             await fetchReportData(true);
-            setSuccessMessage(`🗑️ ${name} removed successfully!`);
+            setSuccessMessage(`🗑️ ${name} marked as declined!`);
             setTimeout(() => setSuccessMessage(null), 3000);
         } catch (error) {
-            alert('Error removing guest: ' + error.message);
+            alert('Error updating guest: ' + error.message);
         } finally {
             setProcessingAction(null);
         }
@@ -325,18 +327,22 @@ const BirthdayReport = () => {
     };
 
     const q = searchQuery.toLowerCase();
-    const filteredGuests = guests.filter(g =>
-        !q || g.name?.toLowerCase().includes(q) || g.email?.toLowerCase().includes(q) || g.phone?.toLowerCase().includes(q)
-    );
+    const isDeclined = (g) => {
+        const a = String(g.attending ?? '').toLowerCase();
+        return g.attending === false || a === 'no' || a === 'declined';
+    };
+
+    const filteredGuests = guests.filter(g => {
+        if (isDeclined(g)) return false;
+        return !q || g.name?.toLowerCase().includes(q) || g.email?.toLowerCase().includes(q) || g.phone?.toLowerCase().includes(q);
+    });
+    
     const filteredPending = pendingGuests.filter(g =>
         !q || g.name?.toLowerCase().includes(q) || g.email?.toLowerCase().includes(q)
     );
     const attendingCount = guests.filter(isAttending).length;
-    const declinedCount = guests.filter(g => {
-        const a = String(g.attending ?? '').toLowerCase();
-        return g.attending === false || a === 'no' || a === 'declined';
-    }).length;
-    const totalSeats = guests.reduce((s, g) => s + (parseInt(g.guests_count) || 0), 0);
+    const declinedCount = guests.filter(isDeclined).length;
+    const totalSeats = guests.reduce((s, g) => isDeclined(g) ? s : s + 1 + (parseInt(g.guests_count) || 0), 0);
 
     const eventTitle = wedding?.child_name?.includes('Birthday')
         ? wedding.child_name

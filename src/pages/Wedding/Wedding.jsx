@@ -51,6 +51,7 @@ const WeddingTemplate = () => {
   const [submittedRSVP, setSubmittedRSVP] = useState(null);
   const [cdnLoaded, setCdnLoaded] = useState(false);
   const [showOverlay, setShowOverlay] = useState(true);
+  const [isOverlayClosing, setIsOverlayClosing] = useState(false);
 
   // Initial Mock Data (Fallback)
   const initialWeddingData = {
@@ -537,9 +538,10 @@ const WeddingTemplate = () => {
         <InvitationOverlay 
           weddingData={weddingData} 
           onEnter={() => setShowOverlay(false)} 
+          onStartClose={() => setIsOverlayClosing(true)}
         />
       )}
-      {templateContent}
+      {(!showOverlay || isOverlayClosing) && templateContent}
     </>
   );
 };
