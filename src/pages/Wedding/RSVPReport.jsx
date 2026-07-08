@@ -108,6 +108,7 @@ const RSVPReport = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [showQrScanner, setShowQrScanner] = useState(false);
     const [scannedGuest, setScannedGuest] = useState(null);
+    const [scanMessage, setScanMessage] = useState(null);
 
     const parseVendorPortfolio = (portfolio) => {
         if (!portfolio) return [];
@@ -425,32 +426,41 @@ const RSVPReport = () => {
                                     const code = detectedCodes[0]?.rawValue;
                                     if (code && !window.isProcessingScan) {
                                         window.isProcessingScan = true;
+                                        setScanMessage(`Scanning code: ${code.substring(0, 8)}...`);
                                         try {
                                             console.log("Scanned QR:", code);
                                             // Check if it exists and belongs to this wedding
                                             const { data, error } = await supabase.from('rsvps').select('*').eq('id', code).eq('wedding_id', wedding.id).single();
                                             if (error || !data) {
                                                 console.error("Invalid code or not found:", code, error);
-                                                alert("Oops! This QR pass is either invalid or does not belong to this guest list.");
-                                                setTimeout(() => { window.isProcessingScan = false; }, 2000);
+                                                setScanMessage("❌ Invalid or not found in this guest list.");
+                                                // Alert is blocked by iOS sometimes, rely on scanMessage
+                                                setTimeout(() => { window.isProcessingScan = false; }, 2500);
                                                 return;
                                             }
 
                                             // Show confirmation modal
+                                            setScanMessage("✅ Guest Found!");
                                             setScannedGuest(data);
                                             setShowQrScanner(false);
                                             // We keep isProcessingScan true until the modal is closed to prevent re-scans in background
                                         } catch (err) {
                                             console.error("Scanning Error:", err);
-                                            setTimeout(() => { window.isProcessingScan = false; }, 2000);
+                                            setScanMessage("❌ Error checking database.");
+                                            setTimeout(() => { window.isProcessingScan = false; }, 2500);
                                         }
                                     }
                                 }}
                                 onError={(e) => console.error("Scanner Error:", e)}
                             />
+                            {scanMessage && (
+                                <div style={{ position: 'absolute', bottom: '10px', left: '10px', right: '10px', background: 'rgba(0,0,0,0.8)', color: '#fff', padding: '10px', borderRadius: '8px', zIndex: 10 }}>
+                                    {scanMessage}
+                                </div>
+                            )}
                         </div>
                         
-                        <button onClick={() => setShowQrScanner(false)} className="ga-approve" style={{ background: '#ef4444', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem', marginTop: '1.5rem' }}>
+                        <button onClick={() => { setScanMessage(null); setShowQrScanner(false); }} className="ga-approve" style={{ background: '#ef4444', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem', marginTop: '1.5rem' }}>
                             Close Scanner
                         </button>
                     </div>
