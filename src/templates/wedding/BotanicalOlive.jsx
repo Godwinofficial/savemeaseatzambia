@@ -870,7 +870,7 @@ const BotanicalOlive = ({ weddingData }) => {
                   
                   {rsvpId && (
                     <div style={{ background: '#FFF', padding: '15px', display: 'inline-block', borderRadius: '10px', marginTop: '25px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-                      <QRCodeCanvas id="qr-canvas" value={rsvpId} size={150} level="H" />
+                      <QRCodeCanvas id="qr-canvas" value={rsvpId} size={256} level="M" />
                       <p style={{ color: '#2C361A', fontSize: '0.75rem', marginTop: '10px', fontWeight: 'bold' }}>Entrance Pass</p>
                       <button 
                         onClick={() => {
