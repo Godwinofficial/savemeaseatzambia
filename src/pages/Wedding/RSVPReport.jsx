@@ -423,26 +423,26 @@ const RSVPReport = () => {
                             <QRScanner
                                 onScan={async (detectedCodes) => {
                                     const code = detectedCodes[0]?.rawValue;
-                                    if (code) {
+                                    if (code && !window.isProcessingScan) {
+                                        window.isProcessingScan = true;
                                         try {
-                                            if (!code.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-                                                alert("Invalid QR code format.");
-                                                return;
-                                            }
-                                            
+                                            console.log("Scanned QR:", code);
                                             // Check if it exists and belongs to this wedding
                                             const { data, error } = await supabase.from('rsvps').select('*').eq('id', code).eq('wedding_id', wedding.id).single();
                                             if (error || !data) {
-                                                alert("RSVP not found or does not belong to this wedding.");
+                                                console.error("Invalid code or not found:", code, error);
+                                                alert("Oops! This QR pass is either invalid or does not belong to this guest list.");
+                                                setTimeout(() => { window.isProcessingScan = false; }, 2000);
                                                 return;
                                             }
 
                                             // Show confirmation modal
                                             setScannedGuest(data);
                                             setShowQrScanner(false);
+                                            // We keep isProcessingScan true until the modal is closed to prevent re-scans in background
                                         } catch (err) {
                                             console.error("Scanning Error:", err);
-                                            alert("Error processing scan: " + err.message);
+                                            setTimeout(() => { window.isProcessingScan = false; }, 2000);
                                         }
                                     }
                                 }}
@@ -459,7 +459,7 @@ const RSVPReport = () => {
 
             {/* Scanned Guest Confirmation Modal */}
             {scannedGuest && (
-                <div className="vm-overlay" onClick={() => setScannedGuest(null)}>
+                <div className="vm-overlay" onClick={() => { window.isProcessingScan = false; setScannedGuest(null); }}>
                     <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '2rem', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
                         <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: scannedGuest.checked_in ? '#f59e0b' : '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
                             <i className={`fas fa-${scannedGuest.checked_in ? 'exclamation' : 'check'}`} style={{ fontSize: '32px', color: '#fff' }}></i>
@@ -486,6 +486,7 @@ const RSVPReport = () => {
                                         setSuccessMessage(`Checked in ${scannedGuest.name} successfully!`);
                                         setTimeout(() => setSuccessMessage(null), 3000);
                                         fetchReportData(true);
+                                        window.isProcessingScan = false;
                                         setScannedGuest(null);
                                     } catch (err) {
                                         alert("Error updating status: " + err.message);
@@ -496,7 +497,7 @@ const RSVPReport = () => {
                             </button>
                         )}
                         
-                        <button onClick={() => { setScannedGuest(null); setShowQrScanner(true); }} className="ga-reject" style={{ width: '100%', padding: '1rem', background: '#f1f5f9', color: '#475569', fontSize: '1rem', justifyContent: 'center' }}>
+                        <button onClick={() => { window.isProcessingScan = false; setScannedGuest(null); setShowQrScanner(true); }} className="ga-reject" style={{ width: '100%', padding: '1rem', background: '#f1f5f9', color: '#475569', fontSize: '1rem', justifyContent: 'center' }}>
                             {scannedGuest.checked_in ? 'Scan Another' : 'Cancel & Scan Another'}
                         </button>
                     </div>
