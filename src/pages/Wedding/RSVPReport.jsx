@@ -107,6 +107,7 @@ const RSVPReport = () => {
     const [lightboxIndex, setLightboxIndex] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [showQrScanner, setShowQrScanner] = useState(false);
+    const [scannedGuest, setScannedGuest] = useState(null);
 
     const parseVendorPortfolio = (portfolio) => {
         if (!portfolio) return [];
@@ -436,15 +437,9 @@ const RSVPReport = () => {
                                                 return;
                                             }
 
-                                            if (data.checked_in) {
-                                                alert(`Guest ${data.name} is ALREADY checked in.`);
-                                            } else {
-                                                const { error: updateError } = await supabase.from('rsvps').update({ checked_in: true }).eq('id', code);
-                                                if (updateError) throw updateError;
-                                                alert(`SUCCESS! Guest ${data.name} has been checked in.`);
-                                                fetchReportData(true); // Refresh guests list
-                                                setShowQrScanner(false);
-                                            }
+                                            // Show confirmation modal
+                                            setScannedGuest(data);
+                                            setShowQrScanner(false);
                                         } catch (err) {
                                             console.error("Scanning Error:", err);
                                             alert("Error processing scan: " + err.message);
@@ -457,6 +452,52 @@ const RSVPReport = () => {
                         
                         <button onClick={() => setShowQrScanner(false)} className="ga-approve" style={{ background: '#ef4444', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem', marginTop: '1.5rem' }}>
                             Close Scanner
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Scanned Guest Confirmation Modal */}
+            {scannedGuest && (
+                <div className="vm-overlay" onClick={() => setScannedGuest(null)}>
+                    <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '2rem', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
+                        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: scannedGuest.checked_in ? '#f59e0b' : '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
+                            <i className={`fas fa-${scannedGuest.checked_in ? 'exclamation' : 'check'}`} style={{ fontSize: '32px', color: '#fff' }}></i>
+                        </div>
+                        <h4 className="vm-name" style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{scannedGuest.name}</h4>
+                        <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+                            {scannedGuest.email}<br/>
+                            {scannedGuest.phone}<br/>
+                            {scannedGuest.plus_ones > 0 && <span style={{display: 'inline-block', marginTop: '0.5rem', background: '#e0e7ff', color: '#4f46e5', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '600'}}>+{scannedGuest.plus_ones} Guests</span>}
+                        </p>
+                        
+                        {scannedGuest.checked_in ? (
+                            <div style={{ background: '#fef3c7', color: '#b45309', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', fontWeight: '500' }}>
+                                This guest has ALREADY checked in.
+                            </div>
+                        ) : (
+                            <button 
+                                className="ga-approve" 
+                                style={{ width: '100%', padding: '1rem', background: '#10b981', color: '#fff', fontSize: '1rem', justifyContent: 'center', marginBottom: '1rem' }}
+                                onClick={async () => {
+                                    try {
+                                        const { error: updateError } = await supabase.from('rsvps').update({ checked_in: true }).eq('id', scannedGuest.id);
+                                        if (updateError) throw updateError;
+                                        setSuccessMessage(`Checked in ${scannedGuest.name} successfully!`);
+                                        setTimeout(() => setSuccessMessage(null), 3000);
+                                        fetchReportData(true);
+                                        setScannedGuest(null);
+                                    } catch (err) {
+                                        alert("Error updating status: " + err.message);
+                                    }
+                                }}
+                            >
+                                Confirm Check-In
+                            </button>
+                        )}
+                        
+                        <button onClick={() => { setScannedGuest(null); setShowQrScanner(true); }} className="ga-reject" style={{ width: '100%', padding: '1rem', background: '#f1f5f9', color: '#475569', fontSize: '1rem', justifyContent: 'center' }}>
+                            {scannedGuest.checked_in ? 'Scan Another' : 'Cancel & Scan Another'}
                         </button>
                     </div>
                 </div>
