@@ -14,6 +14,7 @@ import { getEmailTemplate } from '../../utils/emailTemplates';
 import { sendEmail as sendEmailService } from '../../utils/emailService';
 import ReminderModal from '../../components/ReminderModal';
 import { useSearchParams } from 'react-router-dom';
+import QRScanner from '../../components/QRScanner';
 
 const fallbackVendors = [
     {
@@ -105,6 +106,7 @@ const RSVPReport = () => {
     const [activeVendor, setActiveVendor] = useState(null);
     const [lightboxIndex, setLightboxIndex] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [showQrScanner, setShowQrScanner] = useState(false);
 
     const parseVendorPortfolio = (portfolio) => {
         if (!portfolio) return [];
@@ -409,6 +411,57 @@ const RSVPReport = () => {
                 />
             )}
 
+            {/* QR Scanner Modal */}
+            {showQrScanner && (
+                <div className="vm-overlay" onClick={() => setShowQrScanner(false)}>
+                    <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '1.5rem', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
+                        <h4 className="vm-name">Scan Guest Pass</h4>
+                        <p className="vm-desc" style={{ marginBottom: '1.5rem' }}>Point the camera at the guest's QR code.</p>
+                        
+                        <div style={{ width: '100%', height: '300px', background: '#000', borderRadius: '12px', overflow: 'hidden', position: 'relative' }}>
+                            <QRScanner
+                                onScan={async (detectedCodes) => {
+                                    const code = detectedCodes[0]?.rawValue;
+                                    if (code) {
+                                        try {
+                                            if (!code.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                                                alert("Invalid QR code format.");
+                                                return;
+                                            }
+                                            
+                                            // Check if it exists and belongs to this wedding
+                                            const { data, error } = await supabase.from('rsvps').select('*').eq('id', code).eq('wedding_id', wedding.id).single();
+                                            if (error || !data) {
+                                                alert("RSVP not found or does not belong to this wedding.");
+                                                return;
+                                            }
+
+                                            if (data.checked_in) {
+                                                alert(`Guest ${data.name} is ALREADY checked in.`);
+                                            } else {
+                                                const { error: updateError } = await supabase.from('rsvps').update({ checked_in: true }).eq('id', code);
+                                                if (updateError) throw updateError;
+                                                alert(`SUCCESS! Guest ${data.name} has been checked in.`);
+                                                fetchReportData(true); // Refresh guests list
+                                                setShowQrScanner(false);
+                                            }
+                                        } catch (err) {
+                                            console.error("Scanning Error:", err);
+                                            alert("Error processing scan: " + err.message);
+                                        }
+                                    }
+                                }}
+                                onError={(e) => console.error("Scanner Error:", e)}
+                            />
+                        </div>
+                        
+                        <button onClick={() => setShowQrScanner(false)} className="ga-approve" style={{ background: '#ef4444', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem', marginTop: '1.5rem' }}>
+                            Close Scanner
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Vendor Detail Modal */}
             {activeVendor && (
                 <div className="vm-overlay" onClick={() => setActiveVendor(null)}>
@@ -663,6 +716,10 @@ const RSVPReport = () => {
                             <button className="hbtn hbtn-lime" onClick={downloadExcel}>
                                 <span className="hbtn-icon"><i className="fas fa-file-excel"></i></span>
                                 <span className="hbtn-lbl">Export</span>
+                            </button>
+                            <button className="hbtn" onClick={() => setShowQrScanner(true)}>
+                                <span className="hbtn-icon"><i className="fas fa-qrcode"></i></span>
+                                <span className="hbtn-lbl">Scan Pass</span>
                             </button>
                         </div>
                     </div>

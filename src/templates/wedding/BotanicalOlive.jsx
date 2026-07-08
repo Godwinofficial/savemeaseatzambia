@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../../supabaseClient';
+import { QRCodeCanvas } from 'qrcode.react';
 
 const BotanicalOlive = ({ weddingData }) => {
   const defaultData = {
@@ -52,6 +54,8 @@ const BotanicalOlive = ({ weddingData }) => {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [rsvpForm, setRsvpForm] = useState({ name: '', phone: '', email: '', guests: '1', attending: 'yes' });
   const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
+  const [rsvpSubmitting, setRsvpSubmitting] = useState(false);
+  const [rsvpId, setRsvpId] = useState(null);
 
   // Countdown
   useEffect(() => {
@@ -87,14 +91,33 @@ const BotanicalOlive = ({ weddingData }) => {
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
-  const handleRsvpSubmit = (e) => {
+  const handleRsvpSubmit = async (e) => {
     e.preventDefault();
-    setRsvpSubmitted(true);
-    const text = `Wedding RSVP\n\nName: ${rsvpForm.name}\nEmail: ${rsvpForm.email}\nPhone: ${rsvpForm.phone}\nAttending: ${rsvpForm.attending}\nGuests: ${rsvpForm.guests}`;
-    const encoded = encodeURIComponent(text);
-    setTimeout(() => {
-      window.open(`https://wa.me/260973848066?text=${encoded}`, '_blank');
-    }, 1200);
+    if (!d.id) {
+      alert("This is a preview. RSVP cannot be submitted here.");
+      return;
+    }
+    setRsvpSubmitting(true);
+    try {
+      const { data, error } = await supabase.from('rsvps').insert([{
+        wedding_id: d.id,
+        name: rsvpForm.name,
+        email: rsvpForm.email,
+        phone: rsvpForm.phone,
+        attending: rsvpForm.attending,
+        guests_count: parseInt(rsvpForm.guests, 10) || 1
+      }]).select('id').single();
+
+      if (error) throw error;
+      
+      setRsvpId(data.id);
+      setRsvpSubmitted(true);
+    } catch (err) {
+      console.error("Error submitting RSVP:", err);
+      alert("There was an error saving your RSVP. Please try again.");
+    } finally {
+      setRsvpSubmitting(false);
+    }
   };
 
   const paletteColors = d.dress_code_colors || defaultData.dress_code_colors;
@@ -713,38 +736,30 @@ const BotanicalOlive = ({ weddingData }) => {
             <div className="bo-timeline-container">
               <div className="bo-timeline-line"></div>
               
-              <div className="bo-timeline-item">
-                <div className="bo-timeline-dot"></div>
-                <div className="bo-timeline-card bo-fade-up">
-                  <div className="bo-time">3:30 PM</div>
-                  <div className="bo-event">Welcome</div>
-                </div>
-              </div>
-              
-              <div className="bo-timeline-item">
-                <div className="bo-timeline-dot"></div>
-                <div className="bo-timeline-card bo-fade-up">
-                  <div className="bo-time">{d.ceremony?.time || '4:00 PM'}</div>
-                  <div className="bo-event">Ceremony</div>
-                </div>
-              </div>
-              
-              <div className="bo-timeline-item">
-                <div className="bo-timeline-dot"></div>
-                <div className="bo-timeline-card bo-fade-up">
-                  <div className="bo-time">5:00 PM</div>
-                  <div className="bo-event">Cocktails</div>
-                </div>
-              </div>
-              
-              <div className="bo-timeline-item">
-                <div className="bo-timeline-dot"></div>
-                <div className="bo-timeline-card bo-fade-up">
-                  <div className="bo-time">{d.reception?.time || '6:30 PM'}</div>
-                  <div className="bo-event">Reception</div>
-                </div>
-              </div>
+              {(() => {
+                const events = [];
+                if (d.ceremony?.time) events.push({ name: 'Marriage Blessing', time: d.ceremony.time });
+                if (d.reception?.time) events.push({ name: 'Reception', time: d.reception.time });
+                if (d.otherEvents && d.otherEvents.length > 0) events.push(...d.otherEvents);
+                
+                // Fallback if no events at all
+                if (events.length === 0) {
+                  events.push({ name: 'Welcome', time: '3:30 PM' });
+                  events.push({ name: 'Marriage Blessing', time: '4:00 PM' });
+                  events.push({ name: 'Cocktails', time: '5:00 PM' });
+                  events.push({ name: 'Reception', time: '6:30 PM' });
+                }
 
+                return events.map((event, idx) => (
+                  <div className="bo-timeline-item" key={idx}>
+                    <div className="bo-timeline-dot"></div>
+                    <div className="bo-timeline-card bo-fade-up">
+                      <div className="bo-time">{event.time}</div>
+                      <div className="bo-event">{event.name}</div>
+                    </div>
+                  </div>
+                ));
+              })()}
             </div>
           </div>
 
@@ -769,17 +784,29 @@ const BotanicalOlive = ({ weddingData }) => {
               <p style={{ fontSize: '0.85rem', color: sage, lineHeight: '1.8' }}>
                 {d.venue?.address || 'Heather Street, 12'}
               </p>
+              <div style={{ marginTop: '25px', borderRadius: '15px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
+                <iframe
+                  title="Venue Map"
+                  width="100%"
+                  height="250"
+                  style={{ border: 0, display: 'block' }}
+                  loading="lazy"
+                  allowFullScreen
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(d.venue?.address || d.venue?.name || d.location || 'Lusaka')}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                ></iframe>
+              </div>
             </div>
             
-            <div className="bo-details-card bo-fade-up" style={{ transitionDelay: '0.4s' }}>
-              <div className="bo-details-title">Registry</div>
-              <div className="bo-details-subtitle">A Token of Love</div>
-              <p className="bo-gifts-text">
-                Your presence is the greatest gift. However, if you wish to honor us with a gift, a contribution would be deeply appreciated.
-              </p>
-              <div className="bo-gift-cards-container">
-                {d.gifts && d.gifts.length > 0 ? (
-                  d.gifts.map((gift, idx) => (
+            {/* GIFTS - ONLY SHOW IF ADDED */}
+            {d.gifts && d.gifts.length > 0 && (
+              <div className="bo-details-card bo-fade-up" style={{ transitionDelay: '0.4s' }}>
+                <div className="bo-details-title">Registry</div>
+                <div className="bo-details-subtitle">A Token of Love</div>
+                <p className="bo-gifts-text">
+                  Your presence is the greatest gift. However, if you wish to honor us with a gift, a contribution would be deeply appreciated.
+                </p>
+                <div className="bo-gift-cards-container">
+                  {d.gifts.map((gift, idx) => (
                     <div key={idx} className="bo-gift-card bo-fade-up">
                       <h4>{gift.provider || gift.bank || 'Gift'}</h4>
                       <div className="bo-gift-details">
@@ -787,19 +814,10 @@ const BotanicalOlive = ({ weddingData }) => {
                         {gift.accountNumber && <><br/><strong>Account Number</strong>{gift.accountNumber}</>}
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="bo-gift-card bo-fade-up">
-                    <h4>Bank Transfer</h4>
-                    <div className="bo-gift-details">
-                      <strong>Bank</strong> Zanaco<br/>
-                      <strong>Account Name</strong> {groomFirst} & {brideFirst}<br/>
-                      <strong>Account Number</strong> 1029384756
-                    </div>
-                  </div>
-                )}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* RSVP CRYSTAL GLASS */}
@@ -839,7 +857,9 @@ const BotanicalOlive = ({ weddingData }) => {
                       </label>
                     </div>
 
-                    <button type="submit" className="bo-submit">Send Reply</button>
+                    <button type="submit" className="bo-submit" disabled={rsvpSubmitting}>
+                      {rsvpSubmitting ? 'Sending...' : 'Send Reply'}
+                    </button>
                   </form>
                 </>
               ) : (
@@ -847,6 +867,28 @@ const BotanicalOlive = ({ weddingData }) => {
                   <i className="fa-solid fa-envelope-open-text"></i>
                   <h3 style={{ fontFamily: 'Cormorant Garamond', fontSize: '2.5rem' }}>Thank You</h3>
                   <p style={{ marginTop: '15px', fontSize: '1rem', opacity: 0.9 }}>Your RSVP has been beautifully received.</p>
+                  
+                  {rsvpId && (
+                    <div style={{ background: '#FFF', padding: '15px', display: 'inline-block', borderRadius: '10px', marginTop: '25px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+                      <QRCodeCanvas id="qr-canvas" value={rsvpId} size={150} level="H" />
+                      <p style={{ color: '#2C361A', fontSize: '0.75rem', marginTop: '10px', fontWeight: 'bold' }}>Entrance Pass</p>
+                      <button 
+                        onClick={() => {
+                          const canvas = document.getElementById('qr-canvas');
+                          if (canvas) {
+                            const url = canvas.toDataURL('image/png');
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'wedding-entrance-pass.png';
+                            a.click();
+                          }
+                        }}
+                        style={{ marginTop: '15px', background: '#D4AF37', color: '#FFF', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}
+                      >
+                        <i className="fas fa-download"></i> Save Pass
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

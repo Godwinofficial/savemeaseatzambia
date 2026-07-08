@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 import { sendEmail } from '../../utils/emailService';
 import ReminderModal from '../../components/ReminderModal';
 import EmailMarketing from '../../components/EmailMarketing';
+
 import './Admin.css';
 
 // Premium Interactive SVG Dashboard Charts Component
@@ -248,6 +249,7 @@ const AdminDashboard = () => {
     const [filteredWeddings, setFilteredWeddings] = useState([]);
     const [copiedLink, setCopiedLink] = useState(null);
     const [showMobileMenu, setShowMobileMenu] = useState(false);
+    const [showQrScanner, setShowQrScanner] = useState(null); // stores wedding id for scanning
     const [stats, setStats] = useState({ totalRSVPs: 0, totalViews: 0 });
     // Reminder States
     const [showReminderModal, setShowReminderModal] = useState(false);
@@ -1631,6 +1633,11 @@ const AdminDashboard = () => {
                             <Link to={activeActionSheet.reportUrl} target="_blank" className="ga-approve" style={{ background: '#3b82f6', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem', textDecoration: 'none' }}>
                                 <i className="fas fa-chart-bar"></i> View RSVP Report
                             </Link>
+                            {activeActionSheet.type === 'wedding' && (
+                                <button onClick={() => { setShowQrScanner(activeActionSheet.rawEvent.id); setActiveActionSheet(null); }} className="ga-approve" style={{ background: '#10b981', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem' }}>
+                                    <i className="fas fa-qrcode"></i> Scan Check-in Pass
+                                </button>
+                            )}
                             <button onClick={() => { activeActionSheet.onDownload(); setActiveActionSheet(null); }} className="ga-approve" style={{ background: '#10b981', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem' }}>
                                 <i className="fas fa-file-excel"></i> Download Excel
                             </button>
@@ -1641,6 +1648,57 @@ const AdminDashboard = () => {
                                 <i className="fas fa-trash"></i> Delete Event
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* QR Scanner Modal */}
+            {showQrScanner && (
+                <div className="vm-overlay" onClick={() => setShowQrScanner(null)}>
+                    <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '1.5rem', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
+                        <h4 className="vm-name">Scan Guest Pass</h4>
+                        <p className="vm-desc" style={{ marginBottom: '1.5rem' }}>Point the camera at the guest's QR code.</p>
+                        
+                        <div style={{ width: '100%', height: '300px', background: '#000', borderRadius: '12px', overflow: 'hidden', position: 'relative' }}>
+                            <Scanner
+                                onScan={async (detectedCodes) => {
+                                    const code = detectedCodes[0]?.rawValue;
+                                    if (code) {
+                                        try {
+                                            // Ensure code is a valid UUID
+                                            if (!code.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                                                alert("Invalid QR code format.");
+                                                return;
+                                            }
+                                            
+                                            // Check if it exists and belongs to this wedding
+                                            const { data, error } = await supabase.from('rsvps').select('*').eq('id', code).eq('wedding_id', showQrScanner).single();
+                                            if (error || !data) {
+                                                alert("RSVP not found or does not belong to this wedding.");
+                                                return;
+                                            }
+
+                                            if (data.checked_in) {
+                                                alert(`Guest ${data.name} is ALREADY checked in.`);
+                                            } else {
+                                                const { error: updateError } = await supabase.from('rsvps').update({ checked_in: true }).eq('id', code);
+                                                if (updateError) throw updateError;
+                                                alert(`SUCCESS! Guest ${data.name} has been checked in.`);
+                                                setShowQrScanner(null);
+                                            }
+                                        } catch (err) {
+                                            console.error("Scanning Error:", err);
+                                            alert("Error processing scan: " + err.message);
+                                        }
+                                    }
+                                }}
+                                onError={(e) => console.error("Scanner Error:", e)}
+                            />
+                        </div>
+                        
+                        <button onClick={() => setShowQrScanner(null)} className="ga-approve" style={{ background: '#ef4444', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem', marginTop: '1.5rem' }}>
+                            Close Scanner
+                        </button>
                     </div>
                 </div>
             )}
