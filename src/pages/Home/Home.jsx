@@ -104,7 +104,7 @@ const Header = () => {
                         <li><a href="#contact" onClick={handleNavClick}>Contact</a></li>
                         <li className="nav-cta-item">
                             <a
-                                href="https://wa.me/260973848066"
+                                href="https://wa.me/260960968349"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="nav-whatsapp-btn"
@@ -360,7 +360,7 @@ const TemplateHorizontalCard = ({ template }) => {
                     Live Demo <i className="fas fa-external-link-alt"></i>
                 </Link>
                 <a
-                    href={`https://wa.me/260973848066?text=Hi! I'm interested in the *${template.name}* digital invitation template for my wedding.`}
+                    href={`https://wa.me/260960968349?text=Hi! I'm interested in the *${template.name}* digital invitation template for my wedding.`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="v-row-btn-select"
@@ -1404,7 +1404,7 @@ const Payment = () => {
                     </p>
                     <ol>
                         <li>Take a screenshot or receipt of the completed transaction.</li>
-                        <li>Send the payment proof directly to our active WhatsApp link: <strong><a href="https://wa.me/260973848066" target="_blank" rel="noopener noreferrer" className="highlight-link">+260 973 848 066</a></strong></li>
+                        <li>Send the payment proof directly to our active WhatsApp link: <strong><a href="https://wa.me/260960968349" target="_blank" rel="noopener noreferrer" className="highlight-link">+260 960 968 349</a></strong></li>
                         <li>Include your event name, selected package code, and target launching deadline.</li>
                     </ol>
                 </div>

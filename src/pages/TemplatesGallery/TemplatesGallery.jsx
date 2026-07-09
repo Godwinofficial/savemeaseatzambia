@@ -154,7 +154,7 @@ const Header = () => {
                         <li><Link to="/templates" onClick={handleNavClick} style={{ color: 'var(--primary)' }}>Templates</Link></li>
                         <li className="nav-cta-item">
                             <a
-                                href="https://wa.me/260973848066"
+                                href="https://wa.me/260960968349"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="nav-whatsapp-btn"
@@ -307,7 +307,7 @@ const TemplateHorizontalCard = ({ template }) => {
                     Live Demo <i className="fas fa-external-link-alt"></i>
                 </Link>
                 <a
-                    href={`https://wa.me/260973848066?text=Hi! I'm interested in the *${template.name}* digital invitation template for my wedding.`}
+                    href={`https://wa.me/260960968349?text=Hi! I'm interested in the *${template.name}* digital invitation template for my wedding.`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="v-row-btn-select"

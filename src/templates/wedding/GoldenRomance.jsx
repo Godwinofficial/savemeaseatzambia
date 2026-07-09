@@ -104,7 +104,7 @@ const GoldenRomance = ({ weddingData }) => {
     const text = `Wedding RSVP\n\nName: ${rsvpForm.name}\nEmail: ${rsvpForm.email}\nPhone: ${rsvpForm.phone}\nAttending: ${rsvpForm.attending}\nGuests: ${rsvpForm.guests}`;
     const encoded = encodeURIComponent(text);
     setTimeout(() => {
-      window.open(`https://wa.me/260973848066?text=${encoded}`, '_blank');
+      window.open(`https://wa.me/260960968349?text=${encoded}`, '_blank');
     }, 1200);
   };
 

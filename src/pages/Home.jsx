@@ -701,15 +701,15 @@ const Payment = () => {
                         instructions:
                     </p>
                     <p><strong>Account Name:</strong> SaveMeASeat</p>
-                    <p><strong>Mobile Money (Airtel):</strong> +260973848066</p>
+                    <p><strong>Mobile Money (Airtel):</strong> +260 960 968 349</p>
                     <p>
                         <strong>Bank Details:</strong> FNB | Account #63149798184 | Branch:
                         Lusaka Main
                     </p>
                     <p>
                         After payment, send proof to WhatsApp
-                        <strong><a href="https://wa.me/260973848066" target="_blank"
-                            style={{ color: 'var(--primary)', textDecoration: 'none', marginLeft: '5px' }}>+260973848066</a></strong>
+                        <strong><a href="https://wa.me/260960968349" target="_blank"
+                            style={{ color: 'var(--primary)', textDecoration: 'none', marginLeft: '5px' }}>+260 960 968 349</a></strong>
                         with your event information.
                     </p>
                 </div>
@@ -856,7 +856,7 @@ const Contact = () => {
                                 <i className="fas fa-phone-alt"></i>
                                 <div>
                                     <h4>Call Us</h4>
-                                    <p>+260973848066</p>
+                                    <p>+260 960 968 349</p>
                                 </div>
                             </li>
                             <li>
@@ -1268,7 +1268,7 @@ function App() {
                             <div style={{ color: 'var(--gray)', marginBottom: '1.2rem' }}>{selectedEcard.description}</div>
                             <div style={{ fontWeight: 700, fontSize: '1.2rem', color: 'var(--primary)', marginBottom: '1.2rem' }}>ZMW 350</div>
                             <div style={{ fontSize: '0.98rem', color: 'var(--dark)', marginBottom: '1.2rem' }}>
-                                To order, contact us via WhatsApp <a href="https://wa.me/260973848066" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none' }}>+260973848066</a>
+                                To order, contact us via WhatsApp <a href="https://wa.me/260960968349" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none' }}>+260 960 968 349</a>
                             </div>
                         </div>
                     </div>
