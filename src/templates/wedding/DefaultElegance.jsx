@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { supabase } from '../../supabaseClient';
 import { QRCodeCanvas } from 'qrcode.react';
 import html2canvas from 'html2canvas';
 import logoImg from '../../assets/images/logo1.png';
@@ -101,20 +102,62 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
       await handleRSVPSubmitFromParent(e, formData);
       return;
     }
+
+    if (!weddingData?.id) {
+      alert('Wedding ID missing. Please refresh.');
+      return;
+    }
+
     setIsSubmitting(true);
-    setTimeout(() => {
-      setRsvpId(`local-${Date.now()}`);
-      setSubmittedRSVP(formData);
+    try {
+      const { data, error } = await supabase.from('rsvps').insert([{
+        wedding_id: weddingData.id,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        attending: formData.attendance,
+        guests_count: parseInt(formData.guests, 10) || 1,
+        status: 'pending'
+      }]).select('id').single();
+
+      if (error) throw error;
+
+      setRsvpId(data.id);
+      setSubmittedRSVP({
+        id: data.id,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        guests_count: parseInt(formData.guests, 10) || 1,
+        wedding_id: weddingData.id
+      });
       setShowAdmissionCard(true);
+    } catch (err) {
+      console.error('RSVP submit error:', err);
+      alert('There was an error saving your RSVP. Please try again.');
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   const getQrValue = () => {
+    const guestId = submittedRSVP?.id || rsvpId;
+    const guestName = submittedRSVP?.name || formData.name;
+    const guestEmail = submittedRSVP?.email || formData.email;
+    const guestPhone = submittedRSVP?.phone || formData.phone;
+    const guestCount = submittedRSVP?.guests_count || parseInt(formData.guests, 10) || 1;
+
     try {
-      return JSON.stringify({ id: rsvpId, name: formData.name, email: formData.email, phone: formData.phone, guests: formData.guests, wedding_id: weddingData?.id || null });
+      return JSON.stringify({
+        id: guestId,
+        name: guestName,
+        email: guestEmail,
+        phone: guestPhone,
+        guests_count: guestCount,
+        wedding_id: weddingData?.id || submittedRSVP?.wedding_id || null
+      });
     } catch (e) {
-      return rsvpId || formData.name || '';
+      return guestId || guestName || '';
     }
   };
 
@@ -125,7 +168,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
       const canvas = await html2canvas(el, { useCORS: true, scale: 2, backgroundColor: '#ffffff' });
       const url = canvas.toDataURL('image/png');
       const a = document.createElement('a');
-      const guestPart = (formData.name || rsvpId || 'guest').toLowerCase().replace(/\s+/g, '-');
+      const guestPart = ((submittedRSVP?.name || formData.name || rsvpId || 'guest')).toLowerCase().replace(/\s+/g, '-');
       a.href = url;
       a.download = `wedding-pass-${guestPart}.png`;
       a.click();
@@ -135,11 +178,12 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
   };
 
   useEffect(() => {
-    if (rsvpId) {
+    const guestId = submittedRSVP?.id || rsvpId;
+    if (guestId) {
       const t = setTimeout(downloadPassCard, 800);
       return () => clearTimeout(t);
     }
-  }, [rsvpId]);
+  }, [submittedRSVP, rsvpId]);
 
   // Initial Mock Data (Fallback)
   // Initial Mock Data (Fallback) - Cleared to prevent static flash
@@ -3084,13 +3128,13 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
 
                 <div style={{ marginTop: '20px', borderTop: '1px solid #F0EDE9', paddingTop: '15px', width: '100%' }}>
                   <p style={{ fontFamily: 'Cormorant Garamond', fontSize: '1.3rem', fontStyle: 'italic', color: '#2C361A', margin: '0 0 4px 0' }}>
-                    {formData.name}
+                    {submittedRSVP?.name || formData.name}
                   </p>
                   <p style={{ fontFamily: 'Montserrat', fontSize: '0.75rem', color: '#555', margin: '0 0 8px 0', wordBreak: 'break-word' }}>
-                    {formData.email || 'No email provided'}
+                    {submittedRSVP?.email || formData.email || 'No email provided'}
                   </p>
                   <p style={{ fontFamily: 'Montserrat', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#8A9A75', margin: '0 0 12px 0' }}>
-                    {parseInt(formData.guests, 10) > 1 ? `Admit ${formData.guests} Guests` : 'Admit 1 Guest'}
+                    {(submittedRSVP?.guests_count || parseInt(formData.guests, 10) || 1) > 1 ? `Admit ${(submittedRSVP?.guests_count || parseInt(formData.guests, 10) || 1)} Guests` : 'Admit 1 Guest'}
                   </p>
                   <p style={{ fontFamily: 'Montserrat', fontSize: '0.7rem', color: '#666', margin: '0 0 3px 0' }}>
                     {formatDate(weddingData.date)} {weddingData.ceremony.time ? `at ${formatTime(weddingData.ceremony.time)}` : ''}
