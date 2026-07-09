@@ -89,6 +89,7 @@ const getInitials = (name = '') => name.split(' ').map(n => n[0]).slice(0, 2).jo
 
 const RSVPReport = () => {
     const { slug } = useParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [wedding, setWedding] = useState(null);
@@ -168,6 +169,7 @@ const RSVPReport = () => {
             const allGuests = rsvps || [];
             setGuests(allGuests.filter(g => g.status === 'approved' || !g.status));
             setPendingGuests(allGuests.filter(g => g.status === 'pending'));
+
 
             try {
                 const { data: vendorsData, error: vendorsError } = await supabase
@@ -415,7 +417,7 @@ const RSVPReport = () => {
 
             {/* QR Scanner Modal */}
             {showQrScanner && (
-                <div className="vm-overlay" onClick={() => setShowQrScanner(false)}>
+                <div className="vm-overlay" onClick={() => { window.isProcessingScan = false; setShowQrScanner(false); }}>
                     <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '1.5rem', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
                         <h4 className="vm-name">Scan Guest Pass</h4>
                         <p className="vm-desc" style={{ marginBottom: '1.5rem' }}>Point the camera at the guest's QR code.</p>
@@ -423,16 +425,52 @@ const RSVPReport = () => {
                         <div style={{ width: '100%', height: '300px', background: '#000', borderRadius: '12px', overflow: 'hidden', position: 'relative' }}>
                             <QRScanner
                                 onScan={async (detectedCodes) => {
-                                    const code = detectedCodes[0]?.rawValue;
-                                    if (code && !window.isProcessingScan) {
+                                    const rawCode = detectedCodes[0]?.rawValue;
+                                    if (rawCode && !window.isProcessingScan) {
                                         window.isProcessingScan = true;
-                                        setScanMessage(`Scanning code: ${code.substring(0, 8)}...`);
+                                        setScanMessage(`Scanning code...`);
                                         try {
-                                            console.log("Scanned QR:", code);
+                                            let code = rawCode;
+                                            let embeddedData = null;
+                                            if (rawCode.startsWith('{')) {
+                                                try {
+                                                    const parsed = JSON.parse(rawCode);
+                                                    code = parsed.id;
+                                                    embeddedData = parsed;
+                                                    setScanMessage(`✅ Decoded pass for ${parsed.name}`);
+                                                } catch(e) {
+                                                    // Not valid JSON, fallback to raw string
+                                                }
+                                            }
+
+                                            console.log("Scanned QR ID:", code);
                                             // Check if it exists and belongs to this wedding
                                             const { data, error } = await supabase.from('rsvps').select('*').eq('id', code).eq('wedding_id', wedding.id).single();
+                                            
+                                            // If not found in DB, but we have embedded data, we COULD use it, but for check-in we MUST have a DB record.
                                             if (error || !data) {
-                                                console.error("Invalid code or not found:", code, error);
+                                                console.error("Invalid code or not found in DB:", code, error);
+                                                
+                                                // Fallback to embedded QR code data if it is valid for this wedding
+                                                if (embeddedData && embeddedData.wedding_id === wedding.id) {
+                                                    console.log("Database fetch failed or not found, falling back to embedded data:", embeddedData);
+                                                    setScanMessage("✅ Guest Found (Offline Pass)!");
+                                                    
+                                                    const fallbackGuest = {
+                                                        id: embeddedData.id,
+                                                        name: embeddedData.name,
+                                                        email: embeddedData.email,
+                                                        phone: embeddedData.phone,
+                                                        guests_count: embeddedData.guests_count || 1,
+                                                        wedding_id: embeddedData.wedding_id,
+                                                        checked_in: false // assume false, confirm check-in button will trigger DB update
+                                                    };
+                                                    
+                                                    setScannedGuest(fallbackGuest);
+                                                    setShowQrScanner(false);
+                                                    return;
+                                                }
+                                                
                                                 setScanMessage("❌ Invalid or not found in this guest list.");
                                                 // Alert is blocked by iOS sometimes, rely on scanMessage
                                                 setTimeout(() => { window.isProcessingScan = false; }, 2500);
@@ -440,7 +478,7 @@ const RSVPReport = () => {
                                             }
 
                                             // Show confirmation modal
-                                            setScanMessage("✅ Guest Found!");
+                                            setScanMessage("✅ Guest Found in Database!");
                                             setScannedGuest(data);
                                             setShowQrScanner(false);
                                             // We keep isProcessingScan true until the modal is closed to prevent re-scans in background
@@ -460,7 +498,7 @@ const RSVPReport = () => {
                             )}
                         </div>
                         
-                        <button onClick={() => { setScanMessage(null); setShowQrScanner(false); }} className="ga-approve" style={{ background: '#ef4444', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem', marginTop: '1.5rem' }}>
+                        <button onClick={() => { window.isProcessingScan = false; setScanMessage(null); setShowQrScanner(false); }} className="ga-approve" style={{ background: '#ef4444', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem', marginTop: '1.5rem' }}>
                             Close Scanner
                         </button>
                     </div>
@@ -478,7 +516,7 @@ const RSVPReport = () => {
                         <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
                             {scannedGuest.email}<br/>
                             {scannedGuest.phone}<br/>
-                            {scannedGuest.plus_ones > 0 && <span style={{display: 'inline-block', marginTop: '0.5rem', background: '#e0e7ff', color: '#4f46e5', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '600'}}>+{scannedGuest.plus_ones} Guests</span>}
+                            {scannedGuest.guests_count > 0 && <span style={{display: 'inline-block', marginTop: '0.5rem', background: '#e0e7ff', color: '#4f46e5', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '600'}}>{scannedGuest.guests_count} {scannedGuest.guests_count === 1 ? 'Guest' : 'Guests'}</span>}
                         </p>
                         
                         {scannedGuest.checked_in ? (
@@ -769,7 +807,7 @@ const RSVPReport = () => {
                                 <span className="hbtn-icon"><i className="fas fa-file-excel"></i></span>
                                 <span className="hbtn-lbl">Export</span>
                             </button>
-                            <button className="hbtn" onClick={() => setShowQrScanner(true)}>
+                            <button className="hbtn" onClick={() => { window.isProcessingScan = false; setScanMessage(null); setShowQrScanner(true); }}>
                                 <span className="hbtn-icon"><i className="fas fa-qrcode"></i></span>
                                 <span className="hbtn-lbl">Scan Pass</span>
                             </button>

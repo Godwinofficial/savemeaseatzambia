@@ -58,6 +58,7 @@ const TemplatePreviewWrapper = ({ children, slug }) => {
 
           setWeddingData({
             id: dbData.id,
+            slug: dbData.slug,
             couple: {
               bride: { name: dbData.bride_name, image: dbData.bride_image, description: dbData.bride_description },
               groom: { name: dbData.groom_name, image: dbData.groom_image, description: dbData.groom_description }

@@ -120,6 +120,22 @@ const BotanicalOlive = ({ weddingData }) => {
     }
   };
 
+  const getQrValue = () => {
+    if (!rsvpId) return '';
+    try {
+      return JSON.stringify({
+        id: rsvpId,
+        name: rsvpForm.name,
+        email: rsvpForm.email,
+        phone: rsvpForm.phone,
+        guests_count: parseInt(rsvpForm.guests, 10) || 1,
+        wedding_id: d.id
+      });
+    } catch (e) {
+      return rsvpId;
+    }
+  };
+
   const paletteColors = d.dress_code_colors || defaultData.dress_code_colors;
   const heroImg = sliderImages[0];
   const img2 = sliderImages[1] || heroImg;
@@ -870,7 +886,12 @@ const BotanicalOlive = ({ weddingData }) => {
                   
                   {rsvpId && (
                     <div style={{ background: '#FFF', padding: '15px', display: 'inline-block', borderRadius: '10px', marginTop: '25px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-                      <QRCodeCanvas id="qr-canvas" value={rsvpId} size={256} level="M" />
+                      <QRCodeCanvas 
+                        id="qr-canvas" 
+                        value={getQrValue()} 
+                        size={256} 
+                        level="L" 
+                      />
                       <p style={{ color: '#2C361A', fontSize: '0.75rem', marginTop: '10px', fontWeight: 'bold' }}>Entrance Pass</p>
                       <button 
                         onClick={() => {
