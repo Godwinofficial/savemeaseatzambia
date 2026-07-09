@@ -469,7 +469,7 @@ const BirthdayReport = () => {
                         </div>
 
                         <div className="sec-hdr">
-                            <span className="sec-title">Guest Activities</span>
+                            <span className="sec-title">Activities</span>
                             <div className="sec-tabs">
                                 <button
                                     className={`sec-tab ${activeTab === 'approved' ? 'sec-tab-on' : ''}`}

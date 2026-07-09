@@ -111,6 +111,7 @@ const RSVPReport = () => {
     const [showQrScanner, setShowQrScanner] = useState(false);
     const [scannedGuest, setScannedGuest] = useState(null);
     const [scanMessage, setScanMessage] = useState(null);
+    const weddingUrl = wedding?.slug ? `${window.location.origin}/w/${wedding.slug}` : '';
 
     const parseVendorPortfolio = (portfolio) => {
         if (!portfolio) return [];
@@ -894,15 +895,21 @@ const RSVPReport = () => {
 
                         {/* 3 Action Buttons */}
                         <div className="hero-btns">
+                            {weddingUrl && (
+                                <a
+                                    href={weddingUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hbtn"
+                                    style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                    <span className="hbtn-icon"><i className="fas fa-external-link-alt"></i></span>
+                                    <span className="hbtn-lbl">Visit Page</span>
+                                </a>
+                            )}
                             <button className="hbtn" onClick={() => setShowReminderModal(true)}>
                                 <span className="hbtn-icon"><i className="fas fa-clock"></i></span>
                                 <span className="hbtn-lbl">Schedule</span>
-                            </button>
-                            <button className="hbtn" onClick={handleSendRemindersNow} disabled={sendingReminders}>
-                                <span className="hbtn-icon">
-                                    <i className={`fas fa-${sendingReminders ? 'spinner fa-spin' : 'bell'}`}></i>
-                                </span>
-                                <span className="hbtn-lbl">Reminders</span>
                             </button>
                             <button className="hbtn hbtn-lime" onClick={downloadExcel}>
                                 <span className="hbtn-icon"><i className="fas fa-file-excel"></i></span>
@@ -958,7 +965,7 @@ const RSVPReport = () => {
 
                         {/* Section header */}
                         <div className="sec-hdr">
-                            <span className="sec-title">Guest Activities</span>
+                            <span className="sec-title"> Activities</span>
                             <div className="sec-tabs">
                                 <button
                                     className={`sec-tab ${activeTab === 'approved' ? 'sec-tab-on' : ''}`}
@@ -1174,9 +1181,6 @@ const RSVPReport = () => {
                         <i className="fas fa-users"></i>
                         <span>Guests</span>
                         {pendingGuests.length > 0 && <span className="bn-badge">{pendingGuests.length}</span>}
-                    </button>
-                    <button className="bn-center" onClick={downloadExcel}>
-                        <i className="fas fa-file-excel"></i>
                     </button>
                     <button className="bn-item" onClick={handleSendRemindersNow} disabled={sendingReminders}>
                         <i className={`fas fa-${sendingReminders ? 'spinner fa-spin' : 'bell'}`}></i>
