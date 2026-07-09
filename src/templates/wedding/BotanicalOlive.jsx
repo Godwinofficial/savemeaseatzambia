@@ -889,10 +889,7 @@ const BotanicalOlive = ({ weddingData }) => {
                       <option value="" disabled>Number of Guests</option>
                       <option value="1">1 Guest</option>
                       <option value="2">2 Guests</option>
-                      <option value="3">3 Guests</option>
-                      <option value="4">4 Guests</option>
                     </select>
-                    
                     <div className="bo-radio-wrap">
                       <label className="bo-radio">
                         <input type="radio" name="attending" value="yes" checked={rsvpForm.attending === 'yes'}
