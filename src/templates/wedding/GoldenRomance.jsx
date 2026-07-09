@@ -1,8 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../supabaseClient';
-import { QRCodeCanvas } from 'qrcode.react';
-import html2canvas from 'html2canvas';
-import logoImg from '../../assets/images/logo1.png';
 
 const GoldenRomance = ({ weddingData }) => {
   const defaultData = {
@@ -55,8 +51,6 @@ const GoldenRomance = ({ weddingData }) => {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [rsvpForm, setRsvpForm] = useState({ name: '', phone: '', email: '', guests: '1', attending: 'yes' });
   const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
-  const [rsvpSubmitting, setRsvpSubmitting] = useState(false);
-  const [rsvpId, setRsvpId] = useState(null);
   const [tabAnimating, setTabAnimating] = useState(false);
 
   // Background Slider
@@ -104,77 +98,15 @@ const GoldenRomance = ({ weddingData }) => {
     }, 400); // Wait for fade out
   };
 
-  const handleRsvpSubmit = async (e) => {
+  const handleRsvpSubmit = (e) => {
     e.preventDefault();
-    setRsvpSubmitting(true);
-    try {
-      if (d.id) {
-        const { data, error } = await supabase.from('rsvps').insert([{
-          wedding_id: d.id,
-          name: rsvpForm.name,
-          email: rsvpForm.email,
-          phone: rsvpForm.phone,
-          attending: rsvpForm.attending,
-          guests_count: parseInt(rsvpForm.guests, 10) || 1
-        }]).select('id').single();
-        if (!error && data) setRsvpId(data.id);
-      } else {
-        // Preview / template demo mode
-        alert('This is a preview. RSVP cannot be submitted here.');
-        setRsvpSubmitting(false);
-        return;
-      }
-      setRsvpSubmitted(true);
-    } catch (err) {
-      console.error('Error submitting RSVP:', err);
-      alert('There was an error saving your RSVP. Please try again.');
-    } finally {
-      setRsvpSubmitting(false);
-    }
+    setRsvpSubmitted(true);
+    const text = `Wedding RSVP\n\nName: ${rsvpForm.name}\nEmail: ${rsvpForm.email}\nPhone: ${rsvpForm.phone}\nAttending: ${rsvpForm.attending}\nGuests: ${rsvpForm.guests}`;
+    const encoded = encodeURIComponent(text);
+    setTimeout(() => {
+      window.open(`https://wa.me/260973848066?text=${encoded}`, '_blank');
+    }, 1200);
   };
-
-  const getQrValue = () => {
-    if (!rsvpId) return '';
-    try {
-      return JSON.stringify({
-        id: rsvpId,
-        name: rsvpForm.name,
-        email: rsvpForm.email,
-        phone: rsvpForm.phone,
-        guests_count: parseInt(rsvpForm.guests, 10) || 1,
-        wedding_id: d.id
-      });
-    } catch (err) {
-      return rsvpId;
-    }
-  };
-
-  const downloadPassCard = () => {
-    const cardElement = document.getElementById('gh-pass-card-container');
-    if (cardElement) {
-      html2canvas(cardElement, {
-        useCORS: true,
-        scale: 2,
-        backgroundColor: '#FFFFFF',
-        logging: false
-      }).then(canvas => {
-        const url = canvas.toDataURL('image/png');
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `wedding-pass-${rsvpForm.name.toLowerCase().replace(/\s+/g, '-') || 'entrance'}.png`;
-        a.click();
-      }).catch(err => {
-        console.error('Error generating pass image:', err);
-      });
-    }
-  };
-
-  useEffect(() => {
-    if (rsvpId) {
-      const timer = setTimeout(() => { downloadPassCard(); }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [rsvpId]);
 
   return (
     <>
@@ -749,105 +681,12 @@ const GoldenRomance = ({ weddingData }) => {
                         </label>
                       </div>
 
-                      <button type="submit" className="gh-submit" disabled={rsvpSubmitting}>{rsvpSubmitting ? 'Sending...' : 'Confirm'}</button>
+                      <button type="submit" className="gh-submit">Confirm</button>
                     </form>
                   ) : (
-                    <div style={{ padding: '20px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <i className="fa-solid fa-envelope-circle-check" style={{ fontSize: '3rem', color: champagneGold, marginBottom: '15px' }}></i>
-                      <h3 style={{ fontFamily: 'Playfair Display', fontSize: '1.8rem', marginBottom: '8px' }}>Thank You</h3>
-                      <p style={{ fontSize: '0.9rem', opacity: 0.7, marginBottom: '20px' }}>Your RSVP has been beautifully received.</p>
-
-                      {rsvpId && (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                          <div
-                            id="gh-pass-card-container"
-                            style={{
-                              background: '#FFF',
-                              padding: '28px 20px',
-                              borderRadius: '16px',
-                              marginTop: '10px',
-                              boxShadow: '0 15px 35px rgba(0,0,0,0.12)',
-                              border: '1px solid rgba(212,175,55,0.2)',
-                              maxWidth: '300px',
-                              width: '100%',
-                              textAlign: 'center',
-                              boxSizing: 'border-box',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center'
-                            }}
-                          >
-                            {/* Card Header */}
-                            <div style={{ borderBottom: '1px solid rgba(212,175,55,0.15)', width: '100%', paddingBottom: '14px', marginBottom: '18px' }}>
-                              <h4 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.7rem', color: darkCharcoal, margin: '0', fontWeight: 'normal', letterSpacing: '1px' }}>
-                                {brideFirst} &amp; {groomFirst}
-                              </h4>
-                              <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '2px', color: champagneGold, margin: '5px 0 0 0' }}>
-                                Wedding Entrance Pass
-                              </p>
-                            </div>
-
-                            {/* QR Code */}
-                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px' }}>
-                              <QRCodeCanvas
-                                id="gh-qr-canvas"
-                                value={getQrValue()}
-                                size={170}
-                                level="L"
-                                bgColor="#FFFFFF"
-                                fgColor={darkCharcoal}
-                              />
-                            </div>
-
-                            {/* Guest Details */}
-                            <div style={{ marginTop: '18px', borderTop: '1px solid rgba(212,175,55,0.15)', paddingTop: '14px', width: '100%' }}>
-                              <p style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.25rem', fontStyle: 'italic', color: darkCharcoal, margin: '0 0 4px 0' }}>
-                                {rsvpForm.name}
-                              </p>
-                              <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '1px', color: champagneGold, margin: '0 0 10px 0' }}>
-                                {parseInt(rsvpForm.guests, 10) > 1 ? `Admit ${rsvpForm.guests} Guests` : 'Admit 1 Guest'}
-                              </p>
-                              <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.68rem', color: '#888', margin: '0 0 3px 0' }}>
-                                {d.date ? new Date(d.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ''}
-                              </p>
-                              <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.68rem', color: '#888', margin: '0' }}>
-                                {d.venue?.name || d.location || 'Wedding Venue'}
-                              </p>
-                            </div>
-
-                            {/* Card Footer */}
-                            <div style={{ borderTop: '1px solid rgba(212,175,55,0.15)', width: '100%', paddingTop: '10px', marginTop: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <img src={logoImg} alt="SaveMeASeat Logo" style={{ height: '12px', objectFit: 'contain' }} />
-                                <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.5rem', fontWeight: 'bold', color: champagneGold }}>SaveMeASeat</span>
-                              </div>
-                              <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.5rem', color: champagneGold, letterSpacing: '0.5px' }}>savemeaseatzambia.com</span>
-                            </div>
-                          </div>
-
-                          <button
-                            onClick={downloadPassCard}
-                            style={{
-                              marginTop: '18px',
-                              background: champagneGold,
-                              color: '#FFF',
-                              border: 'none',
-                              padding: '10px 24px',
-                              borderRadius: '30px',
-                              cursor: 'pointer',
-                              fontSize: '0.85rem',
-                              fontWeight: 'bold',
-                              boxShadow: '0 4px 15px rgba(212,175,55,0.4)',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              transition: 'all 0.2s'
-                            }}
-                          >
-                            <i className="fas fa-download"></i> Save Pass
-                          </button>
-                        </div>
-                      )}
+                    <div style={{ padding: '40px 0' }}>
+                      <i className="fa-solid fa-envelope-circle-check" style={{ fontSize: '3rem', color: champagneGold, marginBottom: '20px' }}></i>
+                      <h3 style={{ fontFamily: 'Playfair Display', fontSize: '1.8rem' }}>Thank You</h3>
                     </div>
                   )}
                 </div>

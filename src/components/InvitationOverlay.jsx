@@ -128,7 +128,7 @@ const InvitationOverlay = ({ weddingData, onEnter, onStartClose }) => {
         {/* Bottom: Couple names & Wedding date */}
         <div className="overlay-bottom-section" style={bottomSectionStyle}>
           <h1 className="overlay-couple-names" style={coupleNamesStyle}>
-            {groomName} & {brideName}
+             {brideName} & {groomName}
           </h1>
           <p className="overlay-wedding-date" style={weddingDateStyle}>
             {weddingDate}

@@ -1025,7 +1025,7 @@ const BotanicalOlive = ({ weddingData }) => {
 
           {/* FOOTER */}
           <div className="bo-footer">
-            <div className="bo-footer-names">{groomFirst} & {brideFirst}</div>
+            <div className="bo-footer-names"> {brideFirst} & {groomFirst} </div>
             <div className="bo-footer-date">
               {String(dayNum).padStart(2,'0')} . {String(monthNum+1).padStart(2,'0')} . {year}
             </div>
