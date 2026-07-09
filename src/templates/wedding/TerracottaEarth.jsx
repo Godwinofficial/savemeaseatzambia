@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../../supabaseClient';
+import { QRCodeCanvas } from 'qrcode.react';
+import html2canvas from 'html2canvas';
+import logoImg from '../../assets/images/logo1.png';
 
 const TerracottaEarth = ({ weddingData }) => {
   const defaultData = {
@@ -54,6 +58,8 @@ const TerracottaEarth = ({ weddingData }) => {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [rsvpForm, setRsvpForm] = useState({ name: '', phone: '', email: '', guests: '1', attending: 'yes', message: '' });
   const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
+  const [rsvpSubmitting, setRsvpSubmitting] = useState(false);
+  const [rsvpId, setRsvpId] = useState(null);
   const [galleryIndex, setGalleryIndex] = useState(0);
 
   // Countdown
@@ -123,15 +129,75 @@ const TerracottaEarth = ({ weddingData }) => {
 
   const calendarCells = generateCalendar();
 
-  const handleRsvpSubmit = (e) => {
+  const handleRsvpSubmit = async (e) => {
     e.preventDefault();
-    setRsvpSubmitted(true);
-    const text = `Wedding RSVP\n\nFull Name: ${rsvpForm.name}\nEmail: ${rsvpForm.email}\nPhone: ${rsvpForm.phone}\nAttending: ${rsvpForm.attending === 'yes' ? 'Yes' : 'No'}\nGuests: ${rsvpForm.guests}\nMessage: ${rsvpForm.message || 'None'}`;
-    const encoded = encodeURIComponent(text);
-    setTimeout(() => {
-      window.open(`https://wa.me/260973848066?text=${encoded}`, '_blank');
-    }, 1200);
+    if (!d.id) {
+      alert('This is a preview. RSVP cannot be submitted here.');
+      return;
+    }
+    setRsvpSubmitting(true);
+    try {
+      const { data, error } = await supabase.from('rsvps').insert([{
+        wedding_id: d.id,
+        name: rsvpForm.name,
+        email: rsvpForm.email,
+        phone: rsvpForm.phone,
+        attending: rsvpForm.attending,
+        guests_count: parseInt(rsvpForm.guests, 10) || 1
+      }]).select('id').single();
+      if (error) throw error;
+      setRsvpId(data.id);
+      setRsvpSubmitted(true);
+    } catch (err) {
+      console.error('Error submitting RSVP:', err);
+      alert('There was an error saving your RSVP. Please try again.');
+    } finally {
+      setRsvpSubmitting(false);
+    }
   };
+
+  const getQrValue = () => {
+    if (!rsvpId) return '';
+    try {
+      return JSON.stringify({
+        id: rsvpId,
+        name: rsvpForm.name,
+        email: rsvpForm.email,
+        phone: rsvpForm.phone,
+        guests_count: parseInt(rsvpForm.guests, 10) || 1,
+        wedding_id: d.id
+      });
+    } catch (err) {
+      return rsvpId;
+    }
+  };
+
+  const downloadPassCard = () => {
+    const cardElement = document.getElementById('te2-pass-card-container');
+    if (cardElement) {
+      html2canvas(cardElement, {
+        useCORS: true,
+        scale: 2,
+        backgroundColor: '#FFFFFF',
+        logging: false
+      }).then(canvas => {
+        const url = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `wedding-pass-${rsvpForm.name.toLowerCase().replace(/\s+/g, '-') || 'entrance'}.png`;
+        a.click();
+      }).catch(err => {
+        console.error('Error generating pass image:', err);
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (rsvpId) {
+      const timer = setTimeout(() => { downloadPassCard(); }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [rsvpId]);
 
   const paletteColors = d.dress_code_colors || ['#2C2421', '#887064', '#C16E5A', '#E2D1C3', '#FAF7F2'];
   const heroImage = sliderImages[0];
@@ -927,13 +993,105 @@ const TerracottaEarth = ({ weddingData }) => {
                   </label>
                 </div>
 
-                <button type="submit" className="te-submit">Send Reply</button>
+                <button type="submit" className="te-submit" disabled={rsvpSubmitting}>{rsvpSubmitting ? 'Sending...' : 'Send Reply'}</button>
               </form>
             ) : (
-              <div className="te-success te-fade-in">
+              <div className="te-success te-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <i className="fa-solid fa-envelope-open-text"></i>
                 <h3 style={{ fontFamily: 'Cormorant Garamond', fontSize: '2rem' }}>Thank You</h3>
-                <p style={{ marginTop: '10px', fontSize: '0.9rem', opacity: 0.9 }}>Your RSVP has been beautifully received.</p>
+                <p style={{ marginTop: '10px', fontSize: '0.9rem', opacity: 0.9, marginBottom: '20px' }}>Your RSVP has been beautifully received.</p>
+
+                {rsvpId && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                    <div
+                      id="te2-pass-card-container"
+                      style={{
+                        background: '#FFF',
+                        padding: '28px 20px',
+                        borderRadius: '16px',
+                        marginTop: '10px',
+                        boxShadow: '0 15px 35px rgba(0,0,0,0.1)',
+                        border: '1px solid rgba(193,110,90,0.2)',
+                        maxWidth: '300px',
+                        width: '100%',
+                        textAlign: 'center',
+                        boxSizing: 'border-box',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center'
+                      }}
+                    >
+                      {/* Card Header */}
+                      <div style={{ borderBottom: '1px solid rgba(193,110,90,0.15)', width: '100%', paddingBottom: '14px', marginBottom: '18px' }}>
+                        <h4 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.7rem', color: darkEspresso, margin: '0', fontWeight: 'normal', letterSpacing: '1px' }}>
+                          {brideFirst} &amp; {groomFirst}
+                        </h4>
+                        <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '2px', color: terracotta, margin: '5px 0 0 0' }}>
+                          Wedding Entrance Pass
+                        </p>
+                      </div>
+
+                      {/* QR Code */}
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px' }}>
+                        <QRCodeCanvas
+                          id="te2-qr-canvas"
+                          value={getQrValue()}
+                          size={170}
+                          level="L"
+                          bgColor="#FFFFFF"
+                          fgColor={darkEspresso}
+                        />
+                      </div>
+
+                      {/* Guest Details */}
+                      <div style={{ marginTop: '18px', borderTop: '1px solid rgba(193,110,90,0.15)', paddingTop: '14px', width: '100%' }}>
+                        <p style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.25rem', fontStyle: 'italic', color: darkEspresso, margin: '0 0 4px 0' }}>
+                          {rsvpForm.name}
+                        </p>
+                        <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '1px', color: terracotta, margin: '0 0 10px 0' }}>
+                          {parseInt(rsvpForm.guests, 10) > 1 ? `Admit ${rsvpForm.guests} Guests` : 'Admit 1 Guest'}
+                        </p>
+                        <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.68rem', color: '#888', margin: '0 0 3px 0' }}>
+                          {d.date ? new Date(d.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+                        </p>
+                        <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.68rem', color: '#888', margin: '0' }}>
+                          {d.venue?.name || d.location || 'Wedding Venue'}
+                        </p>
+                      </div>
+
+                      {/* Card Footer */}
+                      <div style={{ borderTop: '1px solid rgba(193,110,90,0.15)', width: '100%', paddingTop: '10px', marginTop: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <img src={logoImg} alt="SaveMeASeat Logo" style={{ height: '12px', objectFit: 'contain' }} />
+                          <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.5rem', fontWeight: 'bold', color: terracotta }}>SaveMeASeat</span>
+                        </div>
+                        <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.5rem', color: terracotta, letterSpacing: '0.5px' }}>savemeaseatzambia.com</span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={downloadPassCard}
+                      style={{
+                        marginTop: '18px',
+                        background: terracotta,
+                        color: '#FFF',
+                        border: 'none',
+                        padding: '10px 24px',
+                        borderRadius: '30px',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: 'bold',
+                        boxShadow: '0 4px 15px rgba(193,110,90,0.4)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <i className="fas fa-download"></i> Save Pass
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
