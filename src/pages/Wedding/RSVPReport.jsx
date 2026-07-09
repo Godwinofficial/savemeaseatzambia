@@ -513,13 +513,23 @@ const RSVPReport = () => {
                                                 }
                                             }
 
-                                             // Check if it exists and belongs to this wedding
-                                             const { data, error } = await supabase.from('rsvps').select('*').eq('id', code).eq('wedding_id', wedding.id).single();
+                                            // Check if it exists and belongs to this wedding.
+                                            // Only query the DB when the guest ID is numeric, because local test IDs like "local-..." are not valid bigint values.
+                                            const isNumericId = /^\d+$/.test(String(code));
+                                            let data = null;
+                                            let error = null;
+                                            if (isNumericId) {
+                                               const result = await supabase.from('rsvps').select('*').eq('id', code).eq('wedding_id', wedding.id).single();
+                                               data = result.data;
+                                               error = result.error;
+                                             } else {
+                                               error = new Error('Skipping DB lookup for non-numeric pass ID');
+                                             }
                                              
                                              let guestRecord = data;
                                              let isFallback = false;
                                              if (error || !data) {
-                                                 console.error("DB lookup fail, checking embedded data:", error);
+                                                 console.error("DB lookup fail or skipped, checking embedded data:", error);
                                                  if (embeddedData && embeddedData.wedding_id === wedding.id) {
                                                      guestRecord = {
                                                          id: embeddedData.id,

@@ -112,7 +112,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
 
   const getQrValue = () => {
     try {
-      return JSON.stringify({ id: rsvpId, name: formData.name, phone: formData.phone, guests: formData.guests, wedding_id: weddingData?.id || null });
+      return JSON.stringify({ id: rsvpId, name: formData.name, email: formData.email, phone: formData.phone, guests: formData.guests, wedding_id: weddingData?.id || null });
     } catch (e) {
       return rsvpId || formData.name || '';
     }
@@ -3085,6 +3085,9 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
                 <div style={{ marginTop: '20px', borderTop: '1px solid #F0EDE9', paddingTop: '15px', width: '100%' }}>
                   <p style={{ fontFamily: 'Cormorant Garamond', fontSize: '1.3rem', fontStyle: 'italic', color: '#2C361A', margin: '0 0 4px 0' }}>
                     {formData.name}
+                  </p>
+                  <p style={{ fontFamily: 'Montserrat', fontSize: '0.75rem', color: '#555', margin: '0 0 8px 0', wordBreak: 'break-word' }}>
+                    {formData.email || 'No email provided'}
                   </p>
                   <p style={{ fontFamily: 'Montserrat', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#8A9A75', margin: '0 0 12px 0' }}>
                     {parseInt(formData.guests, 10) > 1 ? `Admit ${formData.guests} Guests` : 'Admit 1 Guest'}
