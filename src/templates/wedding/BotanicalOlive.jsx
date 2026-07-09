@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { QRCodeCanvas } from 'qrcode.react';
+import html2canvas from 'html2canvas';
+import logoImg from '../../assets/images/logo1.png';
 
 const BotanicalOlive = ({ weddingData }) => {
   const defaultData = {
@@ -135,6 +137,35 @@ const BotanicalOlive = ({ weddingData }) => {
       return rsvpId;
     }
   };
+
+  const downloadPassCard = () => {
+    const cardElement = document.getElementById('pass-card-container');
+    if (cardElement) {
+      html2canvas(cardElement, {
+        useCORS: true,
+        scale: 2,
+        backgroundColor: '#FFFFFF',
+        logging: false
+      }).then(canvas => {
+        const url = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `wedding-pass-${rsvpForm.name.toLowerCase().replace(/\s+/g, '-') || 'entrance'}.png`;
+        a.click();
+      }).catch(err => {
+        console.error("Error generating pass image:", err);
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (rsvpId) {
+      const timer = setTimeout(() => {
+        downloadPassCard();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [rsvpId]);
 
   const paletteColors = d.dress_code_colors || defaultData.dress_code_colors;
   const heroImg = sliderImages[0];
@@ -885,28 +916,108 @@ const BotanicalOlive = ({ weddingData }) => {
                   <p style={{ marginTop: '15px', fontSize: '1rem', opacity: 0.9 }}>Your RSVP has been beautifully received.</p>
                   
                   {rsvpId && (
-                    <div style={{ background: '#FFF', padding: '15px', display: 'inline-block', borderRadius: '10px', marginTop: '25px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-                      <QRCodeCanvas 
-                        id="qr-canvas" 
-                        value={getQrValue()} 
-                        size={256} 
-                        level="L" 
-                      />
-                      <p style={{ color: '#2C361A', fontSize: '0.75rem', marginTop: '10px', fontWeight: 'bold' }}>Entrance Pass</p>
-                      <button 
-                        onClick={() => {
-                          const canvas = document.getElementById('qr-canvas');
-                          if (canvas) {
-                            const url = canvas.toDataURL('image/png');
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = 'wedding-entrance-pass.png';
-                            a.click();
-                          }
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                      <div 
+                        id="pass-card-container" 
+                        style={{ 
+                          background: '#FFF', 
+                          padding: '30px 24px', 
+                          borderRadius: '16px', 
+                          marginTop: '25px', 
+                          boxShadow: '0 15px 35px rgba(0,0,0,0.08)',
+                          border: '1px solid #E6E1D6',
+                          maxWidth: '320px',
+                          width: '100%',
+                          textAlign: 'center',
+                          boxSizing: 'border-box',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center'
                         }}
-                        style={{ marginTop: '15px', background: '#D4AF37', color: '#FFF', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}
                       >
-                        <i className="fas fa-download"></i> Save Pass
+                        {/* Card Header (Wedding Theme Olive Green style) */}
+                        <div style={{ borderBottom: '1px solid #F0EDE9', width: '100%', paddingBottom: '15px', marginBottom: '20px' }}>
+                          <h4 style={{ fontFamily: 'Cormorant Garamond', fontSize: '1.8rem', color: '#2C361A', margin: '0', fontWeight: 'normal', letterSpacing: '1px' }}>
+                            {brideFirst} & {groomFirst}
+                          </h4>
+                          <p style={{ fontFamily: 'Montserrat', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '2px', color: '#8A9A75', margin: '6px 0 0 0' }}>
+                            Wedding Entrance Pass
+                          </p>
+                        </div>
+
+                        {/* QR Code Container */}
+                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px' }}>
+                          <QRCodeCanvas 
+                            id="qr-canvas" 
+                            value={getQrValue()} 
+                            size={180} 
+                            level="L" 
+                            bgColor="#FFFFFF"
+                            fgColor="#2C361A"
+                          />
+                        </div>
+
+                        {/* Card Details */}
+                        <div style={{ marginTop: '20px', borderTop: '1px solid #F0EDE9', paddingTop: '15px', width: '100%' }}>
+                          <p style={{ fontFamily: 'Cormorant Garamond', fontSize: '1.3rem', fontStyle: 'italic', color: '#2C361A', margin: '0 0 4px 0' }}>
+                            {rsvpForm.name}
+                          </p>
+                          <p style={{ fontFamily: 'Montserrat', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#8A9A75', margin: '0 0 12px 0' }}>
+                            {parseInt(rsvpForm.guests, 10) > 1 ? `Admit ${rsvpForm.guests} Guests` : 'Admit 1 Guest'}
+                          </p>
+                          <p style={{ fontFamily: 'Montserrat', fontSize: '0.7rem', color: '#666', margin: '0 0 3px 0' }}>
+                            {d.date ? new Date(d.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+                          </p>
+                          <p style={{ fontFamily: 'Montserrat', fontSize: '0.7rem', color: '#666', margin: '0' }}>
+                            {d.venue?.name || d.location || 'Wedding Venue'}
+                          </p>
+                        </div>
+
+                        {/* Card Footer (Marketing/Logo branding) */}
+                        <div style={{ 
+                          borderTop: '1px solid #F0EDE9', 
+                          width: '100%', 
+                          paddingTop: '12px', 
+                          marginTop: '20px', 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center' 
+                        }}>
+                          {/* Logo on Left */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <img src={logoImg} alt="SaveMeASeat Logo" style={{ height: '12px', objectFit: 'contain' }} />
+                            <span style={{ fontFamily: 'Montserrat', fontSize: '0.5rem', fontWeight: 'bold', color: '#8A9A75' }}>
+                              SaveMeASeat
+                            </span>
+                          </div>
+
+                          {/* URL on Right */}
+                          <span style={{ fontFamily: 'Montserrat', fontSize: '0.5rem', color: '#8A9A75', letterSpacing: '0.5px' }}>
+                            savemeaseatzambia.com
+                          </span>
+                        </div>
+                      </div>
+
+                      <button 
+                        onClick={downloadPassCard}
+                        style={{ 
+                          marginTop: '20px', 
+                          background: '#8A9A75', 
+                          color: '#FFF', 
+                          border: 'none', 
+                          padding: '10px 24px', 
+                          borderRadius: '30px', 
+                          cursor: 'pointer', 
+                          fontSize: '0.9rem', 
+                          fontWeight: 'bold', 
+                          boxShadow: '0 4px 15px rgba(138,154,117,0.3)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <i className="fas fa-download"></i> Save Pass Again
                       </button>
                     </div>
                   )}
