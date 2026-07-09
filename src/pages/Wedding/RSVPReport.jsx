@@ -94,6 +94,7 @@ const RSVPReport = () => {
     const [error, setError] = useState(null);
     const [wedding, setWedding] = useState(null);
     const [guests, setGuests] = useState([]);
+    const [checkedInGuests, setCheckedInGuests] = useState([]);
     const [pendingGuests, setPendingGuests] = useState([]);
     const [activeTab, setActiveTab] = useState('approved');
     const [editingId, setEditingId] = useState(null);
@@ -167,7 +168,8 @@ const RSVPReport = () => {
             if (rsvpError) throw new Error("Error fetching RSVPs");
 
             const allGuests = rsvps || [];
-            setGuests(allGuests.filter(g => g.status === 'approved' || !g.status));
+            setGuests(allGuests.filter(g => (g.status === 'approved' || !g.status) && !g.checked_in));
+            setCheckedInGuests(allGuests.filter(g => g.checked_in));
             setPendingGuests(allGuests.filter(g => g.status === 'pending'));
 
 
@@ -282,6 +284,25 @@ const RSVPReport = () => {
         } finally { setProcessingAction(null); }
     };
 
+    const handleUndoCheckIn = async (guest) => {
+        if (!window.confirm(`Undo check-in for "${guest.name}"?`)) return;
+        setProcessingAction(`${guest.id}-undocheckin`);
+        try {
+            const { error } = await supabase
+                .from('rsvps')
+                .update({ checked_in: false, checked_in_at: null })
+                .eq('id', guest.id);
+            if (error) throw error;
+            await fetchReportData(true);
+            setSuccessMessage(`↩️ Undid check-in for ${guest.name}.`);
+            setTimeout(() => setSuccessMessage(null), 3000);
+        } catch (error) {
+            alert('Error undoing check-in: ' + error.message);
+        } finally {
+            setProcessingAction(null);
+        }
+    };
+
     const startEdit = (guest) => {
         setEditingId(guest.id);
         setEditForm({ name: guest.name, email: guest.email, phone: guest.phone, attending: guest.attending, guests_count: guest.guests_count });
@@ -357,12 +378,17 @@ const RSVPReport = () => {
     const filteredGuests = guests.filter(g =>
         !q || g.name?.toLowerCase().includes(q) || g.email?.toLowerCase().includes(q) || g.phone?.toLowerCase().includes(q)
     );
+    const filteredCheckedIn = checkedInGuests.filter(g =>
+        !q || g.name?.toLowerCase().includes(q) || g.email?.toLowerCase().includes(q) || g.phone?.toLowerCase().includes(q)
+    );
     const filteredPending = pendingGuests.filter(g =>
         !q || g.name?.toLowerCase().includes(q) || g.email?.toLowerCase().includes(q)
     );
-    const attendingCount = guests.filter(g => g.attending?.toLowerCase() === 'yes' || g.attending?.toLowerCase() === 'attending').length;
-    const declinedCount = guests.filter(g => g.attending?.toLowerCase() === 'no' || g.attending?.toLowerCase() === 'declined').length;
-    const totalSeats = guests.reduce((s, g) => s + (parseInt(g.guests_count) || 0), 0);
+    const approvedAttending = guests.filter(g => g.attending?.toLowerCase() === 'yes' || g.attending?.toLowerCase() === 'attending').length;
+    const checkedInAttending = checkedInGuests.filter(g => g.attending?.toLowerCase() === 'yes' || g.attending?.toLowerCase() === 'attending').length;
+    const attendingCount = approvedAttending + checkedInAttending;
+    const declinedCount = [...guests, ...checkedInGuests].filter(g => g.attending?.toLowerCase() === 'no' || g.attending?.toLowerCase() === 'declined').length;
+    const totalSeats = [...guests, ...checkedInGuests].reduce((s, g) => s + (parseInt(g.guests_count) || 0), 0);
 
     // ── LOADING / ERROR ──
     if (loading) return (
@@ -529,7 +555,21 @@ const RSVPReport = () => {
                                 style={{ width: '100%', padding: '1rem', background: '#10b981', color: '#fff', fontSize: '1rem', justifyContent: 'center', marginBottom: '1rem' }}
                                 onClick={async () => {
                                     try {
-                                        const { error: updateError } = await supabase.from('rsvps').update({ checked_in: true }).eq('id', scannedGuest.id);
+                                        // Try updating both checked_in and checked_in_at
+                                        let { error: updateError } = await supabase
+                                            .from('rsvps')
+                                            .update({ checked_in: true, checked_in_at: new Date().toISOString() })
+                                            .eq('id', scannedGuest.id);
+                                        
+                                        // Safe fallback if column doesn't exist yet
+                                        if (updateError && (updateError.message.includes('column') || updateError.code === '42703')) {
+                                            const { error: fallbackError } = await supabase
+                                                .from('rsvps')
+                                                .update({ checked_in: true })
+                                                .eq('id', scannedGuest.id);
+                                            updateError = fallbackError;
+                                        }
+                                        
                                         if (updateError) throw updateError;
                                         setSuccessMessage(`Checked in ${scannedGuest.name} successfully!`);
                                         setTimeout(() => setSuccessMessage(null), 3000);
@@ -866,6 +906,12 @@ const RSVPReport = () => {
                                     Approved
                                 </button>
                                 <button
+                                    className={`sec-tab ${activeTab === 'checked_in' ? 'sec-tab-on' : ''}`}
+                                    onClick={() => setActiveTab('checked_in')}
+                                >
+                                    Checked In {checkedInGuests.length > 0 && <span className="sec-badge sec-badge-green">{checkedInGuests.length}</span>}
+                                </button>
+                                <button
                                     className={`sec-tab ${activeTab === 'pending' ? 'sec-tab-on' : ''}`}
                                     onClick={() => setActiveTab('pending')}
                                 >
@@ -877,103 +923,147 @@ const RSVPReport = () => {
                         {/* ─── GUEST ROWS ─── */}
                         <div className="guest-list">
                             {activeTab === 'pending' ? (
-                                filteredPending.length === 0 ? (
-                                    <div className="list-empty">
-                                        <i className="fas fa-check-circle"></i>
-                                        <p>{searchQuery ? 'No matches found' : 'No pending requests'}</p>
+                            filteredPending.length === 0 ? (
+                                <div className="list-empty">
+                                    <i className="fas fa-check-circle"></i>
+                                    <p>{searchQuery ? 'No matches found' : 'No pending requests'}</p>
+                                </div>
+                            ) : filteredPending.map(guest => (
+                                <div key={guest.id} className="g-row">
+                                    <div className="g-avatar" style={{ background: getAvatarColor(guest.name) }}>
+                                        {getInitials(guest.name)}
                                     </div>
-                                ) : filteredPending.map(guest => (
-                                    <div key={guest.id} className="g-row">
-                                        <div className="g-avatar" style={{ background: getAvatarColor(guest.name) }}>
-                                            {getInitials(guest.name)}
+                                    <div className="g-info">
+                                        <span className="g-name">{guest.name}</span>
+                                        <span className="g-sub">{guest.email}</span>
+                                    </div>
+                                    <div className="g-right">
+                                        <span className={`g-status ${guest.attending?.toLowerCase() === 'yes' ? 'gs-yes' : 'gs-no'}`}>
+                                            {guest.attending}
+                                        </span>
+                                        <div className="g-acts">
+                                            <button className="ga-approve" onClick={() => handleApprove(guest)} disabled={!!processingAction}>
+                                                {processingAction === `${guest.id}-approve`
+                                                    ? <i className="fas fa-spinner fa-spin"></i>
+                                                    : <><i className="fas fa-check"></i> Approve</>}
+                                            </button>
+                                            <button className="ga-del" onClick={() => handleDelete(guest.id, guest.name, true)} disabled={!!processingAction}>
+                                                {processingAction === `${guest.id}-delete`
+                                                    ? <i className="fas fa-spinner fa-spin"></i>
+                                                    : <i className="fas fa-times"></i>}
+                                            </button>
                                         </div>
-                                        <div className="g-info">
-                                            <span className="g-name">{guest.name}</span>
-                                            <span className="g-sub">{guest.email}</span>
-                                        </div>
-                                        <div className="g-right">
-                                            <span className={`g-status ${guest.attending?.toLowerCase() === 'yes' ? 'gs-yes' : 'gs-no'}`}>
-                                                {guest.attending}
+                                    </div>
+                                </div>
+                            ))
+                        ) : activeTab === 'checked_in' ? (
+                            filteredCheckedIn.length === 0 ? (
+                                <div className="list-empty">
+                                    <i className="fas fa-qrcode"></i>
+                                    <p>{searchQuery ? 'No matches found' : 'No checked-in guests yet'}</p>
+                                </div>
+                            ) : filteredCheckedIn.map(guest => (
+                                <div key={guest.id} className="g-row">
+                                    <div className="g-avatar" style={{ background: getAvatarColor(guest.name) }}>
+                                        {getInitials(guest.name)}
+                                    </div>
+                                    <div className="g-info">
+                                        <span className="g-name">{guest.name}</span>
+                                        <span className="g-sub">{guest.email || guest.phone}</span>
+                                    </div>
+                                    <div className="g-right">
+                                        <span className="g-count gc-green">
+                                            +{guest.guests_count || 0}
+                                        </span>
+                                        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                            <span className="g-pct gp-green" style={{ margin: 0 }}>
+                                                <i className="fas fa-check-circle"></i> Checked In
                                             </span>
-                                            <div className="g-acts">
-                                                <button className="ga-approve" onClick={() => handleApprove(guest)} disabled={!!processingAction}>
-                                                    {processingAction === `${guest.id}-approve`
-                                                        ? <i className="fas fa-spinner fa-spin"></i>
-                                                        : <><i className="fas fa-check"></i> Approve</>}
-                                                </button>
-                                                <button className="ga-del" onClick={() => handleDelete(guest.id, guest.name, true)} disabled={!!processingAction}>
-                                                    {processingAction === `${guest.id}-delete`
-                                                        ? <i className="fas fa-spinner fa-spin"></i>
-                                                        : <i className="fas fa-times"></i>}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                filteredGuests.length === 0 ? (
-                                    <div className="list-empty">
-                                        <i className="fas fa-users"></i>
-                                        <p>{searchQuery ? 'No matches found' : 'No approved guests yet'}</p>
-                                    </div>
-                                ) : filteredGuests.map(guest => {
-                                    const isAttending = guest.attending?.toLowerCase() === 'yes' || guest.attending?.toLowerCase() === 'attending';
-                                    return (
-                                        <div key={guest.id} className={`g-row ${editingId === guest.id ? 'g-row-edit' : ''}`}>
-                                            {editingId === guest.id ? (
-                                                <div className="edit-form">
-                                                    <input className="ef-inp" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="Name" />
-                                                    <input className="ef-inp" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} placeholder="Email" type="email" />
-                                                    <input className="ef-inp" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} placeholder="Phone" />
-                                                    <select className="ef-inp" value={editForm.attending} onChange={e => setEditForm({ ...editForm, attending: e.target.value })}>
-                                                        <option value="Yes">Yes — Attending</option>
-                                                        <option value="No">No — Declined</option>
-                                                    </select>
-                                                    <input className="ef-inp" value={editForm.guests_count} onChange={e => setEditForm({ ...editForm, guests_count: e.target.value })} placeholder="# Guests" type="number" min="1" />
-                                                    <div className="ef-btns">
-                                                        <button className="ga-approve" onClick={() => saveEdit(guest.id)}><i className="fas fa-check"></i> Save</button>
-                                                        <button className="ga-del" onClick={cancelEdit}><i className="fas fa-times"></i></button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <div className="g-avatar" style={{ background: getAvatarColor(guest.name) }}>
-                                                        {getInitials(guest.name)}
-                                                    </div>
-                                                    <div className="g-info">
-                                                        <span className="g-name">{guest.name}</span>
-                                                        <span className="g-sub">{guest.email || guest.phone}</span>
-                                                    </div>
-                                                    <div className="g-right">
-                                                        <span className={`g-count ${isAttending ? 'gc-green' : 'gc-red'}`}>
-                                                            +{guest.guests_count || 0}
-                                                        </span>
-                                                        <span className={`g-pct ${isAttending ? 'gp-green' : 'gp-red'}`}>
-                                                            <i className={`fas fa-${isAttending ? 'check' : 'times'}`}></i>
-                                                            &nbsp;{isAttending ? 'Attending' : 'Declined'}
-                                                        </span>
-                                                        <div className="g-acts">
-                                                            <button className="ga-ico" onClick={() => startEdit(guest)} title="Edit">
-                                                                <i className="fas fa-edit"></i>
-                                                            </button>
-                                                            <button className="ga-ico ga-amber" onClick={() => handleMoveToPending(guest)} disabled={!!processingAction} title="Move to Pending">
-                                                                {processingAction === `${guest.id}-pending`
-                                                                    ? <i className="fas fa-spinner fa-spin"></i>
-                                                                    : <i className="fas fa-undo"></i>}
-                                                            </button>
-                                                            <button className="ga-ico ga-red" onClick={() => handleDelete(guest.id, guest.name, false)} disabled={!!processingAction} title="Delete">
-                                                                {processingAction === `${guest.id}-delete`
-                                                                    ? <i className="fas fa-spinner fa-spin"></i>
-                                                                    : <i className="fas fa-trash"></i>}
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </>
+                                            {guest.checked_in_at && (
+                                                <span style={{ fontSize: '0.62rem', color: '#6b7280' }}>
+                                                    {new Date(guest.checked_in_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                                </span>
                                             )}
                                         </div>
-                                    );
-                                })
-                            )}
+                                        <div className="g-acts">
+                                            <button className="ga-ico ga-amber" onClick={() => handleUndoCheckIn(guest)} disabled={!!processingAction} title="Undo Check-In">
+                                                {processingAction === `${guest.id}-undocheckin`
+                                                    ? <i className="fas fa-spinner fa-spin"></i>
+                                                    : <i className="fas fa-undo"></i>}
+                                            </button>
+                                            <button className="ga-ico ga-red" onClick={() => handleDelete(guest.id, guest.name, false)} disabled={!!processingAction} title="Delete">
+                                                {processingAction === `${guest.id}-delete`
+                                                    ? <i className="fas fa-spinner fa-spin"></i>
+                                                    : <i className="fas fa-trash"></i>}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            filteredGuests.length === 0 ? (
+                                <div className="list-empty">
+                                    <i className="fas fa-users"></i>
+                                    <p>{searchQuery ? 'No matches found' : 'No approved guests yet'}</p>
+                                </div>
+                            ) : filteredGuests.map(guest => {
+                                const isAttending = guest.attending?.toLowerCase() === 'yes' || guest.attending?.toLowerCase() === 'attending';
+                                return (
+                                    <div key={guest.id} className={`g-row ${editingId === guest.id ? 'g-row-edit' : ''}`}>
+                                        {editingId === guest.id ? (
+                                            <div className="edit-form">
+                                                <input className="ef-inp" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="Name" />
+                                                <input className="ef-inp" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} placeholder="Email" type="email" />
+                                                <input className="ef-inp" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} placeholder="Phone" />
+                                                <select className="ef-inp" value={editForm.attending} onChange={e => setEditForm({ ...editForm, attending: e.target.value })}>
+                                                    <option value="Yes">Yes — Attending</option>
+                                                    <option value="No">No — Declined</option>
+                                                </select>
+                                                <input className="ef-inp" value={editForm.guests_count} onChange={e => setEditForm({ ...editForm, guests_count: e.target.value })} placeholder="# Guests" type="number" min="1" />
+                                                <div className="ef-btns">
+                                                    <button className="ga-approve" onClick={() => saveEdit(guest.id)}><i className="fas fa-check"></i> Save</button>
+                                                    <button className="ga-del" onClick={cancelEdit}><i className="fas fa-times"></i></button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="g-avatar" style={{ background: getAvatarColor(guest.name) }}>
+                                                    {getInitials(guest.name)}
+                                                </div>
+                                                <div className="g-info">
+                                                    <span className="g-name">{guest.name}</span>
+                                                    <span className="g-sub">{guest.email || guest.phone}</span>
+                                                </div>
+                                                <div className="g-right">
+                                                    <span className={`g-count ${isAttending ? 'gc-green' : 'gc-red'}`}>
+                                                        +{guest.guests_count || 0}
+                                                    </span>
+                                                    <span className={`g-pct ${isAttending ? 'gp-green' : 'gp-red'}`}>
+                                                        <i className={`fas fa-${isAttending ? 'check' : 'times'}`}></i>
+                                                        &nbsp;{isAttending ? 'Attending' : 'Declined'}
+                                                    </span>
+                                                    <div className="g-acts">
+                                                        <button className="ga-ico" onClick={() => startEdit(guest)} title="Edit">
+                                                            <i className="fas fa-edit"></i>
+                                                        </button>
+                                                        <button className="ga-ico ga-amber" onClick={() => handleMoveToPending(guest)} disabled={!!processingAction} title="Move to Pending">
+                                                            {processingAction === `${guest.id}-pending`
+                                                                ? <i className="fas fa-spinner fa-spin"></i>
+                                                                : <i className="fas fa-undo"></i>}
+                                                        </button>
+                                                        <button className="ga-ico ga-red" onClick={() => handleDelete(guest.id, guest.name, false)} disabled={!!processingAction} title="Delete">
+                                                            {processingAction === `${guest.id}-delete`
+                                                                ? <i className="fas fa-spinner fa-spin"></i>
+                                                                : <i className="fas fa-trash"></i>}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                );
+                            })
+                        )}
                         </div>
 
                         {/* ─── VENDORS ─── */}
@@ -1243,6 +1333,10 @@ const RSVPReport = () => {
                 .sec-tab:hover:not(.sec-tab-on) { background:rgba(255,255,255,.6); color:#374151; }
                 .sec-badge {
                     background:#ef4444; color:#fff;
+                    border-radius:999px; font-size:.58rem; padding:.05rem .35rem; font-weight:700;
+                }
+                .sec-badge-green {
+                    background:#10b981; color:#fff;
                     border-radius:999px; font-size:.58rem; padding:.05rem .35rem; font-weight:700;
                 }
 
