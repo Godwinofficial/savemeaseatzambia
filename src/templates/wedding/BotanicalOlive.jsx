@@ -785,27 +785,50 @@ const BotanicalOlive = ({ weddingData }) => {
               
               {(() => {
                 const events = [];
-                if (d.ceremony?.time) events.push({ name: 'Marriage Blessing', time: d.ceremony.time });
-                if (d.reception?.time) events.push({ name: 'Reception', time: d.reception.time });
+                if (d.ceremony?.time) {
+                  events.push({
+                    name: 'Marriage Blessing',
+                    time: d.ceremony.time,
+                    location: d.ceremony?.venue || d.ceremony?.address || d.venue?.name || d.location
+                  });
+                }
+                if (d.reception?.time) {
+                  events.push({
+                    name: 'Reception',
+                    time: d.reception.time,
+                    location: d.reception?.venue || d.reception?.address || d.venue?.name || d.location
+                  });
+                }
                 if (d.otherEvents && d.otherEvents.length > 0) events.push(...d.otherEvents);
                 
                 // Fallback if no events at all
                 if (events.length === 0) {
-                  events.push({ name: 'Welcome', time: '3:30 PM' });
-                  events.push({ name: 'Marriage Blessing', time: '4:00 PM' });
-                  events.push({ name: 'Cocktails', time: '5:00 PM' });
-                  events.push({ name: 'Reception', time: '6:30 PM' });
+                  events.push({ name: 'Welcome', time: '3:30 PM', location: 'Garden Terrace' });
+                  events.push({ name: 'Marriage Blessing', time: '4:00 PM', location: 'Ceremony Hall' });
+                  events.push({ name: 'Cocktails', time: '5:00 PM', location: 'Garden Terrace' });
+                  events.push({ name: 'Reception', time: '6:30 PM', location: 'Restaurant Maison La Prairie' });
                 }
 
-                return events.map((event, idx) => (
-                  <div className="bo-timeline-item" key={idx}>
-                    <div className="bo-timeline-dot"></div>
-                    <div className="bo-timeline-card bo-fade-up">
-                      <div className="bo-time">{event.time}</div>
-                      <div className="bo-event">{event.name}</div>
+                return events.map((event, idx) => {
+                  const locationText = event.location || event.venue || event.address || '';
+                  return (
+                    <div className="bo-timeline-item" key={idx}>
+                      <div className="bo-timeline-dot"></div>
+                      <div className="bo-timeline-card bo-fade-up">
+                        <div className="bo-time">{event.time}</div>
+                        <div className="bo-event">{event.name}</div>
+                        {locationText && (
+                          <div style={{ marginTop: '6px' }}>
+                            <div style={{ width: '36px', height: '1px', background: `${sage}55`, marginBottom: '4px' }} />
+                            <div style={{ fontSize: '0.72rem', color: sage, lineHeight: 1.4, opacity: 0.9 }}>
+                              {locationText}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ));
+                  );
+                });
               })()}
             </div>
           </div>
