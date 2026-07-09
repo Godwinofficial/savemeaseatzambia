@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-
-import AdmissionCard from '../../components/AdmissionCard';
+import { QRCodeCanvas } from 'qrcode.react';
+import html2canvas from 'html2canvas';
+import logoImg from '../../assets/images/logo1.png';
 
 
 
@@ -92,6 +93,8 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const [rsvpId, setRsvpId] = useState(null);
+
   const handleRSVPSubmit = async (e) => {
     e.preventDefault();
     if (handleRSVPSubmitFromParent) {
@@ -100,11 +103,43 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
     }
     setIsSubmitting(true);
     setTimeout(() => {
+      setRsvpId(`local-${Date.now()}`);
       setSubmittedRSVP(formData);
       setShowAdmissionCard(true);
       setIsSubmitting(false);
     }, 1500);
   };
+
+  const getQrValue = () => {
+    try {
+      return JSON.stringify({ id: rsvpId, name: formData.name, phone: formData.phone, guests: formData.guests, wedding_id: weddingData?.id || null });
+    } catch (e) {
+      return rsvpId || formData.name || '';
+    }
+  };
+
+  const downloadPassCard = async () => {
+    const el = document.getElementById('default-elegance-pass-card');
+    if (!el) return;
+    try {
+      const canvas = await html2canvas(el, { useCORS: true, scale: 2, backgroundColor: '#ffffff' });
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      const guestPart = (formData.name || rsvpId || 'guest').toLowerCase().replace(/\s+/g, '-');
+      a.href = url;
+      a.download = `wedding-pass-${guestPart}.png`;
+      a.click();
+    } catch (err) {
+      console.error('Error creating pass image', err);
+    }
+  };
+
+  useEffect(() => {
+    if (rsvpId) {
+      const t = setTimeout(downloadPassCard, 800);
+      return () => clearTimeout(t);
+    }
+  }, [rsvpId]);
 
   // Initial Mock Data (Fallback)
   // Initial Mock Data (Fallback) - Cleared to prevent static flash
@@ -3024,6 +3059,60 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
               <h3 style={{ marginBottom: '10px' }}>RSVP has Closed</h3>
               <p>The deadline to RSVP for this wedding has passed ({weddingData.rsvpDeadline ? formatDate(weddingData.rsvpDeadline) : ""}). We look forward to celebrating with you!</p>
             </div>
+          ) : showAdmissionCard && submittedRSVP ? (
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 20px', background: 'rgba(255,255,255,0.95)' }}>
+              <div id="default-elegance-pass-card" style={{ width: 320, background: '#FFF', padding: '30px 24px', borderRadius: '16px', boxShadow: '0 15px 35px rgba(0,0,0,0.08)', border: '1px solid #E6E1D6', textAlign: 'center', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ borderBottom: '1px solid #F0EDE9', width: '100%', paddingBottom: '15px', marginBottom: '20px' }}>
+                  <h4 style={{ fontFamily: 'Cormorant Garamond', fontSize: '1.8rem', color: '#2C361A', margin: '0', fontWeight: 'normal', letterSpacing: '1px' }}>
+                    {weddingData.couple.bride.name} & {weddingData.couple.groom.name}
+                  </h4>
+                  <p style={{ fontFamily: 'Montserrat', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '2px', color: '#8A9A75', margin: '6px 0 0 0' }}>
+                    Wedding Entrance Pass
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px' }}>
+                  <QRCodeCanvas
+                    id="qr-canvas"
+                    value={getQrValue()}
+                    size={180}
+                    level="L"
+                    bgColor="#FFFFFF"
+                    fgColor="#2C361A"
+                  />
+                </div>
+
+                <div style={{ marginTop: '20px', borderTop: '1px solid #F0EDE9', paddingTop: '15px', width: '100%' }}>
+                  <p style={{ fontFamily: 'Cormorant Garamond', fontSize: '1.3rem', fontStyle: 'italic', color: '#2C361A', margin: '0 0 4px 0' }}>
+                    {formData.name}
+                  </p>
+                  <p style={{ fontFamily: 'Montserrat', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#8A9A75', margin: '0 0 12px 0' }}>
+                    {parseInt(formData.guests, 10) > 1 ? `Admit ${formData.guests} Guests` : 'Admit 1 Guest'}
+                  </p>
+                  <p style={{ fontFamily: 'Montserrat', fontSize: '0.7rem', color: '#666', margin: '0 0 3px 0' }}>
+                    {formatDate(weddingData.date)} {weddingData.ceremony.time ? `at ${formatTime(weddingData.ceremony.time)}` : ''}
+                  </p>
+                  <p style={{ fontFamily: 'Montserrat', fontSize: '0.7rem', color: '#666', margin: '0' }}>
+                    {weddingData.venue.name || weddingData.location || 'Wedding Venue'}
+                  </p>
+                </div>
+
+                <div style={{ borderTop: '1px solid #F0EDE9', width: '100%', paddingTop: '12px', marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <img src={logoImg} alt="SaveMeASeat Logo" style={{ height: 18, width: 'auto', objectFit: 'contain' }} />
+                    <span style={{ fontFamily: 'Montserrat', fontSize: '0.65rem', fontWeight: 'bold', color: '#8A9A75' }}>
+                      SaveMeASeat
+                    </span>
+                  </div>
+                  <span style={{ fontFamily: 'Montserrat', fontSize: '0.55rem', color: '#8A9A75', letterSpacing: '0.5px' }}>
+                    savemeaseatzambia.com
+                  </span>
+                </div>
+              </div>
+              <button onClick={downloadPassCard} style={{ marginTop: '16px', background: '#8A9A75', color: '#FFF', border: 'none', padding: '8px 20px', borderRadius: '24px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '700', boxShadow: '0 4px 15px rgba(138,154,117,0.25)', display: 'inline-flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}>
+                <i className="fas fa-download"></i> Save Pass Again
+              </button>
+            </div>
           ) : (
             <form className="rsvp-form" onSubmit={handleRSVPSubmit}>
               <div className="form-group">
@@ -3111,87 +3200,14 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
 
       {/* Footer */}
       <footer className="elegant-footer">
-        <div className="footer-bottom" style={{ width: "100%", textAlign: "center", padding: "20px 0" }}>
+        <div className="footer-bottom" style={{ width: "100%", display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: "20px 0" }}>
+          <img src={logoImg} alt="SaveMeASeat Logo" style={{ height: 24, width: 'auto', objectFit: 'contain' }} />
           <div className="copyright" style={{ fontSize: "1rem", color: "var(--text-color)", margin: 0, padding: "10px 0", lineHeight: "1.5" }}>
             &copy; {new Date().getFullYear()} {weddingData.couple.groom.name} & {weddingData.couple.bride.name}. All rights reserved.
           </div>
         </div>
       </footer>
 
-      {/* Admission Card Modal */}
-      {showAdmissionCard && submittedRSVP && (
-        <div className="admission-modal-overlay">
-          <div className="admission-modal-content">
-            <button
-              className="close-modal-btn"
-              onClick={() => setShowAdmissionCard(false)}
-            >
-              <i className="fas fa-times"></i>
-            </button>
-            <AdmissionCard rsvp={submittedRSVP} wedding={weddingData} />
-          </div>
-        </div>
-      )}
-
-      <style>{`
-        .admission-modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: rgba(0, 0, 0, 0.8);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          z-index: 10000;
-          padding: 20px;
-          backdrop-filter: blur(5px);
-        }
-
-        .admission-modal-content {
-          position: relative;
-          background: transparent;
-          border-radius: 20px;
-          max-width: 100%;
-          max-height: 90vh;
-          overflow-y: auto;
-          animation: modalFadeIn 0.3s ease-out;
-        }
-
-        .close-modal-btn {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          background: white;
-          border: none;
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          z-index: 10;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-          transition: transform 0.2s;
-        }
-
-        .close-modal-btn:hover {
-          transform: scale(1.1);
-        }
-
-        @keyframes modalFadeIn {
-          from {
-            opacity: 0;
-            transform: scale(0.9);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-      `}</style>
     </>
   );
 };

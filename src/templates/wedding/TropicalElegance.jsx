@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
+import { QRCodeCanvas } from 'qrcode.react';
+import html2canvas from 'html2canvas';
+import logoImg from '../../assets/images/logo1.png';
 import { weddingMockData } from './weddingMockData';
 
 const TropicalElegance = ({ weddingData }) => {
@@ -31,6 +34,7 @@ const TropicalElegance = ({ weddingData }) => {
   const [form, setForm] = useState({ name: '', phone: '', guests: '1', attendance: 'yes' });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [rsvpId, setRsvpId] = useState(null);
 
   // Countdown State
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
@@ -83,15 +87,44 @@ const TropicalElegance = ({ weddingData }) => {
     setSubmitting(true);
     try {
       if (d.id && !d.id.startsWith('demo-')) {
-        await supabase.from('rsvps').insert([{ wedding_id: d.id, name: form.name, email: form.email, phone: form.phone, attending: form.attendance, guests_count: parseInt(form.guests) || 1, status: 'pending' }]);
+        const { data, error } = await supabase.from('rsvps').insert([{ wedding_id: d.id, name: form.name, email: form.email, phone: form.phone, attending: form.attendance, guests_count: parseInt(form.guests) || 1, status: 'pending' }]).select('id').single();
+        if (error) throw error;
+        setRsvpId(data?.id || `local-${Date.now()}`);
+      } else {
+        setRsvpId(`local-${Date.now()}`);
       }
       setSubmitted(true);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error('TropicalElegance RSVP error:', err);
+      setRsvpId(`local-${Date.now()}`);
+      setSubmitted(true);
     } finally {
       setSubmitting(false);
     }
   };
+
+  const getQrValue = () => { try { return JSON.stringify({ id: rsvpId, name: form.name, phone: form.phone, guests: form.guests, wedding_id: d.id }); } catch (e) { return rsvpId || form.name || ''; } };
+
+  const downloadPassCard = async () => {
+    const getCardElement = () => document.getElementById('pass-card-container');
+    let el = getCardElement();
+    let attempts = 0;
+    while (!el && attempts < 5) {
+      await new Promise(resolve => setTimeout(resolve, 120));
+      el = getCardElement();
+      attempts += 1;
+    }
+    if (!el) return;
+    try {
+      const canvas = await html2canvas(el, { useCORS: true, scale: 2, backgroundColor: '#ffffff' });
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      const guestPart = (form.name || rsvpId || 'guest').toLowerCase().replace(/\s+/g, '-');
+      a.href = url; a.download = `wedding-pass-${guestPart}.png`; a.click();
+    } catch (err) { console.error('Error creating pass image', err); }
+  };
+
+  useEffect(() => { if (rsvpId) { const t = setTimeout(() => downloadPassCard(), 800); return () => clearTimeout(t); } }, [rsvpId]);
 
   const SectionPill = ({ icon, topText, bottomText, iconLeft = true }) => (
     <div style={{
@@ -381,9 +414,59 @@ const TropicalElegance = ({ weddingData }) => {
               <SectionPill icon="fa-envelope-open-text" topText="CONFIRM YOUR" bottomText="Attendance" iconLeft={false} />
               <div className="inv-section-content">
                 {submitted ? (
-                  <div style={{ color: accentBrown, padding: '10px 0' }}>
-                    <i className="fas fa-check-circle" style={{ fontSize: '2rem', marginBottom: '10px' }}></i>
-                    <p>Thank you! RSVP Confirmed.</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, paddingTop: '10px' }}>
+                    <div id="pass-card-container" style={{ width: 320, background: '#FFF', padding: '30px 24px', borderRadius: '16px', boxShadow: '0 15px 35px rgba(0,0,0,0.08)', border: '1px solid #E6E1D6', maxWidth: '320px', width: '100%', textAlign: 'center', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <div style={{ borderBottom: '1px solid #F0EDE9', width: '100%', paddingBottom: '15px', marginBottom: '20px' }}>
+                        <h4 style={{ fontFamily: 'Cormorant Garamond', fontSize: '1.8rem', color: '#2C361A', margin: '0', fontWeight: 'normal', letterSpacing: '1px' }}>
+                          {brideFirst} & {groomFirst}
+                        </h4>
+                        <p style={{ fontFamily: 'Montserrat', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '2px', color: '#8A9A75', margin: '6px 0 0 0' }}>
+                          Wedding Entrance Pass
+                        </p>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px' }}>
+                        <QRCodeCanvas
+                          id="qr-canvas"
+                          value={getQrValue()}
+                          size={180}
+                          level="L"
+                          bgColor="#FFFFFF"
+                          fgColor="#2C361A"
+                        />
+                      </div>
+
+                      <div style={{ marginTop: '20px', borderTop: '1px solid #F0EDE9', paddingTop: '15px', width: '100%' }}>
+                        <p style={{ fontFamily: 'Cormorant Garamond', fontSize: '1.3rem', fontStyle: 'italic', color: '#2C361A', margin: '0 0 4px 0' }}>
+                          {form.name}
+                        </p>
+                        <p style={{ fontFamily: 'Montserrat', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#8A9A75', margin: '0 0 12px 0' }}>
+                          {parseInt(form.guests, 10) > 1 ? `Admit ${form.guests} Guests` : 'Admit 1 Guest'}
+                        </p>
+                        <p style={{ fontFamily: 'Montserrat', fontSize: '0.7rem', color: '#666', margin: '0 0 3px 0' }}>
+                          {d.date ? new Date(d.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+                        </p>
+                        <p style={{ fontFamily: 'Montserrat', fontSize: '0.7rem', color: '#666', margin: '0' }}>
+                          {d.venue?.name || d.location || 'Wedding Venue'}
+                        </p>
+                      </div>
+
+                      <div style={{ borderTop: '1px solid #F0EDE9', width: '100%', paddingTop: '12px', marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <img src={logoImg} alt="SaveMeASeat Logo" style={{ height: '12px', objectFit: 'contain' }} />
+                          <span style={{ fontFamily: 'Montserrat', fontSize: '0.5rem', fontWeight: 'bold', color: '#8A9A75' }}>
+                            SaveMeASeat
+                          </span>
+                        </div>
+                        <span style={{ fontFamily: 'Montserrat', fontSize: '0.5rem', color: '#8A9A75', letterSpacing: '0.5px' }}>
+                          savemeaseatzambia.com
+                        </span>
+                      </div>
+                    </div>
+
+                    <button onClick={downloadPassCard} className="inv-submit" style={{ background: '#8A9A75', color: '#FFF', border: 'none', padding: '10px 24px', borderRadius: '30px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(138,154,117,0.3)', display: 'inline-flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}>
+                      <i className="fas fa-download"></i> Save Pass Again
+                    </button>
                   </div>
                 ) : (
                   <form className="inv-form" onSubmit={handleRsvpSubmit}>
