@@ -264,7 +264,11 @@ const AddBridalShower = () => {
                 slug = `${slugBase}-${Date.now()}`;
             }
 
+            const { data: { user } } = await supabase.auth.getUser();
             const payload = { ...formData, slug };
+            if (user) {
+                payload.user_id = user.id;
+            }
 
             let error;
             if (isEditMode) {

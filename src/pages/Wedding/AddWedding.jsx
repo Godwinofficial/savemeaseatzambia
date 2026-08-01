@@ -1105,7 +1105,11 @@ const AddWedding = () => {
                 slug = `${slugBase}-${Date.now()}`;
             }
 
+            const { data: { user } } = await supabase.auth.getUser();
             const payload = { ...formData, slug };
+            if (user) {
+                payload.user_id = user.id;
+            }
 
             // Sanitize empty dates/times to NULL to prevent SQL errors
             const nullableFields = [

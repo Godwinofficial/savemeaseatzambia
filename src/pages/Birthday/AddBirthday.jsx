@@ -261,7 +261,11 @@ const AddBirthday = () => {
         setSaved(false);
         try {
             const slug = form.slug || generateSlug(form.child_name, form.date);
+            const { data: { user } } = await supabase.auth.getUser();
             const payload = { ...form, slug, gallery_images: JSON.stringify(form.gallery_images) };
+            if (user) {
+                payload.user_id = user.id;
+            }
 
             let error;
             if (isEditMode) {

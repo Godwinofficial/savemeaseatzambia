@@ -242,6 +242,8 @@ const DashboardCharts = ({ weddings, birthdays, bridalShowers }) => {
     );
 };
 
+const SUPER_USER_EMAILS = ['admin@savemeaseat.com', 'godwinbanda19@gmail.com'];
+
 const AdminDashboard = () => {
     const [weddings, setWeddings] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -279,6 +281,7 @@ const AdminDashboard = () => {
     const [vendorUploadProgress, setVendorUploadProgress] = useState({});
 
     const [selectedTemplateId, setSelectedTemplateId] = useState(1);
+    const [currentUser, setCurrentUser] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -303,10 +306,17 @@ const AdminDashboard = () => {
 
     useEffect(() => {
         window.scrollTo(0, 0);
-        fetchWeddings();
-        fetchBirthdays();
-        fetchBridalShowers();
-        fetchVendors();
+        
+        const initDashboard = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setCurrentUser(user);
+            fetchWeddings(user);
+            fetchBirthdays(user);
+            fetchBridalShowers(user);
+            fetchVendors();
+        };
+
+        initDashboard();
     }, []);
 
     useEffect(() => {
@@ -361,11 +371,13 @@ const AdminDashboard = () => {
         return allData;
     };
 
-    const fetchWeddings = async () => {
+    const fetchWeddings = async (userSession) => {
         try {
-            const { data: weddingsData, error: weddingsError } = await supabase
-                .from('weddings')
-                .select('*')
+            let query = supabase.from('weddings').select('*');
+            if (userSession && !SUPER_USER_EMAILS.includes(userSession.email)) {
+                query = query.eq('user_id', userSession.id);
+            }
+            const { data: weddingsData, error: weddingsError } = await query
                 .order('created_at', { ascending: false });
 
             if (weddingsError) throw weddingsError;
@@ -374,7 +386,7 @@ const AdminDashboard = () => {
             const rsvpsData = await fetchAllRows('rsvps', 'wedding_id');
 
             // Compute counts
-            const weddingsWithCounts = weddingsData.map(wedding => {
+            const weddingsWithCounts = (weddingsData || []).map(wedding => {
                 const count = rsvpsData ? rsvpsData.filter(r => r.wedding_id === wedding.id).length : 0;
                 return { ...wedding, rsvp_count: count };
             });
@@ -388,12 +400,14 @@ const AdminDashboard = () => {
         }
     };
 
-    const fetchBirthdays = async () => {
+    const fetchBirthdays = async (userSession) => {
         setBirthdayLoading(true);
         try {
-            const { data: events, error } = await supabase
-                .from('birthday_events')
-                .select('*')
+            let query = supabase.from('birthday_events').select('*');
+            if (userSession && !SUPER_USER_EMAILS.includes(userSession.email)) {
+                query = query.eq('user_id', userSession.id);
+            }
+            const { data: events, error } = await query
                 .order('date', { ascending: false });
             if (error) throw error;
 
@@ -411,12 +425,14 @@ const AdminDashboard = () => {
         }
     };
 
-    const fetchBridalShowers = async () => {
+    const fetchBridalShowers = async (userSession) => {
         setBridalShowerLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('bridal_showers')
-                .select('*')
+            let query = supabase.from('bridal_showers').select('*');
+            if (userSession && !SUPER_USER_EMAILS.includes(userSession.email)) {
+                query = query.eq('user_id', userSession.id);
+            }
+            const { data, error } = await query
                 .order('created_at', { ascending: false });
             if (error) throw error;
 
@@ -717,6 +733,41 @@ const AdminDashboard = () => {
             setWeddings(weddings.filter(w => w.id !== id));
         } catch (error) {
             alert('Error deleting wedding: ' + error.message);
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        if (!currentUser) return;
+        
+        const confirmation = window.prompt("WARNING: Deleting your account will permanently delete all your events, guest lists, and invitations. This action cannot be undone.\n\nTo confirm deletion, type your email address below:");
+        
+        if (!confirmation) return;
+        if (confirmation.trim().toLowerCase() !== currentUser.email.toLowerCase()) {
+            alert("Email confirmation mismatch. Account deletion cancelled.");
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const { error: wError } = await supabase.from('weddings').delete().eq('user_id', currentUser.id);
+            if (wError) throw wError;
+            
+            const { error: bError } = await supabase.from('birthday_events').delete().eq('user_id', currentUser.id);
+            if (bError) throw bError;
+
+            const { error: sError } = await supabase.from('bridal_showers').delete().eq('user_id', currentUser.id);
+            if (sError) throw sError;
+
+            await supabase.auth.signOut();
+            setShowMobileMenu(false);
+            
+            alert("Your account and all associated events have been deleted successfully. You will be redirected to the home page.");
+            navigate('/');
+        } catch (error) {
+            console.error("Failed to delete account:", error);
+            alert("Failed to delete all account data: " + error.message + "\nPlease contact support at info@lightstackgroup.com for final removal of login credentials.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -1112,9 +1163,13 @@ const AdminDashboard = () => {
                                 <button className={`sec-tab ${activeTab === 'weddings' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('weddings')}>Weddings</button>
                                 <button className={`sec-tab ${activeTab === 'birthdays' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('birthdays')}>Birthdays</button>
                                 <button className={`sec-tab ${activeTab === 'bridal_showers' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('bridal_showers')}>Bridal Showers</button>
-                                <button className={`sec-tab ${activeTab === 'marketing' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('marketing')}>Marketing</button>
-                                <button className={`sec-tab ${activeTab === 'vendors' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('vendors')}>Vendors</button>
-                                <button className={`sec-tab ${activeTab === 'archives' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('archives')}>Archives</button>
+                                {currentUser && currentUser.email === 'admin@savemeaseat.com' && (
+                                    <>
+                                        <button className={`sec-tab ${activeTab === 'marketing' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('marketing')}>Marketing</button>
+                                        <button className={`sec-tab ${activeTab === 'vendors' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('vendors')}>Vendors</button>
+                                        <button className={`sec-tab ${activeTab === 'archives' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('archives')}>Archives</button>
+                                    </>
+                                )}
                             </div>
                         </div>
 
@@ -1487,9 +1542,11 @@ const AdminDashboard = () => {
                     <button className={`bn-item ${activeTab === 'bridal_showers' ? 'bn-active' : ''}`} onClick={() => setActiveTab('bridal_showers')}>
                         <i className="fas fa-gift"></i><span>Showers</span>
                     </button>
-                    <button className={`bn-item ${activeTab === 'vendors' ? 'bn-active' : ''}`} onClick={() => setActiveTab('vendors')}>
-                        <i className="fas fa-store"></i><span>Vendors</span>
-                    </button>
+                    {currentUser && currentUser.email === 'admin@savemeaseat.com' && (
+                        <button className={`bn-item ${activeTab === 'vendors' ? 'bn-active' : ''}`} onClick={() => setActiveTab('vendors')}>
+                            <i className="fas fa-store"></i><span>Vendors</span>
+                        </button>
+                    )}
                 </nav>
             </div>
 
@@ -1508,18 +1565,27 @@ const AdminDashboard = () => {
                             <Link to="/addBridalShower" className="nav-btn primary" onClick={() => setShowMobileMenu(false)} style={{ padding: '0.85rem', textAlign: 'center', background: '#c5a059', color: '#fff', borderRadius: '12px', textDecoration: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                                 <i className="fas fa-plus"></i> Create Bridal Shower
                             </Link>
-                            <button className="nav-btn outline" onClick={() => { setActiveTab('marketing'); setShowMobileMenu(false); }} style={{ padding: '0.85rem', background: '#f3f4f6', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                <i className="fas fa-envelope"></i> Email Marketing
-                            </button>
-                            <button className="nav-btn outline" onClick={() => { setActiveTab('vendors'); setShowMobileMenu(false); }} style={{ padding: '0.85rem', background: '#f3f4f6', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                <i className="fas fa-store"></i> Manage Ecosystem Vendors
-                            </button>
-                            <button className="nav-btn outline" onClick={() => { setActiveTab('archives'); setShowMobileMenu(false); }} style={{ padding: '0.85rem', background: '#f3f4f6', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                <i className="fas fa-archive"></i> View Archives
-                            </button>
+                            {currentUser && currentUser.email === 'admin@savemeaseat.com' && (
+                                <>
+                                    <button className="nav-btn outline" onClick={() => { setActiveTab('marketing'); setShowMobileMenu(false); }} style={{ padding: '0.85rem', background: '#f3f4f6', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                        <i className="fas fa-envelope"></i> Email Marketing
+                                    </button>
+                                    <button className="nav-btn outline" onClick={() => { setActiveTab('vendors'); setShowMobileMenu(false); }} style={{ padding: '0.85rem', background: '#f3f4f6', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                        <i className="fas fa-store"></i> Manage Ecosystem Vendors
+                                    </button>
+                                    <button className="nav-btn outline" onClick={() => { setActiveTab('archives'); setShowMobileMenu(false); }} style={{ padding: '0.85rem', background: '#f3f4f6', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                        <i className="fas fa-archive"></i> View Archives
+                                    </button>
+                                </>
+                            )}
                             <button className="nav-btn outline" onClick={() => { handleLogout(); setShowMobileMenu(false); }} style={{ padding: '0.85rem', background: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                                 <i className="fas fa-sign-out-alt"></i> Logout
                             </button>
+                            {currentUser && !SUPER_USER_EMAILS.includes(currentUser.email) && (
+                                <button className="nav-btn outline" onClick={() => { handleDeleteAccount(); }} style={{ padding: '0.85rem', background: '#fef2f2', color: '#ef4444', border: '1px solid #fee2e2', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                    <i className="fas fa-trash-alt"></i> Delete Account
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

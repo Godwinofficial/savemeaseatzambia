@@ -1,6 +1,6 @@
 // Home.jsx - Main Application Component (Enhanced UI/UX)
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './Home.css';
 import sliderImage1 from '/src/assets/images/sliderImage1.jpg';
 import sliderImage2 from '/src/assets/images/sliderImage2.jpg';
@@ -57,7 +57,7 @@ const playSuccessBeep = () => {
 };
 
 // Header Component
-const Header = () => {
+const Header = ({ user, onOpenAuth }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
 
@@ -102,6 +102,40 @@ const Header = () => {
                         <li><a href="#payment" onClick={handleNavClick}>Payment</a></li>
                         <li><a href="#faq-section" onClick={handleNavClick}>FAQ</a></li>
                         <li><a href="#contact" onClick={handleNavClick}>Contact</a></li>
+                        
+                        {user ? (
+                            <>
+                                <li><Link to="/admin" onClick={handleNavClick} style={{ fontWeight: 700, color: 'var(--primary)' }}>Dashboard</Link></li>
+                                <li>
+                                    <a 
+                                        href="#" 
+                                        onClick={async (e) => { 
+                                            e.preventDefault(); 
+                                            await supabase.auth.signOut(); 
+                                            handleNavClick(); 
+                                        }} 
+                                        style={{ color: '#ef4444', fontWeight: 600 }}
+                                    >
+                                        Sign Out
+                                    </a>
+                                </li>
+                            </>
+                        ) : (
+                            <li>
+                                <a 
+                                    href="#" 
+                                    onClick={(e) => { 
+                                        e.preventDefault(); 
+                                        onOpenAuth('signin'); 
+                                        handleNavClick(); 
+                                    }} 
+                                    style={{ fontWeight: 700, color: 'var(--primary)' }}
+                                >
+                                    Sign In
+                                </a>
+                            </li>
+                        )}
+                        
                         <li className="nav-cta-item">
                             <a
                                 href="https://wa.me/260960968349"
@@ -120,7 +154,7 @@ const Header = () => {
 };
 
 // Modern Hero Component (SaaS Layout)
-const Hero = () => {
+const Hero = ({ user, onOpenAuth }) => {
     return (
         <section className="hero modern-hero">
             <div className="hero-mesh-bg"></div>
@@ -138,9 +172,15 @@ const Hero = () => {
                     </p>
 
                     <div className="hero-buttons animate-fade-in-up delay-3">
-                        <a href="#pricing" className="hero-btn-dark">
-                            Get Started <i className="fas fa-arrow-right btn-arrow"></i>
-                        </a>
+                        {user ? (
+                            <Link to="/admin" className="hero-btn-dark">
+                                Go to Dashboard <i className="fas fa-arrow-right btn-arrow"></i>
+                            </Link>
+                        ) : (
+                            <button onClick={() => onOpenAuth('signup')} className="hero-btn-dark" style={{ border: 'none', cursor: 'pointer' }}>
+                                Sign Up <i className="fas fa-arrow-right btn-arrow"></i>
+                            </button>
+                        )}
                         <Link to="/templates" className="hero-btn-line-link">
                             <span className="btn-inline-line"></span>VIEW DEMO
                         </Link>
@@ -2357,6 +2397,99 @@ const Footer = () => {
 function App() {
     const [activePopup, setActivePopup] = useState(null);
     const [selectedTemplate, setSelectedTemplate] = useState(null);
+    const [user, setUser] = useState(null);
+    
+    // Auth Modal states
+    const [showAuthModal, setShowAuthModal] = useState(false);
+    const [authMode, setAuthMode] = useState('signin'); // 'signin' | 'signup'
+    const [authEmail, setAuthEmail] = useState('');
+    const [authPassword, setAuthPassword] = useState('');
+    const [authConfirmPassword, setAuthConfirmPassword] = useState('');
+    const [authName, setAuthName] = useState('');
+    const [authLoading, setAuthLoading] = useState(false);
+    const [authError, setAuthError] = useState('');
+
+    const navigate = useNavigate();
+
+    // Check session on mount
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setUser(session?.user ?? null);
+        });
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null);
+        });
+
+        // Check if redirected from sign-up email confirmation link
+        const hash = window.location.hash;
+        const search = window.location.search;
+        if (hash.includes('access_token') || hash.includes('type=signup') || search.includes('code=')) {
+            setTimeout(async () => {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    alert("Email verified successfully! Welcome to SaveMeASeat. 🎉 You have been logged in.");
+                    navigate('/admin');
+                }
+            }, 800);
+        }
+
+        // Listen for open-auth-modal event from anywhere
+        const handleOpenAuth = () => {
+            setAuthMode('signin');
+            setShowAuthModal(true);
+        };
+        window.addEventListener('open-auth-modal', handleOpenAuth);
+
+        return () => {
+            subscription.unsubscribe();
+            window.removeEventListener('open-auth-modal', handleOpenAuth);
+        };
+    }, [navigate]);
+
+    const handleAuthSubmit = async (e) => {
+        e.preventDefault();
+        setAuthLoading(true);
+        setAuthError('');
+        try {
+            if (authMode === 'signup' && authPassword !== authConfirmPassword) {
+                throw new Error("Passwords do not match.");
+            }
+
+            if (authMode === 'signin') {
+                const { error } = await supabase.auth.signInWithPassword({
+                    email: authEmail,
+                    password: authPassword
+                });
+                if (error) throw error;
+                setShowAuthModal(false);
+                navigate('/admin');
+            } else {
+                const { error, data } = await supabase.auth.signUp({
+                    email: authEmail,
+                    password: authPassword,
+                    options: {
+                        data: {
+                            full_name: authName
+                        }
+                    }
+                });
+                if (error) throw error;
+                
+                if (data?.session) {
+                    setShowAuthModal(false);
+                    navigate('/admin');
+                } else {
+                    alert("Account created successfully! Please check your email to verify your account or sign in.");
+                    setAuthMode('signin');
+                }
+            }
+        } catch (error) {
+            setAuthError(error.message);
+        } finally {
+            setAuthLoading(false);
+        }
+    };
 
     // Smooth scroll effect for anchor links
     useEffect(() => {
@@ -2399,10 +2532,20 @@ function App() {
         else if (packageType === 'corporate') setActivePopup('corporatePackage');
     };
 
+    const openAuthWithMode = (mode) => {
+        setAuthMode(mode);
+        setAuthError('');
+        setAuthEmail('');
+        setAuthPassword('');
+        setAuthConfirmPassword('');
+        setAuthName('');
+        setShowAuthModal(true);
+    };
+
     return (
         <div className="home-page">
-            <Header />
-            <Hero />
+            <Header user={user} onOpenAuth={openAuthWithMode} />
+            <Hero user={user} onOpenAuth={openAuthWithMode} />
             <WeddingTemplatesPreview />
             <Services />
             <TemplateShowcase onSelectTemplate={setSelectedTemplate} />
@@ -2473,6 +2616,17 @@ function App() {
                             <li>Your portal goes live within 24 hours for review</li>
                         </ol>
                     </div>
+                    <div className="package-cta-wrapper" style={{ marginTop: '20px', textAlign: 'center' }}>
+                        {user ? (
+                            <Link to="/admin" className="hero-btn-dark" onClick={closePopup} style={{ display: 'inline-flex', textDecoration: 'none' }}>
+                                Set Up Event Now <i className="fas fa-arrow-right btn-arrow" style={{ marginLeft: 8 }}></i>
+                            </Link>
+                        ) : (
+                            <button onClick={() => { closePopup(); openAuthWithMode('signup'); }} className="hero-btn-dark" style={{ border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+                                Sign Up & Set Up Event <i className="fas fa-arrow-right btn-arrow" style={{ marginLeft: 8 }}></i>
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -2490,7 +2644,7 @@ function App() {
                             <li>Stunning image photo gallery panel</li>
                             <li>Elegant background music integration</li>
                             <li>Detailed event schedule/program section</li>
-                            <li>3 free design/text revisions included</li>
+                            <li>3 free revisions support</li>
                         </ul>
                     </div>
                     <div className="package-section">
@@ -2501,6 +2655,17 @@ function App() {
                             <li>Send event photos, music audio, and schedule details</li>
                             <li>Portal goes live within 24-48 hours for review</li>
                         </ol>
+                    </div>
+                    <div className="package-cta-wrapper" style={{ marginTop: '20px', textAlign: 'center' }}>
+                        {user ? (
+                            <Link to="/admin" className="hero-btn-dark" onClick={closePopup} style={{ display: 'inline-flex', textDecoration: 'none' }}>
+                                Set Up Event Now <i className="fas fa-arrow-right btn-arrow" style={{ marginLeft: 8 }}></i>
+                            </Link>
+                        ) : (
+                            <button onClick={() => { closePopup(); openAuthWithMode('signup'); }} className="hero-btn-dark" style={{ border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+                                Sign Up & Set Up Event <i className="fas fa-arrow-right btn-arrow" style={{ marginLeft: 8 }}></i>
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -2530,6 +2695,17 @@ function App() {
                             <li>Our designer creates your bespoke layout draft</li>
                             <li>Revision feedback is processed immediately with unlimited edits</li>
                         </ol>
+                    </div>
+                    <div className="package-cta-wrapper" style={{ marginTop: '20px', textAlign: 'center' }}>
+                        {user ? (
+                            <Link to="/admin" className="hero-btn-dark" onClick={closePopup} style={{ display: 'inline-flex', textDecoration: 'none' }}>
+                                Set Up Event Now <i className="fas fa-arrow-right btn-arrow" style={{ marginLeft: 8 }}></i>
+                            </Link>
+                        ) : (
+                            <button onClick={() => { closePopup(); openAuthWithMode('signup'); }} className="hero-btn-dark" style={{ border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+                                Sign Up & Set Up Event <i className="fas fa-arrow-right btn-arrow" style={{ marginLeft: 8 }}></i>
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -2561,6 +2737,17 @@ function App() {
                             <li>Luxury portal goes live in 48-72 hours with VIP features</li>
                         </ol>
                     </div>
+                    <div className="package-cta-wrapper" style={{ marginTop: '20px', textAlign: 'center' }}>
+                        {user ? (
+                            <Link to="/admin" className="hero-btn-dark" onClick={closePopup} style={{ display: 'inline-flex', textDecoration: 'none' }}>
+                                Set Up Event Now <i className="fas fa-arrow-right btn-arrow" style={{ marginLeft: 8 }}></i>
+                            </Link>
+                        ) : (
+                            <button onClick={() => { closePopup(); openAuthWithMode('signup'); }} className="hero-btn-dark" style={{ border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+                                Sign Up & Set Up Event <i className="fas fa-arrow-right btn-arrow" style={{ marginLeft: 8 }}></i>
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -2591,8 +2778,138 @@ function App() {
                             <li>Live deployment with direct coordination dashboard access</li>
                         </ol>
                     </div>
+                    <div className="package-cta-wrapper" style={{ marginTop: '20px', textAlign: 'center' }}>
+                        {user ? (
+                            <Link to="/admin" className="hero-btn-dark" onClick={closePopup} style={{ display: 'inline-flex', textDecoration: 'none' }}>
+                                Set Up Event Now <i className="fas fa-arrow-right btn-arrow" style={{ marginLeft: 8 }}></i>
+                            </Link>
+                        ) : (
+                            <button onClick={() => { closePopup(); openAuthWithMode('signup'); }} className="hero-btn-dark" style={{ border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+                                Sign Up & Set Up Event <i className="fas fa-arrow-right btn-arrow" style={{ marginLeft: 8 }}></i>
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
+
+            {/* Auth Modal Overlay */}
+            {showAuthModal && (
+                <div className="auth-overlay" onClick={() => setShowAuthModal(false)}>
+                    <div className="auth-modal-card" onClick={(e) => e.stopPropagation()}>
+                        <button className="auth-modal-close" onClick={() => setShowAuthModal(false)}>&times;</button>
+                        
+                        <div className="auth-header">
+                            <h3>{authMode === 'signin' ? 'Welcome Back' : 'Create Account'}</h3>
+                            <p>{authMode === 'signin' ? 'Sign in to manage your events and guest lists' : 'Sign up to build your custom wedding & event invitations'}</p>
+                        </div>
+
+                        {authError && (
+                            <div className="auth-error-msg">
+                                <i className="fas fa-exclamation-circle"></i>
+                                <span>{authError}</span>
+                            </div>
+                        )}
+
+                        <form onSubmit={handleAuthSubmit}>
+                            {authMode === 'signup' && (
+                                <div className="auth-form-group">
+                                    <label>Full Name</label>
+                                    <div className="auth-input-wrapper">
+                                        <i className="fas fa-user"></i>
+                                        <input
+                                            type="text"
+                                            className="auth-input"
+                                            placeholder="Enter name"
+                                            required
+                                            value={authName}
+                                            onChange={(e) => setAuthName(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="auth-form-group">
+                                <label>Email Address</label>
+                                <div className="auth-input-wrapper">
+                                    <i className="fas fa-envelope"></i>
+                                    <input
+                                        type="email"
+                                        className="auth-input"
+                                        placeholder="name@domain.com"
+                                        required
+                                        value={authEmail}
+                                        onChange={(e) => setAuthEmail(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="auth-form-group">
+                                <label>Password</label>
+                                <div className="auth-input-wrapper">
+                                    <i className="fas fa-lock"></i>
+                                    <input
+                                        type="password"
+                                        className="auth-input"
+                                        placeholder="••••••••"
+                                        required
+                                        value={authPassword}
+                                        onChange={(e) => setAuthPassword(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            {authMode === 'signup' && (
+                                <div className="auth-form-group">
+                                    <label>Confirm Password</label>
+                                    <div className="auth-input-wrapper">
+                                        <i className="fas fa-lock"></i>
+                                        <input
+                                            type="password"
+                                            className="auth-input"
+                                            placeholder="••••••••"
+                                            required
+                                            value={authConfirmPassword}
+                                            onChange={(e) => setAuthConfirmPassword(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            <button type="submit" className="auth-btn" disabled={authLoading}>
+                                {authLoading ? (
+                                    <>
+                                        <i className="fas fa-spinner fa-spin"></i>
+                                        Processing...
+                                    </>
+                                ) : (
+                                    <>
+                                        {authMode === 'signin' ? 'Sign In' : 'Sign Up'}
+                                        <i className="fas fa-arrow-right" style={{ marginLeft: 8 }}></i>
+                                    </>
+                                )}
+                            </button>
+                        </form>
+
+                        <div className="auth-switch-text">
+                            {authMode === 'signin' ? (
+                                <>
+                                    New to SaveMeASeat?
+                                    <span className="auth-switch-link" onClick={() => { setAuthMode('signup'); setAuthError(''); }}>
+                                        Create Account
+                                    </span>
+                                </>
+                            ) : (
+                                <>
+                                    Already have an account?
+                                    <span className="auth-switch-link" onClick={() => { setAuthMode('signin'); setAuthError(''); }}>
+                                        Sign In
+                                    </span>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
         </div>
     );
