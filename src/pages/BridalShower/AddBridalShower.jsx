@@ -3,6 +3,8 @@ import { supabase } from '../../supabaseClient';
 import { useNavigate, useParams } from 'react-router-dom';
 import '../Wedding/AddWedding.css'; // Reusing the same styling for consistency
 
+const SUPER_USER_EMAILS = ['admin@savemeaseat.com', 'godwinbanda19@gmail.com'];
+
 const AddBridalShower = () => {
     const navigate = useNavigate();
     const { id } = useParams();
@@ -13,6 +15,7 @@ const AddBridalShower = () => {
     const [currentStep, setCurrentStep] = useState(0);
 
     const initialFormState = {
+        client_id: "",
         bride_name: "",
         date: "",
         time: "",
@@ -266,8 +269,10 @@ const AddBridalShower = () => {
 
             const { data: { user } } = await supabase.auth.getUser();
             const payload = { ...formData, slug };
+            delete payload.client_id;
+
             if (user) {
-                payload.user_id = user.id;
+                payload.user_id = formData.client_id ? formData.client_id.trim() : user.id;
             }
 
             let error;
@@ -294,6 +299,21 @@ const AddBridalShower = () => {
     const renderStep1 = () => (
         <div className="form-section">
             <h2 className="section-title">Bride & Date</h2>
+            
+            <div className="form-group" style={{ marginBottom: '1.5rem', padding: '1rem', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '12px' }}>
+                <label className="form-label" style={{ color: '#b91c1c', marginBottom: '0.5rem' }}>
+                    <i className="fas fa-user-shield"></i> Assign to Client (Admin Only)
+                </label>
+                <p style={{ fontSize: '0.75rem', color: '#dc2626', marginBottom: '0.75rem', marginTop: 0 }}>Enter the client's Supabase User ID (UUID) to assign this event to them. Leave blank to assign to yourself.</p>
+                <input 
+                    className="form-input" 
+                    name="client_id" 
+                    value={formData.client_id || ''} 
+                    onChange={handleChange} 
+                    placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000" 
+                />
+            </div>
+
             <div className="grid-2">
                 <div className="form-group"><label className="form-label">Bride's First Name</label><input className="form-input" name="bride_name" value={formData.bride_name} onChange={handleChange} placeholder="e.g. Sarah" /></div>
                 <div className="form-group"><label className="form-label">RSVP Deadline</label><input type="date" className="form-input" name="rsvp_deadline" value={formData.rsvp_deadline} onChange={handleChange} /></div>

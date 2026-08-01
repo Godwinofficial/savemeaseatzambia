@@ -12,6 +12,8 @@ const getOrdinal = (n) => {
     return num + (s[(v - 20) % 10] || s[v] || s[0]);
 };
 
+const SUPER_USER_EMAILS = ['admin@savemeaseat.com', 'godwinbanda19@gmail.com'];
+
 const AddBirthday = () => {
     const navigate = useNavigate();
     const { id } = useParams();
@@ -22,6 +24,7 @@ const AddBirthday = () => {
     const [saved, setSaved] = useState(false);
 
     const initialForm = {
+        client_id: '',
         child_name: '',
         logo_initials: '',
         hero_text: '',
@@ -263,8 +266,10 @@ const AddBirthday = () => {
             const slug = form.slug || generateSlug(form.child_name, form.date);
             const { data: { user } } = await supabase.auth.getUser();
             const payload = { ...form, slug, gallery_images: JSON.stringify(form.gallery_images) };
+            delete payload.client_id;
+
             if (user) {
-                payload.user_id = user.id;
+                payload.user_id = form.client_id ? form.client_id.trim() : user.id;
             }
 
             let error;
@@ -384,6 +389,23 @@ const AddBirthday = () => {
                                 <h2 className="bd-section-title" style={{ fontSize: '0.9rem', fontWeight: 800, color: '#12121c', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <i className="fas fa-star" style={{ color: '#c5a059' }} /> Birthday Details
                                 </h2>
+
+                                <div className="bd-form-group" style={{ marginBottom: '1.5rem', padding: '1rem', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '12px' }}>
+                                    <label className="bd-form-label" style={{ color: '#b91c1c', marginBottom: '0.5rem' }}>
+                                        <i className="fas fa-user-shield"></i> Assign to Client (Admin Only)
+                                    </label>
+                                    <p style={{ fontSize: '0.75rem', color: '#dc2626', marginBottom: '0.75rem', marginTop: 0 }}>Enter the client's Supabase User ID (UUID) to assign this event to them. Leave blank to assign to yourself.</p>
+                                    <div style={{ position: 'relative' }}>
+                                        <input 
+                                            className="bd-form-input" 
+                                            name="client_id" 
+                                            value={form.client_id || ''} 
+                                            onChange={handleChange} 
+                                            placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000" 
+                                        />
+                                    </div>
+                                </div>
+
                                 <div className="bd-grid-2">
                                     <div className="bd-form-group">
                                         <label className="bd-form-label">Birthday Child's Name *</label>

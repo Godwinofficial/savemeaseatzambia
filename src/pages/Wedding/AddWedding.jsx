@@ -695,6 +695,8 @@ import { supabase } from '../../supabaseClient';
 import { useNavigate, useParams } from 'react-router-dom';
 import './AddWedding.css';
 
+const SUPER_USER_EMAILS = ['admin@savemeaseat.com', 'godwinbanda19@gmail.com'];
+
 const AddWedding = () => {
     const navigate = useNavigate();
     const { id } = useParams();
@@ -709,6 +711,7 @@ const AddWedding = () => {
     const [showSidebar, setShowSidebar] = useState(false);
 
     const initialFormState = {
+        client_id: "",
         cover_image: "",
         bride_name: "", bride_image: "", bride_description: "",
         groom_name: "", groom_image: "", groom_description: "",
@@ -1107,8 +1110,11 @@ const AddWedding = () => {
 
             const { data: { user } } = await supabase.auth.getUser();
             const payload = { ...formData, slug };
+            // Do not save client_id to the database as a raw column
+            delete payload.client_id;
+            
             if (user) {
-                payload.user_id = user.id;
+                payload.user_id = formData.client_id ? formData.client_id.trim() : user.id;
             }
 
             // Sanitize empty dates/times to NULL to prevent SQL errors
@@ -1191,6 +1197,17 @@ const AddWedding = () => {
                     The Happy Couple
                 </h2>
                 <p className="section-description">Tell us about the bride and groom. Add beautiful photos that capture your personality.</p>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '2rem', padding: '1rem', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '12px' }}>
+                <label className="form-label" style={{ color: '#b91c1c' }}>
+                    <i className="fas fa-user-shield"></i> Assign to Client (Admin Only)
+                </label>
+                <p style={{ fontSize: '0.85rem', color: '#dc2626', marginBottom: '0.75rem' }}>Enter the client's Supabase User ID (UUID) to assign this event to them. Leave blank to assign to yourself.</p>
+                <div className="input-with-icon">
+                    <i className="fas fa-id-badge"></i>
+                    <input className="form-input" name="client_id" value={formData.client_id || ''} onChange={handleChange} placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000" />
+                </div>
             </div>
 
             <div className="cover-upload-section">

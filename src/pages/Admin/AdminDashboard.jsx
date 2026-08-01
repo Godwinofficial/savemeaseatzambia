@@ -1121,14 +1121,18 @@ const AdminDashboard = () => {
                         <div className="hero-meta">Managing all your celebrations</div>
 
                         <div className="hero-btns">
-                            <Link to="/addWedding" className="hbtn" style={{ textDecoration: 'none' }}>
-                                <div className="hbtn-icon"><i className="fas fa-plus"></i></div>
-                                <span className="hbtn-lbl">WEDDING</span>
-                            </Link>
-                            <Link to="/addBridalShower" className="hbtn hbtn-lime" style={{ textDecoration: 'none' }}>
-                                <div className="hbtn-icon"><i className="fas fa-gift"></i></div>
-                                <span className="hbtn-lbl">SHOWER</span>
-                            </Link>
+                            {currentUser && SUPER_USER_EMAILS.includes(currentUser.email) && (
+                                <>
+                                    <Link to="/addWedding" className="hbtn" style={{ textDecoration: 'none' }}>
+                                        <div className="hbtn-icon"><i className="fas fa-plus"></i></div>
+                                        <span className="hbtn-lbl">WEDDING</span>
+                                    </Link>
+                                    <Link to="/addBridalShower" className="hbtn hbtn-lime" style={{ textDecoration: 'none' }}>
+                                        <div className="hbtn-icon"><i className="fas fa-gift"></i></div>
+                                        <span className="hbtn-lbl">SHOWER</span>
+                                    </Link>
+                                </>
+                            )}
                             <button className="hbtn" onClick={() => setShowMobileMenu(true)}>
                                 <div className="hbtn-icon"><i className="fas fa-bars"></i></div>
                                 <span className="hbtn-lbl">MENU</span>
@@ -1163,19 +1167,20 @@ const AdminDashboard = () => {
                                 <button className={`sec-tab ${activeTab === 'weddings' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('weddings')}>Weddings</button>
                                 <button className={`sec-tab ${activeTab === 'birthdays' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('birthdays')}>Birthdays</button>
                                 <button className={`sec-tab ${activeTab === 'bridal_showers' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('bridal_showers')}>Bridal Showers</button>
-                                {currentUser && currentUser.email === 'admin@savemeaseat.com' && (
-                                    <>
-                                        <button className={`sec-tab ${activeTab === 'marketing' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('marketing')}>Marketing</button>
-                                        <button className={`sec-tab ${activeTab === 'vendors' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('vendors')}>Vendors</button>
-                                        <button className={`sec-tab ${activeTab === 'archives' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('archives')}>Archives</button>
-                                    </>
-                                )}
+                                <button className={`sec-tab ${activeTab === 'marketing' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('marketing')}>Marketing</button>
+                                <button className={`sec-tab ${activeTab === 'vendors' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('vendors')}>Vendors</button>
+                                <button className={`sec-tab ${activeTab === 'archives' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('archives')}>Archives</button>
                             </div>
                         </div>
 
                         {/* LIST */}
                         <div className="guest-list">
                             {/* Render active events based on activeTab */}
+                            {activeTab === 'weddings' && activeWeddings.length === 0 && (
+                                <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: '12px' }}>
+                                    {currentUser && SUPER_USER_EMAILS.includes(currentUser.email) ? 'No active weddings found.' : 'No assigned events yet. Contact admin to create one.'}
+                                </div>
+                            )}
                             {activeTab === 'weddings' && activeWeddings.map(wedding => {
                                 const isPositive = (wedding.rsvp_count || 0) > 0;
                                 return (
@@ -1218,6 +1223,11 @@ const AdminDashboard = () => {
                                 )
                             })}
 
+                            {activeTab === 'birthdays' && activeBirthdays.length === 0 && (
+                                <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: '12px' }}>
+                                    {currentUser && SUPER_USER_EMAILS.includes(currentUser.email) ? 'No active birthdays found.' : 'No assigned events yet. Contact admin to create one.'}
+                                </div>
+                            )}
                             {activeTab === 'birthdays' && activeBirthdays.map(bday => {
                                 const isPositive = (bday.rsvp_count || 0) > 0;
                                 return (
@@ -1260,6 +1270,11 @@ const AdminDashboard = () => {
                                 )
                             })}
 
+                            {activeTab === 'bridal_showers' && activeBridalShowers.length === 0 && (
+                                <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: '12px' }}>
+                                    {currentUser && SUPER_USER_EMAILS.includes(currentUser.email) ? 'No active bridal showers found.' : 'No assigned events yet. Contact admin to create one.'}
+                                </div>
+                            )}
                             {activeTab === 'bridal_showers' && activeBridalShowers.map(shower => {
                                 const isPositive = (shower.rsvp_count || 0) > 0;
                                 return (
@@ -1310,25 +1325,27 @@ const AdminDashboard = () => {
 
                             {activeTab === 'vendors' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                    <button
-                                        className="ga-approve"
-                                        onClick={openAddVendor}
-                                        style={{
-                                            background: '#10b981',
-                                            color: '#fff',
-                                            padding: '0.85rem',
-                                            justifyContent: 'center',
-                                            fontSize: '0.85rem',
-                                            borderRadius: '12px',
-                                            marginBottom: '0.5rem',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            fontWeight: 700,
-                                            width: '100%'
-                                        }}
-                                    >
-                                        <i className="fas fa-plus"></i> Add New Vendor
-                                    </button>
+                                    {currentUser && SUPER_USER_EMAILS.includes(currentUser.email) && (
+                                        <button
+                                            className="ga-approve"
+                                            onClick={openAddVendor}
+                                            style={{
+                                                background: '#10b981',
+                                                color: '#fff',
+                                                padding: '0.85rem',
+                                                justifyContent: 'center',
+                                                fontSize: '0.85rem',
+                                                borderRadius: '12px',
+                                                marginBottom: '0.5rem',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                fontWeight: 700,
+                                                width: '100%'
+                                            }}
+                                        >
+                                            <i className="fas fa-plus"></i> Add New Vendor
+                                        </button>
+                                    )}
                                     {filteredVendorsList.map(vendor => (
                                         <div key={vendor.id} className="g-row">
                                             <div
@@ -1542,11 +1559,9 @@ const AdminDashboard = () => {
                     <button className={`bn-item ${activeTab === 'bridal_showers' ? 'bn-active' : ''}`} onClick={() => setActiveTab('bridal_showers')}>
                         <i className="fas fa-gift"></i><span>Showers</span>
                     </button>
-                    {currentUser && currentUser.email === 'admin@savemeaseat.com' && (
-                        <button className={`bn-item ${activeTab === 'vendors' ? 'bn-active' : ''}`} onClick={() => setActiveTab('vendors')}>
-                            <i className="fas fa-store"></i><span>Vendors</span>
-                        </button>
-                    )}
+                    <button className={`bn-item ${activeTab === 'vendors' ? 'bn-active' : ''}`} onClick={() => setActiveTab('vendors')}>
+                        <i className="fas fa-store"></i><span>Vendors</span>
+                    </button>
                 </nav>
             </div>
 
@@ -1556,17 +1571,17 @@ const AdminDashboard = () => {
                     <div className="vm-box" onClick={e => e.stopPropagation()} style={{ padding: '1.5rem', height: 'auto', gap: '0.85rem' }}>
                         <h3 className="vm-name">Menu</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                            <Link to="/addWedding" className="nav-btn primary" onClick={() => setShowMobileMenu(false)} style={{ padding: '0.85rem', textAlign: 'center', background: '#12121c', color: '#a3e635', borderRadius: '12px', textDecoration: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                <i className="fas fa-plus"></i> Create New Wedding
-                            </Link>
-                            <Link to="/addBirthday" className="nav-btn primary" onClick={() => setShowMobileMenu(false)} style={{ padding: '0.85rem', textAlign: 'center', background: '#c44569', color: '#fff', borderRadius: '12px', textDecoration: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                <i className="fas fa-plus"></i> Create New Birthday
-                            </Link>
-                            <Link to="/addBridalShower" className="nav-btn primary" onClick={() => setShowMobileMenu(false)} style={{ padding: '0.85rem', textAlign: 'center', background: '#c5a059', color: '#fff', borderRadius: '12px', textDecoration: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                <i className="fas fa-plus"></i> Create Bridal Shower
-                            </Link>
-                            {currentUser && currentUser.email === 'admin@savemeaseat.com' && (
+                            {currentUser && SUPER_USER_EMAILS.includes(currentUser.email) && (
                                 <>
+                                    <Link to="/addWedding" className="nav-btn primary" onClick={() => setShowMobileMenu(false)} style={{ padding: '0.85rem', textAlign: 'center', background: '#12121c', color: '#a3e635', borderRadius: '12px', textDecoration: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                        <i className="fas fa-plus"></i> Create New Wedding
+                                    </Link>
+                                    <Link to="/addBirthday" className="nav-btn primary" onClick={() => setShowMobileMenu(false)} style={{ padding: '0.85rem', textAlign: 'center', background: '#c44569', color: '#fff', borderRadius: '12px', textDecoration: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                        <i className="fas fa-plus"></i> Create New Birthday
+                                    </Link>
+                                    <Link to="/addBridalShower" className="nav-btn primary" onClick={() => setShowMobileMenu(false)} style={{ padding: '0.85rem', textAlign: 'center', background: '#c5a059', color: '#fff', borderRadius: '12px', textDecoration: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                        <i className="fas fa-plus"></i> Create Bridal Shower
+                                    </Link>
                                     <button className="nav-btn outline" onClick={() => { setActiveTab('marketing'); setShowMobileMenu(false); }} style={{ padding: '0.85rem', background: '#f3f4f6', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                                         <i className="fas fa-envelope"></i> Email Marketing
                                     </button>
