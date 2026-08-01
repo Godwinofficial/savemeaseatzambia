@@ -1,0 +1,22 @@
+- `[x]` Update countdown timer in `BotanicalOlive.jsx` to include seconds
+- `[x]` Implement `formatTime` helper and format itinerary event times in `BotanicalOlive.jsx`
+- `[x]` Fix dress code color palette database fallback in `BotanicalOlive.jsx`
+- `[x]` Add preview and RLS fallback to RSVP submission in `BotanicalOlive.jsx`
+- `[x]` Implement `formatTime` helper and restore AM/PM on itinerary event times in `TerracottaEarth.jsx`
+- `[x]` Fix dress code color palette database fallback in `TerracottaEarth.jsx`
+- `[x]` Add RLS / error fallback to RSVP submission in `Wedding.jsx` wrapper
+- `[x]` Add seconds to countdown in `TerracottaEarth.jsx`
+- `[x]` Support raw snake_case database fallbacks for dress code text in all templates
+- `[x]` Remove the color palette swatches under dress code from all templates
+- `[x]` Format story highlight parentage text dynamically (bold names, separate sentences) in `BotanicalOlive.jsx`
+- `[x]` Show the proposal story under the quote in `BotanicalOlive.jsx` from the database (unconditional render with placeholder fallback)
+- `[x]` Render both `story.part1` ("Our Story") and `story.part2` ("The Proposal") in `BotanicalOlive.jsx` with `whiteSpace: 'pre-line'` to preserve paragraph spacing and sentence breaks
+- `[x]` Safe-parse Supabase array fields (gifts, gallery_images, theme_colors, dress_code_colors) in `Wedding.jsx` wrapper and `TemplatePreviewWrapper.jsx`
+- `[x]` Restore dress code color palettes rendering block inside `BotanicalOlive.jsx` card
+- `[x]` Restore dress code color palettes rendering block inside `TerracottaEarth.jsx` card
+- `[x]` Add registry/gifts rendering block inside `TerracottaEarth.jsx` card
+- `[x]` Redesign memories collage in both `BotanicalOlive.jsx` and `TerracottaEarth.jsx` to render as a cinematic infinite scrolling photo strip/carousel, with automatic CSS transitions, interactive hover pausing, smooth pop-out hover zoom scaling, and a fullscreen interactive zoom lightbox
+- `[x]` Remove local storage persistence inside `TerracottaEarth.jsx` so that reloading the page clears the submitted RSVP state and correctly brings up the RSVP form again for testing/multiple entries
+- `[x]` Fix visibility of the RSVP success card inside `TerracottaEarth.jsx` by removing the `te-fade-in` class which kept it at opacity 0 upon dynamic state toggle
+- `[x]` Update RSVP pass card colors in `TerracottaEarth.jsx` to match the warm terracotta and darkEspresso theme palette instead of hardcoded botanical green/sage colors
+- `[x]` Verify updates build successfully

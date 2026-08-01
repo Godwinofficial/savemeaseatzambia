@@ -28,6 +28,20 @@ const TemplatePreviewWrapper = ({ children, slug }) => {
     return `${formattedH}:${minutes} ${ampm}`;
   };
 
+  const parseArray = (val) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -76,9 +90,9 @@ const TemplatePreviewWrapper = ({ children, slug }) => {
               highlight: dbData.story_highlight,
               part2: dbData.story_part2
             },
-            sliderImages: dbData.slider_images || [],
-            bridesmaids: dbData.bridesmaids || [],
-            groomsmen: dbData.groomsmen || [],
+            sliderImages: parseArray(dbData.slider_images),
+            bridesmaids: parseArray(dbData.bridesmaids),
+            groomsmen: parseArray(dbData.groomsmen),
             ceremony: {
               date: formatDate(dbData.ceremony_date),
               rawDate: dbData.ceremony_date,
@@ -94,10 +108,10 @@ const TemplatePreviewWrapper = ({ children, slug }) => {
             },
             dressCode: dbData.dress_code,
             dressCodeDescription: dbData.dress_code_desc,
-            theme_colors: Array.isArray(dbData.theme_colors) ? dbData.theme_colors : [],
-            dress_code_colors: Array.isArray(dbData.dress_code_colors) ? dbData.dress_code_colors : [],
-            gifts: dbData.gifts || [],
-            galleryImages: dbData.gallery_images || [],
+            theme_colors: parseArray(dbData.theme_colors),
+            dress_code_colors: parseArray(dbData.dress_code_colors),
+            gifts: parseArray(dbData.gifts),
+            galleryImages: parseArray(dbData.gallery_images),
             mapLocation: dbData.map_location,
             rsvpDeadline: dbData.rsvp_deadline,
             allowedGuests: dbData.allowed_guests || [],

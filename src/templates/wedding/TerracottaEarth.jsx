@@ -4,6 +4,25 @@ import { QRCodeCanvas } from 'qrcode.react';
 import html2canvas from 'html2canvas';
 import logoImg from '../../assets/images/logo1.png';
 
+// Helper to format time safely (HH:MM:SS -> 12h AM/PM)
+const formatTime = (timeString) => {
+  if (!timeString) return "";
+  if (timeString.includes('AM') || timeString.includes('PM') || timeString.includes('am') || timeString.includes('pm') || timeString.includes('M')) {
+    return timeString;
+  }
+
+  const parts = timeString.split(':');
+  const hours = parts[0];
+  const minutes = parts[1];
+
+  if (!hours || !minutes) return timeString;
+
+  const h = parseInt(hours, 10);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const formattedH = h % 12 || 12;
+  return `${formattedH}:${minutes.substring(0, 2)} ${ampm}`;
+};
+
 const TerracottaEarth = ({ weddingData }) => {
   const defaultData = {
     couple: {
@@ -22,7 +41,7 @@ const TerracottaEarth = ({ weddingData }) => {
       'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200'
     ],
     dressCode: 'Earthy Elegance',
-    dressCodeDescription: 'We kindly request our guests to dress in our earthy palette to help create a beautiful visual harmony.',
+    dressCodeDescription: 'We kindly request our guests to dress in the mentioned colors.',
     dress_code_colors: ['#2C2421', '#887064', '#C16E5A', '#E2D1C3', '#FAF7F2']
   };
 
@@ -44,7 +63,7 @@ const TerracottaEarth = ({ weddingData }) => {
   const dayNum = eventDate.getDate();
   const monthNum = eventDate.getMonth();
   const year = eventDate.getFullYear();
-  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
   // Colors
   const bgMain = '#FCFAF8';
@@ -129,6 +148,48 @@ const TerracottaEarth = ({ weddingData }) => {
 
   const [rsvpId, setRsvpId] = useState(null);
 
+  // Audio Player State
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audio] = useState(() => {
+    const a = new Audio("https://archive.org/download/100ClassicalMusicMasterpieces/1801%20Beethoven-%20%27Moonlight%27%20Sonata%2C%201st%20movement.mp3");
+    a.loop = true;
+    return a;
+  });
+
+  const togglePlay = () => {
+    if (isPlaying) {
+      audio.pause();
+      setIsPlaying(false);
+    } else {
+      audio.play().then(() => {
+        setIsPlaying(true);
+      }).catch(err => {
+        console.error("Audio playback failed:", err);
+      });
+    }
+  };
+
+  useEffect(() => {
+    const handleInteraction = () => {
+      audio.play().then(() => {
+        setIsPlaying(true);
+        cleanup();
+      }).catch(() => { });
+    };
+    const cleanup = () => {
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('scroll', handleInteraction);
+      window.removeEventListener('touchstart', handleInteraction);
+    };
+    window.addEventListener('click', handleInteraction);
+    window.addEventListener('scroll', handleInteraction);
+    window.addEventListener('touchstart', handleInteraction);
+    return () => {
+      cleanup();
+      audio.pause();
+    };
+  }, [audio]);
+
   const handleRsvpSubmit = async (e) => {
     e.preventDefault();
     setRsvpSubmitted(false);
@@ -147,11 +208,13 @@ const TerracottaEarth = ({ weddingData }) => {
         setRsvpSubmitted(true);
       } catch (err) {
         console.error('RSVP save error:', err);
-        setRsvpId(`local-${Date.now()}`);
+        const fallbackId = `local-${Date.now()}`;
+        setRsvpId(fallbackId);
         setRsvpSubmitted(true);
       }
     } else {
-      setRsvpId(`local-${Date.now()}`);
+      const fallbackId = `local-${Date.now()}`;
+      setRsvpId(fallbackId);
       setRsvpSubmitted(true);
     }
   };
@@ -179,7 +242,7 @@ const TerracottaEarth = ({ weddingData }) => {
 
   useEffect(() => { if (rsvpId) { const t = setTimeout(() => downloadPassCard(), 800); return () => clearTimeout(t); } }, [rsvpId]);
 
-  const paletteColors = d.dress_code_colors || ['#2C2421', '#887064', '#C16E5A', '#E2D1C3', '#FAF7F2'];
+  const paletteColors = d.dress_code_colors && d.dress_code_colors.length > 0 ? d.dress_code_colors : ['#2C2421', '#887064', '#C16E5A', '#E2D1C3', '#FAF7F2'];
   const heroImage = sliderImages[0];
 
   return (
@@ -189,6 +252,40 @@ const TerracottaEarth = ({ weddingData }) => {
 
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        /* Floating Audio Player Button */
+        .te-music-btn {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          width: 45px;
+          height: 45px;
+          border-radius: 50%;
+          background: #FFF;
+          border: 1px solid ${terracotta};
+          color: ${terracotta};
+          font-size: 1.1rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+          z-index: 9999;
+          transition: all 0.3s ease;
+        }
+        .te-music-btn:hover {
+          transform: scale(1.1);
+          background: ${terracotta};
+          color: #FFF;
+        }
+        .te-music-btn.playing i {
+          animation: teMusicPulse 1.5s linear infinite;
+        }
+        @keyframes teMusicPulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.1); }
+          100% { transform: scale(1); }
+        }
         
         .te-wrapper {
           width: 100%;
@@ -782,28 +879,26 @@ const TerracottaEarth = ({ weddingData }) => {
 
       <div className="te-wrapper">
         <div className="te-container">
-          
+
           {/* HERO */}
           <div className="te-hero">
             <div className="te-hero-top">
               <span>Wedding</span>
               <span>Invitation</span>
             </div>
-            
+
             <div className="te-hero-arch-container">
               <div className="te-hero-arch-outline"></div>
               <div className="te-hero-arch"></div>
             </div>
 
             <div className="te-hero-typography">
-              <div className="te-couple-names">{groomFirst}</div>
-              <div className="te-couple-and">&</div>
               <div className="te-couple-names">{brideFirst}</div>
+              <div className="te-couple-and">&</div>
+              <div className="te-couple-names">{groomFirst}</div>
 
-
-              
               <div className="te-hero-date-box">
-                {String(dayNum).padStart(2,'0')}.{String(monthNum+1).padStart(2,'0')}.{year}
+                {String(dayNum).padStart(2, '0')}.{String(monthNum + 1).padStart(2, '0')}.{year}
               </div>
             </div>
           </div>
@@ -813,7 +908,7 @@ const TerracottaEarth = ({ weddingData }) => {
             <p className="te-story-text te-fade-up">
               "{d.story?.highlight || defaultData.story.highlight}"
             </p>
-            
+
             <div className="te-countdown te-fade-in">
               <div className="te-cd-item">
                 <span className="te-cd-num">{timeLeft.days}</span>
@@ -827,6 +922,10 @@ const TerracottaEarth = ({ weddingData }) => {
                 <span className="te-cd-num">{timeLeft.minutes}</span>
                 <span className="te-cd-label">Mins</span>
               </div>
+              <div className="te-cd-item">
+                <span className="te-cd-num">{timeLeft.seconds}</span>
+                <span className="te-cd-label">Secs</span>
+              </div>
             </div>
           </div>
 
@@ -836,7 +935,7 @@ const TerracottaEarth = ({ weddingData }) => {
             <div className="te-cal-container te-fade-up" style={{ transitionDelay: '0.2s' }}>
               <div className="te-cal-month">{monthNames[monthNum]}</div>
               <div className="te-calendar-grid">
-                {['M','T','W','T','F','S','S'].map((wd, i) => (
+                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((wd, i) => (
                   <div key={i} className="te-cal-header">{wd}</div>
                 ))}
                 {calendarCells.map((cell, idx) => (
@@ -857,7 +956,7 @@ const TerracottaEarth = ({ weddingData }) => {
                   <div className="te-timeline-content" style={{ opacity: 0 }}></div>
                   <div className="te-timeline-dot"></div>
                   <div className="te-timeline-content">
-                    <div className="te-timeline-time">{d.ceremony.time.replace(/\s*(AM|PM)/i, '')}</div>
+                    <div className="te-timeline-time">{formatTime(d.ceremony.time)}</div>
                     <div className="te-timeline-event">Marriage Blessings</div>
                   </div>
                 </div>
@@ -865,7 +964,7 @@ const TerracottaEarth = ({ weddingData }) => {
               {d.reception?.time && (
                 <div className="te-timeline-item te-slide-right" style={{ transitionDelay: '0.3s' }}>
                   <div className="te-timeline-content">
-                    <div className="te-timeline-time">{d.reception.time.replace(/\s*(AM|PM)/i, '')}</div>
+                    <div className="te-timeline-time">{formatTime(d.reception.time)}</div>
                     <div className="te-timeline-event">Reception</div>
                   </div>
                   <div className="te-timeline-dot"></div>
@@ -889,8 +988,8 @@ const TerracottaEarth = ({ weddingData }) => {
             </div>
             <div className="te-gallery-nav">
               {sliderImages.map((_, idx) => (
-                <div 
-                  key={idx} 
+                <div
+                  key={idx}
                   className={`te-gallery-dot ${idx === galleryIndex ? 'active' : ''}`}
                   onClick={() => setGalleryIndex(idx)}
                 ></div>
@@ -902,15 +1001,17 @@ const TerracottaEarth = ({ weddingData }) => {
           <div className="te-details-section">
             <div className="te-details-card te-fade-up">
               <div className="te-card-title">Dress Code</div>
-              <div className="te-card-subtitle">{d.dressCode || 'Earthy Elegance'}</div>
+              <div className="te-card-subtitle">{d.dressCode || d.dress_code || 'Earthy Elegance'}</div>
               <p style={{ fontSize: '0.8rem', color: textMuted, lineHeight: '1.6' }}>
-                {d.dressCodeDescription || defaultData.dressCodeDescription}
+                {d.dressCodeDescription || d.dress_code_desc || defaultData.dressCodeDescription}
               </p>
-              <div className="te-color-palette">
-                {paletteColors.map((color, idx) => (
-                  <div key={idx} className="te-swatch" style={{ background: color }}></div>
-                ))}
-              </div>
+              {paletteColors && paletteColors.length > 0 && (
+                <div className="te-color-palette">
+                  {paletteColors.map((color, idx) => (
+                    <div key={idx} className="te-swatch" style={{ background: color }}></div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="te-details-card te-fade-up" style={{ transitionDelay: '0.2s' }}>
@@ -931,6 +1032,47 @@ const TerracottaEarth = ({ weddingData }) => {
                 ></iframe>
               </div>
             </div>
+
+            {/* GIFTS - ONLY SHOW IF ADDED */}
+            {d.gifts && d.gifts.length > 0 && (
+              <div className="te-details-card te-fade-up" style={{ transitionDelay: '0.4s' }}>
+                <div className="te-card-title">Registry</div>
+                <div className="te-card-subtitle">A Token of Love</div>
+                <p style={{ fontSize: '0.8rem', color: textMuted, lineHeight: '1.6', marginBottom: '20px' }}>
+                  Your presence is the greatest gift. However, if you wish to honor us with a gift, a contribution would be deeply appreciated.
+                </p>
+                <div className="te-gift-cards-container" style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
+                  {d.gifts.map((gift, idx) => (
+                    <div key={idx} className="te-gift-card" style={{
+                      background: '#FDFBF9',
+                      border: '1px solid rgba(200, 160, 140, 0.2)',
+                      borderRadius: '16px',
+                      padding: '20px',
+                      textAlign: 'center',
+                      boxShadow: '0 6px 15px rgba(44,36,33,0.03)'
+                    }}>
+                      <h4 style={{
+                        fontFamily: 'Cormorant Garamond',
+                        fontSize: '1.3rem',
+                        color: terracotta,
+                        margin: '0 0 10px 0',
+                        fontWeight: 600
+                      }}>
+                        {gift.provider || gift.bank || 'Gift'}
+                      </h4>
+                      <div className="te-gift-details" style={{
+                        fontSize: '0.82rem',
+                        color: darkEspresso,
+                        lineHeight: '1.6'
+                      }}>
+                        {gift.accountName && <div style={{ marginBottom: '4px' }}><strong>Account Name:</strong> {gift.accountName}</div>}
+                        {gift.accountNumber && <div style={{ fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em' }}><strong>Account Number:</strong> {gift.accountNumber}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* RSVP */}
@@ -941,48 +1083,44 @@ const TerracottaEarth = ({ weddingData }) => {
             {!rsvpSubmitted ? (
               <form className="te-form te-fade-up" style={{ transitionDelay: '0.2s' }} onSubmit={handleRsvpSubmit}>
                 <div className="te-input-group">
-                  <input type="text" className="te-input" placeholder="Your Name" required 
-                    value={rsvpForm.name} onChange={e => setRsvpForm({...rsvpForm, name: e.target.value})} />
+                  <input type="text" className="te-input" placeholder="Your Name" required
+                    value={rsvpForm.name} onChange={e => setRsvpForm({ ...rsvpForm, name: e.target.value })} />
                 </div>
                 <div className="te-input-group">
-                  <input type="tel" className="te-input" placeholder="Phone Number" required 
-                    value={rsvpForm.phone} onChange={e => setRsvpForm({...rsvpForm, phone: e.target.value})} />
+                  <input type="tel" className="te-input" placeholder="Phone Number" required
+                    value={rsvpForm.phone} onChange={e => setRsvpForm({ ...rsvpForm, phone: e.target.value })} />
                 </div>
                 <div className="te-input-group">
-                  <input type="email" className="te-input" placeholder="Email Address" required 
-                    value={rsvpForm.email} onChange={e => setRsvpForm({...rsvpForm, email: e.target.value})} />
+                  <input type="email" className="te-input" placeholder="Email Address" required
+                    value={rsvpForm.email} onChange={e => setRsvpForm({ ...rsvpForm, email: e.target.value })} />
                 </div>
-                <div className="te-input-group">
-                  <select className="te-select" value={rsvpForm.guests} onChange={e => setRsvpForm({...rsvpForm, guests: e.target.value})}>
-                    <option value="" disabled>Number of Guests</option>
-                    <option value="1">1 Guest</option>
-                    <option value="2">2 Guests</option>
-                    <option value="3">3 Guests</option>
-                    <option value="4">4 Guests</option>
-                  </select>
-                </div>
-                
+
+
                 <div className="te-radio-container">
                   <label className="te-radio">
                     <input type="radio" name="attending" value="yes" checked={rsvpForm.attending === 'yes'}
-                      onChange={e => setRsvpForm({...rsvpForm, attending: e.target.value})} /> Joyfully Accept
+                      onChange={e => setRsvpForm({ ...rsvpForm, attending: e.target.value })} /> Joyfully Accept
                   </label>
                   <label className="te-radio">
                     <input type="radio" name="attending" value="no" checked={rsvpForm.attending === 'no'}
-                      onChange={e => setRsvpForm({...rsvpForm, attending: e.target.value})} /> Regretfully Decline
+                      onChange={e => setRsvpForm({ ...rsvpForm, attending: e.target.value })} /> Regretfully Decline
                   </label>
                 </div>
 
                 <button type="submit" className="te-submit">Send Reply</button>
               </form>
-                ) : (
-              <div className="te-success te-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-                <div id="pass-card-container" style={{ width: 320, background: '#FFF', padding: '30px 24px', borderRadius: '16px', boxShadow: '0 15px 35px rgba(0,0,0,0.08)', border: '1px solid #E6E1D6', maxWidth: '320px', width: '100%', textAlign: 'center', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            ) : (
+              <div className="te-success" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                <button className="te-submit" style={{ padding: '10px 18px', borderRadius: 8, margin: '0 0 10px 0' }} onClick={downloadPassCard}>
+                  <i className="fas fa-download" style={{ marginRight: 8 }}></i>Download Pass Again
+                </button>
+
+                <div id="pass-card-container" style={{ background: '#FFF', padding: '30px 24px', borderRadius: '16px', boxShadow: '0 15px 35px rgba(0,0,0,0.08)', border: '1px solid #E6E1D6', maxWidth: '320px', width: '100%', textAlign: 'center', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <div style={{ borderBottom: '1px solid #F0EDE9', width: '100%', paddingBottom: '15px', marginBottom: '20px' }}>
-                    <h4 style={{ fontFamily: 'Cormorant Garamond', fontSize: '1.8rem', color: '#2C361A', margin: '0', fontWeight: 'normal', letterSpacing: '1px' }}>
-                      {brideFirst} & {groomFirst}
+                    <h4 style={{ fontFamily: 'Cormorant Garamond', fontSize: '1.8rem', color: darkEspresso, margin: '0', fontWeight: 'normal', letterSpacing: '1px' }}>
+                      {groomFirst} & {brideFirst}
                     </h4>
-                    <p style={{ fontFamily: 'Montserrat', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '2px', color: '#8A9A75', margin: '6px 0 0 0' }}>
+                    <p style={{ fontFamily: 'Montserrat', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '2px', color: terracotta, margin: '6px 0 0 0' }}>
                       Wedding Entrance Pass
                     </p>
                   </div>
@@ -994,15 +1132,15 @@ const TerracottaEarth = ({ weddingData }) => {
                       size={180}
                       level="L"
                       bgColor="#FFFFFF"
-                      fgColor="#2C361A"
+                      fgColor={darkEspresso}
                     />
                   </div>
 
                   <div style={{ marginTop: '20px', borderTop: '1px solid #F0EDE9', paddingTop: '15px', width: '100%' }}>
-                    <p style={{ fontFamily: 'Cormorant Garamond', fontSize: '1.3rem', fontStyle: 'italic', color: '#2C361A', margin: '0 0 4px 0' }}>
+                    <p style={{ fontFamily: 'Cormorant Garamond', fontSize: '1.3rem', fontStyle: 'italic', color: darkEspresso, margin: '0 0 4px 0' }}>
                       {rsvpForm.name}
                     </p>
-                    <p style={{ fontFamily: 'Montserrat', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#8A9A75', margin: '0 0 12px 0' }}>
+                    <p style={{ fontFamily: 'Montserrat', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '1px', color: terracotta, margin: '0 0 12px 0' }}>
                       {parseInt(rsvpForm.guests, 10) > 1 ? `Admit ${rsvpForm.guests} Guests` : 'Admit 1 Guest'}
                     </p>
                     <p style={{ fontFamily: 'Montserrat', fontSize: '0.7rem', color: '#666', margin: '0 0 3px 0' }}>
@@ -1016,33 +1154,38 @@ const TerracottaEarth = ({ weddingData }) => {
                   <div style={{ borderTop: '1px solid #F0EDE9', width: '100%', paddingTop: '12px', marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <img src={logoImg} alt="SaveMeASeat Logo" style={{ height: '12px', objectFit: 'contain' }} />
-                      <span style={{ fontFamily: 'Montserrat', fontSize: '0.5rem', fontWeight: 'bold', color: '#8A9A75' }}>
+                      <span style={{ fontFamily: 'Montserrat', fontSize: '0.5rem', fontWeight: 'bold', color: terracotta }}>
                         SaveMeASeat
                       </span>
                     </div>
-                    <span style={{ fontFamily: 'Montserrat', fontSize: '0.5rem', color: '#8A9A75', letterSpacing: '0.5px' }}>
+                    <span style={{ fontFamily: 'Montserrat', fontSize: '0.5rem', color: terracotta, letterSpacing: '0.5px' }}>
                       savemeaseatzambia.com
                     </span>
                   </div>
                 </div>
-
-                <button className="te-submit" style={{ padding: '10px 18px', borderRadius: 8 }} onClick={downloadPassCard}>
-                  <i className="fas fa-download" style={{ marginRight: 8 }}></i>Download Pass Card
-                </button>
               </div>
             )}
           </div>
 
           {/* FOOTER */}
           <div className="te-footer">
-            <div className="te-footer-names">{groomFirst} & {brideFirst}</div>
+            <div className="te-footer-names">{brideFirst} & {groomFirst}</div>
             <div className="te-footer-date">
-              {String(dayNum).padStart(2,'0')}.{String(monthNum+1).padStart(2,'0')}.{year}
+              {String(dayNum).padStart(2, '0')}.{String(monthNum + 1).padStart(2, '0')}.{year}
             </div>
           </div>
 
         </div>
       </div>
+
+      {/* Floating Audio Player */}
+      <button
+        onClick={togglePlay}
+        className={`te-music-btn ${isPlaying ? 'playing' : ''}`}
+        aria-label="Toggle Background Music"
+      >
+        <i className={`fa-solid ${isPlaying ? 'fa-music' : 'fa-volume-xmark'}`}></i>
+      </button>
     </>
   );
 };

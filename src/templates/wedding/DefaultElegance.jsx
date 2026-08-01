@@ -2915,38 +2915,10 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
                 <span className="details-card-time">Guidelines</span>
                 <div className="details-card-divider"></div>
                 <div className="details-card-venue" id="dress-code-text">
-                  {weddingData.dressCode || "Formal / Black Tie Optional"}
+                  {weddingData.dressCode || weddingData.dress_code || "Formal / Black Tie Optional"}
                 </div>
-                {weddingData.dressCodeDescription && (
-                  <p className="details-card-address">{weddingData.dressCodeDescription}</p>
-                )}
-                {weddingData.dress_code_colors && weddingData.dress_code_colors.length > 0 && (
-                  <div className="dress-code-colors-swatch" style={{
-                    display: 'flex',
-                    gap: '10px',
-                    justifyContent: 'center',
-                    marginTop: '20px',
-                    flexWrap: 'wrap'
-                  }}>
-                    {weddingData.dress_code_colors.map((color, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '6px',
-                          backgroundColor: color,
-                          border: color.toLowerCase() === '#ffffff' || color.toLowerCase() === '#fff' ? '2px solid #ddd' : '1px solid rgba(0,0,0,0.15)',
-                          boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-                          transition: 'transform 0.2s',
-                          cursor: 'pointer'
-                        }}
-                        title={color}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                      />
-                    ))}
-                  </div>
+                {(weddingData.dressCodeDescription || weddingData.dress_code_desc) && (
+                  <p className="details-card-address">{weddingData.dressCodeDescription || weddingData.dress_code_desc}</p>
                 )}
               </div>
             </div>

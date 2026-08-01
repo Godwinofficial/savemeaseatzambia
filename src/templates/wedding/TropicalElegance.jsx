@@ -22,6 +22,29 @@ const TropicalElegance = ({ weddingData }) => {
   const brideFirst = d.couple?.bride?.name?.split(' ')[0] || 'Bride';
   const groomFirst = d.couple?.groom?.name?.split(' ')[0] || 'Groom';
 
+  const galleryImages = d.galleryImages && d.galleryImages.length > 0
+    ? d.galleryImages
+    : (d.sliderImages && d.sliderImages.length > 0 ? d.sliderImages : sliderImages);
+
+  const safeGifts = Array.isArray(d.gifts)
+    ? d.gifts
+    : (() => {
+      if (!d.gifts) return [];
+      if (typeof d.gifts === 'string') {
+        try {
+          const parsed = JSON.parse(d.gifts);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          return [];
+        }
+      }
+      return [];
+    })();
+
+  const dressCodeColors = d.dress_code_colors && d.dress_code_colors.length > 0
+    ? d.dress_code_colors
+    : ['#072417', '#cba052', '#f8f5ed'];
+
   const eventDate = d.date ? new Date(d.date) : new Date('2026-09-28T17:00:00');
   const pad = (n) => String(n).padStart(2, '0');
   const day = eventDate.getDate();
@@ -31,10 +54,30 @@ const TropicalElegance = ({ weddingData }) => {
   const timeStr = d.ceremony?.time || '5:00 PM Sharp';
 
   // RSVP Form State
-  const [form, setForm] = useState({ name: '', phone: '', guests: '1', attendance: 'yes' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', guests: '1', attendance: 'yes' });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [rsvpId, setRsvpId] = useState(null);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audio] = useState(() => {
+    const a = new Audio("https://archive.org/download/100ClassicalMusicMasterpieces/1801%20Beethoven-%20%27Moonlight%27%20Sonata%2C%201st%20movement.mp3");
+    a.loop = true;
+    return a;
+  });
+
+  const togglePlay = () => {
+    if (isPlaying) {
+      audio.pause();
+      setIsPlaying(false);
+    } else {
+      audio.play().then(() => {
+        setIsPlaying(true);
+      }).catch(err => {
+        console.error("Audio playback failed:", err);
+      });
+    }
+  };
 
   // Countdown State
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
@@ -81,17 +124,51 @@ const TropicalElegance = ({ weddingData }) => {
     };
   }, [eventDate]);
 
+  useEffect(() => {
+    const handleInteraction = () => {
+      audio.play().then(() => {
+        setIsPlaying(true);
+        cleanup();
+      }).catch(() => { });
+    };
+    const cleanup = () => {
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('scroll', handleInteraction);
+      window.removeEventListener('touchstart', handleInteraction);
+    };
+    window.addEventListener('click', handleInteraction);
+    window.addEventListener('scroll', handleInteraction);
+    window.addEventListener('touchstart', handleInteraction);
+    return () => {
+      cleanup();
+      audio.pause();
+    };
+  }, [audio]);
+
+  useEffect(() => {
+    if (d.allowedGuests && d.allowedGuests.length > 0) {
+      setForm(prev => ({ ...prev, guests: d.allowedGuests[0] }));
+    }
+  }, [d.allowedGuests]);
+
   const handleRsvpSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) return;
     setSubmitting(true);
     try {
-      if (d.id && !d.id.startsWith('demo-')) {
-        const { data, error } = await supabase.from('rsvps').insert([{ wedding_id: d.id, name: form.name, email: form.email, phone: form.phone, attending: form.attendance, guests_count: parseInt(form.guests) || 1, status: 'pending' }]).select('id').single();
+      if (d.id) {
+        const { data, error } = await supabase.from('rsvps').insert([{ 
+          wedding_id: d.id, 
+          name: form.name, 
+          email: form.email, 
+          phone: form.phone, 
+          attending: form.attendance, 
+          guests_count: parseInt(form.guests) || 1, 
+          status: 'pending' 
+        }]).select();
+        
         if (error) throw error;
-        setRsvpId(data?.id || `local-${Date.now()}`);
-      } else {
-        setRsvpId(`local-${Date.now()}`);
+        setRsvpId((data && data[0]?.id) || `local-${Date.now()}`);
       }
       setSubmitted(true);
     } catch (err) {
@@ -268,6 +345,89 @@ const TropicalElegance = ({ weddingData }) => {
         .inv-submit:disabled { opacity: 0.7; cursor: not-allowed; }
         
         .inv-footer-img { width: 100%; height: 350px; object-fit: cover; border-radius: 0 0 200px 200px; -webkit-mask-image: linear-gradient(to top, black 60%, transparent 100%); mask-image: linear-gradient(to top, black 60%, transparent 100%); margin-top: 50px; }
+
+        /* iPhone / iOS Photos Mosaic Gallery Grid */
+        .ios-gallery-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          grid-auto-rows: 100px;
+          grid-auto-flow: dense;
+          gap: 0px;
+          padding: 0px;
+          background: none;
+          border-radius: 0px;
+          border: none;
+          max-width: 600px;
+          margin: 20px auto 35px auto;
+          overflow: hidden;
+        }
+        .ios-gallery-item {
+          position: relative;
+          overflow: hidden;
+          border-radius: 0px;
+          cursor: pointer;
+          transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+        }
+        .ios-gallery-item img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: transform 0.5s ease;
+        }
+        .ios-gallery-item:hover {
+          transform: scale(1.05) translateZ(0);
+          z-index: 10;
+          box-shadow: 0 10px 20px rgba(92,53,34,0.25);
+        }
+        .ios-gallery-item:hover img {
+          transform: scale(1.06);
+        }
+        .ios-gallery-item.large {
+          grid-column: span 2;
+          grid-row: span 2;
+        }
+
+        @media (min-width: 480px) {
+          .ios-gallery-grid {
+            grid-auto-rows: 130px;
+            gap: 0px;
+            padding: 0px;
+          }
+        }
+
+        /* Floating Audio Player Button */
+        .inv-music-btn {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          width: 45px;
+          height: 45px;
+          border-radius: 50%;
+          background: #FDFBF9;
+          border: 1px solid rgba(92, 53, 34, 0.2);
+          color: #5C3522;
+          font-size: 1.1rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          box-shadow: 0 4px 15px rgba(92, 53, 34, 0.15);
+          z-index: 9999;
+          transition: all 0.3s ease;
+        }
+        .inv-music-btn:hover {
+          transform: scale(1.1);
+          background: #5C3522;
+          color: #FFF;
+        }
+        .inv-music-btn.playing i {
+          animation: invMusicPulse 1.5s linear infinite;
+        }
+        @keyframes invMusicPulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.1); }
+          100% { transform: scale(1); }
+        }
       `}</style>
 
       <div className="inv-wrapper">
@@ -343,17 +503,6 @@ const TropicalElegance = ({ weddingData }) => {
                   <span style={{ fontSize: '0.85rem', color: accentBrown, fontWeight: 600 }}>{d.ceremony?.time || '5:00 PM'}</span><br />
                   {typeof d.ceremony?.venue === 'string' ? '' : (d.venue?.address || 'Av. Visc. de Guarapuava, 1787')}
                 </p>
-                <div style={{ width: '100%', height: '200px', borderRadius: '20px', overflow: 'hidden', marginTop: '15px', border: `1px solid rgba(92,53,34,0.2)` }}>
-                  <iframe
-                    src={d.mapLocation || d.venue?.mapLocation || `https://maps.google.com/maps?q=${encodeURIComponent((d.venue?.name || '') + ' ' + (d.venue?.address || ''))}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen=""
-                    loading="lazy"
-                    title="Ceremony Map"
-                  ></iframe>
-                </div>
               </div>
             </div>
 
@@ -370,7 +519,7 @@ const TropicalElegance = ({ weddingData }) => {
                 </p>
                 <div style={{ width: '100%', height: '200px', borderRadius: '20px', overflow: 'hidden', marginTop: '15px', border: `1px solid rgba(92,53,34,0.2)` }}>
                   <iframe
-                    src={d.mapLocation || d.reception?.venue?.mapLocation || `https://maps.google.com/maps?q=${encodeURIComponent((d.reception?.venue?.name || '') + ' ' + (d.reception?.venue?.address || ''))}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+                    src={d.mapLocation || d.venue?.mapLocation || d.reception?.venue?.mapLocation || `https://maps.google.com/maps?q=${encodeURIComponent((d.reception?.venue?.name || d.venue?.name || '') + ' ' + (d.reception?.venue?.address || d.venue?.address || ''))}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}
@@ -384,24 +533,34 @@ const TropicalElegance = ({ weddingData }) => {
 
             <SquigglyDivider />
 
-
-
-            {/* Gifts - Icon Right */}
+            {/* Dress Code Section */}
             <div className="inv-section-item animate-on-scroll">
-              <SectionPill icon="fa-gift" topText="GIFT" bottomText="Registry" iconLeft={true} />
-              <div className="inv-section-content">
-                <p>Your presence is our biggest gift. If you'd like to gift us:</p>
-                {d.gifts && d.gifts.length > 0 ? (
-                  d.gifts.map((gift, idx) => (
-                    <div key={idx} style={{ background: 'rgba(255,255,255,0.6)', padding: '15px', borderRadius: '15px', border: `1px solid rgba(92,53,34,0.1)`, textAlign: 'left', fontSize: '0.75rem', lineHeight: 1.6, fontFamily: 'Montserrat', marginBottom: '10px' }}>
-                      <strong>{gift.provider || gift.bank || 'Account'}:</strong> {gift.accountNumber}<br />
-                      {gift.accountName && <span><strong>Name:</strong> {gift.accountName}</span>}
-                    </div>
-                  ))
-                ) : (
-                  <div style={{ background: 'rgba(255,255,255,0.6)', padding: '15px', borderRadius: '15px', border: `1px solid rgba(92,53,34,0.1)`, textAlign: 'left', fontSize: '0.75rem', lineHeight: 1.6, fontFamily: 'Montserrat' }}>
-                    <strong>Mobile Money:</strong> +260 973 848066<br />
-                    <strong>Name:</strong> {brideFirst} & {groomFirst}
+              <SectionPill icon="fa-user-tie" topText="DRESS CODE" bottomText="What to Wear" iconLeft={true} />
+              <div className="inv-section-content" style={{ textAlign: 'center' }}>
+                <p style={{ fontWeight: 'bold', color: textBrown, fontSize: '0.95rem', marginBottom: '8px' }}>
+                  {d.dressCode || d.dress_code || 'Elegant Tropical / Formal'}
+                </p>
+                <p style={{ fontSize: '0.8rem', color: '#666', lineHeight: '1.5', marginBottom: '15px' }}>
+                  {d.dressCodeDescription || d.dress_code_desc || ''}
+                </p>
+
+                {/* Color Swatches */}
+                {dressCodeColors && dressCodeColors.length > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '15px' }}>
+                    {dressCodeColors.map((color, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '50%',
+                          background: color,
+                          border: '2px solid #FFF',
+                          boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)'
+                        }}
+                        title={color}
+                      />
+                    ))}
                   </div>
                 )}
               </div>
@@ -409,13 +568,164 @@ const TropicalElegance = ({ weddingData }) => {
 
             <SquigglyDivider />
 
+            {/* Gifts - Icon Right (DYNAMIC) */}
+            {safeGifts && safeGifts.length > 0 && (
+              <>
+                <div className="inv-section-item animate-on-scroll">
+                  <SectionPill icon="fa-gift" topText="GIFT" bottomText="Registry" iconLeft={true} />
+                  <div className="inv-section-content">
+                    <p>Your presence is our biggest gift. If you'd like to gift us:</p>
+                    {safeGifts.map((gift, idx) => (
+                      <div key={idx} style={{
+                        background: '#FFF',
+                        padding: '20px',
+                        borderRadius: '16px',
+                        border: `1px solid rgba(92, 53, 34, 0.12)`,
+                        boxShadow: '0 6px 15px rgba(92, 53, 34, 0.04)',
+                        textAlign: 'center',
+                        fontFamily: 'Montserrat, sans-serif',
+                        marginBottom: '15px'
+                      }}>
+                        <div style={{
+                          fontFamily: 'Montserrat',
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold',
+                          textTransform: 'uppercase',
+                          letterSpacing: '1.5px',
+                          color: accentBrown,
+                          marginBottom: '8px'
+                        }}>
+                          {gift.provider || gift.giftType || gift.bank || 'Registry'}
+                        </div>
+                        {(gift.accountNumber || gift.account_number) && (
+                          <div style={{
+                            fontSize: '1.1rem',
+                            fontWeight: '600',
+                            color: textBrown,
+                            letterSpacing: '0.5px',
+                            margin: '6px 0'
+                          }}>
+                            {gift.accountNumber || gift.account_number}
+                          </div>
+                        )}
+                        {(gift.accountName || gift.account_name) && (
+                          <div style={{
+                            fontSize: '0.8rem',
+                            color: textBrown,
+                            opacity: 0.8,
+                            fontWeight: '500'
+                          }}>
+                            Name: {gift.accountName || gift.account_name}
+                          </div>
+                        )}
+                        {gift.instructions && (
+                          <div style={{
+                            fontSize: '0.75rem',
+                            color: '#7C6E65',
+                            fontStyle: 'italic',
+                            marginTop: '8px',
+                            lineHeight: '1.4'
+                          }}>
+                            {gift.instructions}
+                          </div>
+                        )}
+                        {gift.url && (
+                          <a
+                            href={gift.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: 'inline-block',
+                              marginTop: '12px',
+                              background: textBrown,
+                              color: '#FFF',
+                              fontSize: '0.7rem',
+                              fontWeight: '600',
+                              textTransform: 'uppercase',
+                              letterSpacing: '1px',
+                              padding: '8px 16px',
+                              borderRadius: '20px',
+                              textDecoration: 'none',
+                              transition: 'opacity 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.target.style.opacity = 0.9}
+                            onMouseLeave={(e) => e.target.style.opacity = 1}
+                          >
+                            Visit Link <i className="fas fa-external-link-alt" style={{ marginLeft: '4px', fontSize: '0.65rem' }}></i>
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <SquigglyDivider />
+              </>
+            )}
+
+            {/* Memories - Icon Left */}
+            {galleryImages && galleryImages.length > 0 && (() => {
+              const maxVisible = 6;
+              const visibleImages = galleryImages.slice(0, maxVisible);
+              const remainingCount = galleryImages.length - maxVisible;
+
+              return (
+                <>
+                  <div className="inv-section-item animate-on-scroll">
+                    <SectionPill icon="fa-camera-retro" topText="OUR CHERISHED" bottomText="Memories" iconLeft={false} />
+                    <div className="inv-section-content" style={{ width: '100%' }}>
+                      <p style={{ marginBottom: '15px' }}>A glimpse into our beautiful journey together:</p>
+                      <div className="ios-gallery-grid">
+                        {visibleImages.map((imgUrl, idx) => {
+                          let layoutClass = "";
+                          if (idx === 0) layoutClass = "large";
+
+                          const isLast = idx === maxVisible - 1 && remainingCount > 0;
+
+                          return (
+                            <div
+                              key={idx}
+                              className={`ios-gallery-item ${layoutClass}`}
+                              onClick={() => setLightboxIndex(idx)}
+                            >
+                              <img src={imgUrl} alt={`Gallery ${idx + 1}`} loading="lazy" />
+                              {isLast && (
+                                <div style={{
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: 0,
+                                  width: '100%',
+                                  height: '100%',
+                                  background: 'rgba(92, 53, 34, 0.7)',
+                                  display: 'flex',
+                                  justifyContent: 'center',
+                                  alignItems: 'center',
+                                  color: '#FFFFFF',
+                                  fontFamily: 'Montserrat',
+                                  fontSize: '1.8rem',
+                                  fontWeight: '600',
+                                  zIndex: 2
+                                }}>
+                                  +{remainingCount}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  <SquigglyDivider />
+                </>
+              );
+            })()}
+
             {/* RSVP - Icon Left */}
             <div className="inv-section-item animate-on-scroll">
               <SectionPill icon="fa-envelope-open-text" topText="CONFIRM YOUR" bottomText="Attendance" iconLeft={false} />
               <div className="inv-section-content">
                 {submitted ? (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, paddingTop: '10px' }}>
-                    <div id="pass-card-container" style={{ width: 320, background: '#FFF', padding: '30px 24px', borderRadius: '16px', boxShadow: '0 15px 35px rgba(0,0,0,0.08)', border: '1px solid #E6E1D6', maxWidth: '320px', width: '100%', textAlign: 'center', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div id="pass-card-container" style={{ background: '#FFF', padding: '30px 24px', borderRadius: '16px', boxShadow: '0 15px 35px rgba(0,0,0,0.08)', border: '1px solid #E6E1D6', maxWidth: '320px', width: '100%', textAlign: 'center', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                       <div style={{ borderBottom: '1px solid #F0EDE9', width: '100%', paddingBottom: '15px', marginBottom: '20px' }}>
                         <h4 style={{ fontFamily: 'Cormorant Garamond', fontSize: '1.8rem', color: '#2C361A', margin: '0', fontWeight: 'normal', letterSpacing: '1px' }}>
                           {brideFirst} & {groomFirst}
@@ -482,10 +792,20 @@ const TropicalElegance = ({ weddingData }) => {
                     <div className="inv-input-group">
                       <select className="inv-select" value={form.guests} onChange={e => setForm({ ...form, guests: e.target.value })}>
                         <option value="" disabled>Number of Guests</option>
-                        <option value="1">1 Guest</option>
-                        <option value="2">2 Guests</option>
-                        <option value="3">3 Guests</option>
-                        <option value="4">4 Guests</option>
+                        {d.allowedGuests && d.allowedGuests.length > 0 ? (
+                          d.allowedGuests.map((opt, idx) => (
+                            <option key={idx} value={opt}>
+                              {opt} {parseInt(opt, 10) === 1 ? 'Guest' : 'Guests'}
+                            </option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="1">1 Guest</option>
+                            <option value="2">2 Guests</option>
+                            <option value="3">3 Guests</option>
+                            <option value="4">4 Guests</option>
+                          </>
+                        )}
                       </select>
                     </div>
                     <div className="inv-radio-container">
@@ -510,6 +830,145 @@ const TropicalElegance = ({ weddingData }) => {
 
         </div>
       </div>
+
+      {/* Lightbox Modal */}
+      {lightboxIndex !== null && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(92, 53, 34, 0.95)',
+            backdropFilter: 'blur(15px)',
+            WebkitBackdropFilter: 'blur(15px)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setLightboxIndex(null)}
+        >
+          {/* Close Button */}
+          <button
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              background: 'rgba(255,255,255,0.1)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '44px',
+              height: '44px',
+              color: '#FFFFFF',
+              fontSize: '1.2rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1010
+            }}
+            onClick={(e) => { e.stopPropagation(); setLightboxIndex(null); }}
+          >
+            <i className="fas fa-times"></i>
+          </button>
+
+          {/* Left Arrow */}
+          {galleryImages.length > 1 && (
+            <button
+              style={{
+                position: 'absolute',
+                left: '20px',
+                background: 'rgba(255,255,255,0.1)',
+                border: 'none',
+                borderRadius: '50%',
+                width: '44px',
+                height: '44px',
+                color: '#FFFFFF',
+                fontSize: '1.2rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1010
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
+              }}
+            >
+              <i className="fas fa-chevron-left"></i>
+            </button>
+          )}
+
+          {/* Main Image */}
+          <img
+            src={galleryImages[lightboxIndex]}
+            alt="Expanded Memory"
+            style={{
+              maxWidth: '85%',
+              maxHeight: '75%',
+              borderRadius: '8px',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+              objectFit: 'contain',
+              transition: 'transform 0.3s ease'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {/* Right Arrow */}
+          {galleryImages.length > 1 && (
+            <button
+              style={{
+                position: 'absolute',
+                right: '20px',
+                background: 'rgba(255,255,255,0.1)',
+                border: 'none',
+                borderRadius: '50%',
+                width: '44px',
+                height: '44px',
+                color: '#FFFFFF',
+                fontSize: '1.2rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1010
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((prev) => (prev + 1) % galleryImages.length);
+              }}
+            >
+              <i className="fas fa-chevron-right"></i>
+            </button>
+          )}
+
+          {/* Counter Badge */}
+          <div style={{
+            position: 'absolute',
+            bottom: '20px',
+            background: 'rgba(0,0,0,0.4)',
+            color: '#fff',
+            padding: '6px 14px',
+            borderRadius: '20px',
+            fontSize: '0.8rem',
+            fontFamily: 'Montserrat',
+            zIndex: 1010
+          }}>
+            {lightboxIndex + 1} / {galleryImages.length}
+          </div>
+        </div>
+      )}
+      {/* Floating Audio Player */}
+      <button
+        onClick={togglePlay}
+        className={`inv-music-btn ${isPlaying ? 'playing' : ''}`}
+        aria-label="Toggle Background Music"
+      >
+        <i className={`fa-solid ${isPlaying ? 'fa-music' : 'fa-volume-xmark'}`}></i>
+      </button>
     </>
   );
 };

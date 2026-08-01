@@ -747,7 +747,7 @@ const GoldenRomance = ({ weddingData }) => {
                     </form>
                   ) : (
                     <div style={{ padding: '20px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-                      <div id="pass-card-container" style={{ width: 320, background: '#FFF', padding: '30px 24px', borderRadius: '16px', boxShadow: '0 15px 35px rgba(0,0,0,0.08)', border: '1px solid #E6E1D6', maxWidth: '320px', width: '100%', textAlign: 'center', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <div id="pass-card-container" style={{ background: '#FFF', padding: '30px 24px', borderRadius: '16px', boxShadow: '0 15px 35px rgba(0,0,0,0.08)', border: '1px solid #E6E1D6', maxWidth: '320px', width: '100%', textAlign: 'center', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <div style={{ borderBottom: '1px solid #F0EDE9', width: '100%', paddingBottom: '15px', marginBottom: '20px' }}>
                           <h4 style={{ fontFamily: 'Cormorant Garamond', fontSize: '1.8rem', color: '#2C361A', margin: '0', fontWeight: 'normal', letterSpacing: '1px' }}>
                             {brideFirst} & {groomFirst}

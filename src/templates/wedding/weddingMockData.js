@@ -52,7 +52,7 @@ export const weddingMockData = {
       address: 'Anhwiaa Estate'
     },
     dressCode: 'Elegant Tropical / Formal',
-    dressCodeDescription: 'Gentlemen in dark or earth-toned suits; Ladies in elegant gowns. Floral or green accents are highly encouraged.',
+    dressCodeDescription: '',
     dress_code_colors: ['#072417', '#cba052', '#f8f5ed'],
     gifts: [
       { bank: 'Standard Chartered', accountName: 'Sarfo & Cecilia', accountNumber: '1234 567 890', branch: 'Main Branch' }

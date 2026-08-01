@@ -12,7 +12,6 @@ const setThemeColor = (color) => {
 
 import { getEmailTemplate } from '../../utils/emailTemplates';
 import { sendEmail as sendEmailService } from '../../utils/emailService';
-import ReminderModal from '../../components/ReminderModal';
 import { useSearchParams } from 'react-router-dom';
 import QRScanner from '../../components/QRScanner';
 
@@ -87,6 +86,44 @@ const AVATAR_COLORS = ['#4f46e5', '#0891b2', '#7c3aed', '#be185d', '#065f46', '#
 const getAvatarColor = (name = '') => AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
 const getInitials = (name = '') => name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || '?';
 
+const TEMPLATE_THEMES = [
+    {
+        id: 1,
+        name: 'Classic Elegance',
+        tags: ['Classic', 'Minimal', 'Elegant'],
+        description: 'Timeless black and white design with clean serif fonts and delicate dividers.',
+        colors: ['#000000', '#ffffff', '#333333']
+    },
+    {
+        id: 2,
+        name: 'Tropical Elegance',
+        tags: ['Tropical', 'Green', 'Gold'],
+        description: 'Lush botanical frames with gold accents, perfect for outdoor or destination weddings.',
+        colors: ['#cba052', '#f8fcf7', '#072417']
+    },
+    {
+        id: 3,
+        name: 'Golden Romance',
+        tags: ['Elegant', 'Amber', 'Classic'],
+        description: 'Luxurious amber and cream theme radiating warmth and sophisticated romance.',
+        colors: ['#c8863b', '#fdfbf7', '#2c1e16']
+    },
+    {
+        id: 7,
+        name: 'Botanical Olive',
+        tags: ['Olive', 'Earthy', 'Cursive'],
+        description: 'Soft olive green leaves with fluid typography, creating a serene organic aesthetic.',
+        colors: ['#606c38', '#fcfbf9', '#283618']
+    },
+    {
+        id: 8,
+        name: 'Terracotta Earth',
+        tags: ['Terracotta', 'Linen', 'Watercolor'],
+        description: 'Warm, earthy tones inspired by natural linen, pottery, and rustic landscapes.',
+        colors: ['#d9745b', '#fdf8f5', '#5c2c1e']
+    }
+];
+
 const RSVPReport = () => {
     const { slug } = useParams();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -101,7 +138,6 @@ const RSVPReport = () => {
     const [editForm, setEditForm] = useState({});
     const [successMessage, setSuccessMessage] = useState(null);
     const [processingAction, setProcessingAction] = useState(null);
-    const [showReminderModal, setShowReminderModal] = useState(false);
     const [sendingReminders, setSendingReminders] = useState(false);
     const [vendors, setVendors] = useState([]);
     const [selectedVendorFilter, setSelectedVendorFilter] = useState('all');
@@ -155,7 +191,7 @@ const RSVPReport = () => {
             if (!isRefresh) setLoading(true);
             const { data: weddingData, error: weddingError } = await supabase
                 .from('weddings')
-                .select('id, groom_name, bride_name, date, venue_name, location, ceremony_time, reception_time, slug')
+                .select('*')
                 .eq('slug', slug)
                 .single();
             if (weddingError || !weddingData) throw new Error("Wedding not found");
@@ -276,15 +312,15 @@ const RSVPReport = () => {
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
-            
+
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
-            
+
             oscillator.type = 'sine';
             oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
             gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-            
+
             oscillator.start();
             oscillator.stop(audioCtx.currentTime + 0.15);
         } catch (e) {
@@ -298,15 +334,15 @@ const RSVPReport = () => {
             [0, 0.12].forEach(delay => {
                 const oscillator = audioCtx.createOscillator();
                 const gainNode = audioCtx.createGain();
-                
+
                 oscillator.connect(gainNode);
                 gainNode.connect(audioCtx.destination);
-                
+
                 oscillator.type = 'sawtooth';
                 oscillator.frequency.setValueAtTime(160, audioCtx.currentTime + delay);
                 gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime + delay);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + delay + 0.1);
-                
+
                 oscillator.start(audioCtx.currentTime + delay);
                 oscillator.stop(audioCtx.currentTime + delay + 0.1);
             });
@@ -348,6 +384,24 @@ const RSVPReport = () => {
         }
     };
 
+    const handleActivateTemplate = async (templateId) => {
+        setProcessingAction(`template-${templateId}`);
+        try {
+            const { error } = await supabase
+                .from('weddings')
+                .update({ template_id: templateId })
+                .eq('id', wedding.id);
+            if (error) throw error;
+            setWedding(prev => ({ ...prev, template_id: templateId }));
+            setSuccessMessage("🎨 Theme activated successfully!");
+            setTimeout(() => setSuccessMessage(null), 3000);
+        } catch (error) {
+            alert('Error updating template: ' + error.message);
+        } finally {
+            setProcessingAction(null);
+        }
+    };
+
     const startEdit = (guest) => {
         setEditingId(guest.id);
         setEditForm({ name: guest.name, email: guest.email, phone: guest.phone, attending: guest.attending, guests_count: guest.guests_count });
@@ -380,9 +434,20 @@ const RSVPReport = () => {
     };
 
     const handleSendRemindersNow = async () => {
+        const currentCount = wedding?.manual_reminders_count || 0;
+        if (currentCount >= 2) {
+            alert("Limit reached: You have already sent 2 rounds of reminders.");
+            return;
+        }
+
         const approvedGuests = guests.filter(g => (g.status === 'approved' || !g.status) && g.email);
         if (!approvedGuests.length) { alert("No approved guests with email addresses found."); return; }
-        if (!window.confirm(`Send an immediate reminder to all ${approvedGuests.length} approved guests?`)) return;
+        
+        const remaining = 2 - currentCount;
+        const confirmMessage = `WARNING: You only have ${remaining} round${remaining === 1 ? '' : 's'} of sending reminders left. Users are strictly limited to 2 rounds to prevent email abuse.\n\nAre you sure you want to send reminders to all ${approvedGuests.length} approved guests now? This will consume 1 round.`;
+        
+        if (!window.confirm(confirmMessage)) return;
+
         setSendingReminders(true);
         let sentCount = 0, failCount = 0;
         try {
@@ -409,6 +474,17 @@ const RSVPReport = () => {
                     if (approvedGuests.length > 5) await new Promise(r => setTimeout(r, 400));
                 } catch (e) { failCount++; }
             }
+
+            const newCount = currentCount + 1;
+            const { error: updateError } = await supabase
+                .from('weddings')
+                .update({ manual_reminders_count: newCount })
+                .eq('id', wedding.id);
+
+            if (!updateError) {
+                setWedding(prev => ({ ...prev, manual_reminders_count: newCount }));
+            }
+
             setSuccessMessage(`🔔 Sent reminders to ${sentCount} guests${failCount > 0 ? ` (${failCount} failed)` : ''}!`);
             setTimeout(() => setSuccessMessage(null), 5000);
         } catch (error) {
@@ -473,27 +549,16 @@ const RSVPReport = () => {
                 </div>
             )}
 
-            {/* Reminder Modal */}
-            {showReminderModal && (
-                <ReminderModal
-                    wedding={wedding}
-                    onClose={() => setShowReminderModal(false)}
-                    onSave={() => {
-                        setSuccessMessage("⏰ Reminders scheduled successfully!");
-                        setTimeout(() => setSuccessMessage(null), 3000);
-                        fetchReportData(true);
-                    }}
-                />
-            )}
+
 
             {/* QR Scanner Modal */}
             {showQrScanner && (
                 <div className="vm-overlay" onClick={() => { window.isProcessingScan = false; setShowQrScanner(false); }}>
-                    <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '1.5rem', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
+                    <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '1.5rem', maxWidth: '550px', width: '95%', textAlign: 'center' }}>
                         <h4 className="vm-name">Scan Guest Pass</h4>
                         <p className="vm-desc" style={{ marginBottom: '1.5rem' }}>Point the camera at the guest's QR code.</p>
-                        
-                        <div style={{ width: '100%', height: '300px', background: '#000', borderRadius: '12px', overflow: 'hidden', position: 'relative' }}>
+
+                        <div style={{ width: '100%', height: '420px', background: '#000', borderRadius: '12px', overflow: 'hidden', position: 'relative' }}>
                             <QRScanner
                                 onScan={async (detectedCodes) => {
                                     const rawCode = detectedCodes[0]?.rawValue;
@@ -509,7 +574,7 @@ const RSVPReport = () => {
                                                     code = parsed.id;
                                                     embeddedData = parsed;
                                                     setScanMessage(`✅ Decoded pass for ${parsed.name}`);
-                                                } catch(e) {
+                                                } catch (e) {
                                                     // Not valid JSON, fallback to raw string
                                                 }
                                             }
@@ -520,55 +585,55 @@ const RSVPReport = () => {
                                             let data = null;
                                             let error = null;
                                             if (isNumericId) {
-                                               const result = await supabase.from('rsvps').select('*').eq('id', code).eq('wedding_id', wedding.id).single();
-                                               data = result.data;
-                                               error = result.error;
-                                             } else {
-                                               error = new Error('Skipping DB lookup for non-numeric pass ID');
-                                             }
-                                             
-                                             let guestRecord = data;
-                                             let isFallback = false;
-                                             if (error || !data) {
-                                                 console.error("DB lookup fail or skipped, checking embedded data:", error);
-                                                 if (embeddedData && embeddedData.wedding_id === wedding.id) {
-                                                     guestRecord = {
-                                                         id: embeddedData.id,
-                                                         name: embeddedData.name,
-                                                         email: embeddedData.email,
-                                                         phone: embeddedData.phone,
-                                                         guests_count: embeddedData.guests_count || 1,
-                                                         wedding_id: embeddedData.wedding_id,
-                                                         checked_in: false
-                                                     };
-                                                     isFallback = true;
-                                                 }
-                                             }
+                                                const result = await supabase.from('rsvps').select('*').eq('id', code).eq('wedding_id', wedding.id).single();
+                                                data = result.data;
+                                                error = result.error;
+                                            } else {
+                                                error = new Error('Skipping DB lookup for non-numeric pass ID');
+                                            }
 
-                                             if (!guestRecord) {
-                                                 playWarningSound();
-                                                 setScanMessage("❌ Invalid or not found in this guest list.");
-                                                 setTimeout(() => { window.isProcessingScan = false; }, 2500);
-                                                 return;
-                                             }
+                                            let guestRecord = data;
+                                            let isFallback = false;
+                                            if (error || !data) {
+                                                console.error("DB lookup fail or skipped, checking embedded data:", error);
+                                                if (embeddedData && embeddedData.wedding_id === wedding.id) {
+                                                    guestRecord = {
+                                                        id: embeddedData.id,
+                                                        name: embeddedData.name,
+                                                        email: embeddedData.email,
+                                                        phone: embeddedData.phone,
+                                                        guests_count: embeddedData.guests_count || 1,
+                                                        wedding_id: embeddedData.wedding_id,
+                                                        checked_in: false
+                                                    };
+                                                    isFallback = true;
+                                                }
+                                            }
 
-                                             // Check if already checked in locally or in database
-                                             const localCheckedIn = checkedInGuests.some(g => g.id === guestRecord.id);
-                                             const isAlreadyCheckedIn = localCheckedIn || guestRecord.checked_in;
-                                             
-                                             if (isAlreadyCheckedIn) {
-                                                 playWarningSound();
-                                                 setScanMessage("❌ Already Checked In!");
-                                                 
-                                                 // Load details to show warning modal
-                                                 setScannedGuest({ ...guestRecord, checked_in: true });
-                                                 return;
-                                             }
+                                            if (!guestRecord) {
+                                                playWarningSound();
+                                                setScanMessage("❌ Invalid or not found in this guest list.");
+                                                setTimeout(() => { window.isProcessingScan = false; }, 2500);
+                                                return;
+                                            }
 
-                                             // Successful scan! Play success beep!
-                                             playBeepSound();
-                                             setScanMessage("✅ Guest Found!");
-                                             setScannedGuest(guestRecord);                                           
+                                            // Check if already checked in locally or in database
+                                            const localCheckedIn = checkedInGuests.some(g => g.id === guestRecord.id);
+                                            const isAlreadyCheckedIn = localCheckedIn || guestRecord.checked_in;
+
+                                            if (isAlreadyCheckedIn) {
+                                                playWarningSound();
+                                                setScanMessage("❌ Already Checked In!");
+
+                                                // Load details to show warning modal
+                                                setScannedGuest({ ...guestRecord, checked_in: true });
+                                                return;
+                                            }
+
+                                            // Successful scan! Play success beep!
+                                            playBeepSound();
+                                            setScanMessage("✅ Guest Found!");
+                                            setScannedGuest(guestRecord);
                                             // We keep isProcessingScan true until the modal is closed to prevent re-scans in background
                                         } catch (err) {
                                             console.error("Scanning Error:", err);
@@ -585,7 +650,7 @@ const RSVPReport = () => {
                                 </div>
                             )}
                         </div>
-                        
+
                         <button onClick={() => { window.isProcessingScan = false; setScanMessage(null); setShowQrScanner(false); }} className="ga-approve" style={{ background: '#ef4444', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem', marginTop: '1.5rem' }}>
                             Close Scanner
                         </button>
@@ -602,18 +667,18 @@ const RSVPReport = () => {
                         </div>
                         <h4 className="vm-name" style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{scannedGuest.name}</h4>
                         <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
-                            {scannedGuest.email}<br/>
-                            {scannedGuest.phone}<br/>
-                            {scannedGuest.guests_count > 0 && <span style={{display: 'inline-block', marginTop: '0.5rem', background: '#e0e7ff', color: '#4f46e5', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '600'}}>{scannedGuest.guests_count} {scannedGuest.guests_count === 1 ? 'Guest' : 'Guests'}</span>}
+                            {scannedGuest.email}<br />
+                            {scannedGuest.phone}<br />
+                            {scannedGuest.guests_count > 0 && <span style={{ display: 'inline-block', marginTop: '0.5rem', background: '#e0e7ff', color: '#4f46e5', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '600' }}>{scannedGuest.guests_count} {scannedGuest.guests_count === 1 ? 'Guest' : 'Guests'}</span>}
                         </p>
-                        
+
                         {scannedGuest.checked_in ? (
                             <div style={{ background: '#fef3c7', color: '#b45309', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', fontWeight: '500' }}>
                                 This guest has ALREADY checked in.
                             </div>
                         ) : (
-                            <button 
-                                className="ga-approve" 
+                            <button
+                                className="ga-approve"
                                 style={{ width: '100%', padding: '1rem', background: '#10b981', color: '#fff', fontSize: '1rem', justifyContent: 'center', marginBottom: '1rem' }}
                                 onClick={async () => {
                                     try {
@@ -622,7 +687,7 @@ const RSVPReport = () => {
                                             .from('rsvps')
                                             .update({ checked_in: true, checked_in_at: new Date().toISOString() })
                                             .eq('id', scannedGuest.id);
-                                        
+
                                         // Safe fallback if column doesn't exist yet
                                         if (updateError && (updateError.message.includes('column') || updateError.code === '42703')) {
                                             const { error: fallbackError } = await supabase
@@ -631,7 +696,7 @@ const RSVPReport = () => {
                                                 .eq('id', scannedGuest.id);
                                             updateError = fallbackError;
                                         }
-                                        
+
                                         if (updateError) throw updateError;
                                         setSuccessMessage(`Checked in ${scannedGuest.name} successfully!`);
                                         setTimeout(() => setSuccessMessage(null), 3000);
@@ -646,7 +711,7 @@ const RSVPReport = () => {
                                 Confirm Check-In
                             </button>
                         )}
-                        
+
                         <button onClick={() => { window.isProcessingScan = false; setScannedGuest(null); }} className="ga-reject" style={{ width: '100%', padding: '1rem', background: '#f1f5f9', color: '#475569', fontSize: '1rem', justifyContent: 'center' }}>
                             {scannedGuest.checked_in ? 'Scan Next' : 'Cancel & Scan Next'}
                         </button>
@@ -886,14 +951,14 @@ const RSVPReport = () => {
 
                         <p className="hero-eyebrow">Your RSVPs</p>
                         <div className="hero-big-num">{guests.length + pendingGuests.length}</div>
-                        <p className="hero-couple">{wedding.groom_name} & {wedding.bride_name}</p>
+                        <p className="hero-couple">{wedding.bride_name} & {wedding.groom_name} </p>
                         <p className="hero-meta">
                             <i className="far fa-calendar-alt"></i>&nbsp;
                             {new Date(wedding.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                             {wedding.venue_name && <>&nbsp;·&nbsp;<i className="fas fa-map-marker-alt"></i>&nbsp;{wedding.venue_name}</>}
                         </p>
 
-                        {/* 3 Action Buttons */}
+                        {/* Action Buttons */}
                         <div className="hero-btns">
                             {weddingUrl && (
                                 <a
@@ -907,10 +972,6 @@ const RSVPReport = () => {
                                     <span className="hbtn-lbl">Visit Page</span>
                                 </a>
                             )}
-                            <button className="hbtn" onClick={() => setShowReminderModal(true)}>
-                                <span className="hbtn-icon"><i className="fas fa-clock"></i></span>
-                                <span className="hbtn-lbl">Schedule</span>
-                            </button>
                             <button className="hbtn hbtn-lime" onClick={downloadExcel}>
                                 <span className="hbtn-icon"><i className="fas fa-file-excel"></i></span>
                                 <span className="hbtn-lbl">Export</span>
@@ -925,176 +986,195 @@ const RSVPReport = () => {
                     {/* ─── WHITE CONTENT ─── */}
                     <div className="content-pad">
 
-                        {/* Stat pills */}
-                        <div className="stat-row">
-                            <div className="stat-pill">
-                                <span className="sp-num sp-green">{attendingCount}</span>
-                                <span className="sp-lbl">Attending</span>
-                            </div>
-                            <div className="sp-sep"></div>
-                            <div className="stat-pill">
-                                <span className="sp-num sp-red">{declinedCount}</span>
-                                <span className="sp-lbl">Declined</span>
-                            </div>
-                            <div className="sp-sep"></div>
-                            <div className="stat-pill">
-                                <span className="sp-num">{totalSeats}</span>
-                                <span className="sp-lbl">Seats</span>
-                            </div>
-                            <div className="sp-sep"></div>
-                            <div className="stat-pill">
-                                <span className={`sp-num ${pendingGuests.length > 0 ? 'sp-amber' : ''}`}>{pendingGuests.length}</span>
-                                <span className="sp-lbl">Pending</span>
-                            </div>
-                        </div>
-
-                        {/* Search */}
-                        <div className="search-wrap">
-                            <i className="fas fa-search si"></i>
-                            <input
-                                className="search-inp"
-                                type="text"
-                                placeholder='Try "John Doe"'
-                                value={searchQuery}
-                                onChange={e => setSearchQuery(e.target.value)}
-                            />
-                            {searchQuery && (
-                                <button className="search-clear" onClick={() => setSearchQuery('')}><i className="fas fa-times"></i></button>
-                            )}
-                        </div>
-
-                        {/* Section header */}
-                        <div className="sec-hdr">
-                            <span className="sec-title"> Activities</span>
-                            <div className="sec-tabs">
-                                <button
-                                    className={`sec-tab ${activeTab === 'approved' ? 'sec-tab-on' : ''}`}
-                                    onClick={() => setActiveTab('approved')}
-                                >
-                                    Approved
-                                </button>
-                                <button
-                                    className={`sec-tab ${activeTab === 'checked_in' ? 'sec-tab-on' : ''}`}
-                                    onClick={() => setActiveTab('checked_in')}
-                                >
-                                    Checked In {checkedInGuests.length > 0 && <span className="sec-badge sec-badge-green">{checkedInGuests.length}</span>}
-                                </button>
-                                <button
-                                    className={`sec-tab ${activeTab === 'pending' ? 'sec-tab-on' : ''}`}
-                                    onClick={() => setActiveTab('pending')}
-                                >
-                                    Pending {pendingGuests.length > 0 && <span className="sec-badge">{pendingGuests.length}</span>}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* ─── GUEST ROWS ─── */}
-                        <div className="guest-list">
-                            {activeTab === 'pending' ? (
-                            filteredPending.length === 0 ? (
-                                <div className="list-empty">
-                                    <i className="fas fa-check-circle"></i>
-                                    <p>{searchQuery ? 'No matches found' : 'No pending requests'}</p>
+                        {activeTab === 'templates' ? (
+                            <div className="templates-section">
+                                <div className="templates-hdr">
+                                    <h3 className="templates-title">Invitation Themes</h3>
+                                    <p className="templates-subtitle">Preview and activate a premium layout for your wedding invitation</p>
                                 </div>
-                            ) : filteredPending.map(guest => (
-                                <div key={guest.id} className="g-row">
-                                    <div className="g-avatar" style={{ background: getAvatarColor(guest.name) }}>
-                                        {getInitials(guest.name)}
-                                    </div>
-                                    <div className="g-info">
-                                        <span className="g-name">{guest.name}</span>
-                                        <span className="g-sub">{guest.email}</span>
-                                    </div>
-                                    <div className="g-right">
-                                        <span className={`g-status ${guest.attending?.toLowerCase() === 'yes' ? 'gs-yes' : 'gs-no'}`}>
-                                            {guest.attending}
-                                        </span>
-                                        <div className="g-acts">
-                                            <button className="ga-approve" onClick={() => handleApprove(guest)} disabled={!!processingAction}>
-                                                {processingAction === `${guest.id}-approve`
-                                                    ? <i className="fas fa-spinner fa-spin"></i>
-                                                    : <><i className="fas fa-check"></i> Approve</>}
-                                            </button>
-                                            <button className="ga-del" onClick={() => handleDelete(guest.id, guest.name, true)} disabled={!!processingAction}>
-                                                {processingAction === `${guest.id}-delete`
-                                                    ? <i className="fas fa-spinner fa-spin"></i>
-                                                    : <i className="fas fa-times"></i>}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
-                        ) : activeTab === 'checked_in' ? (
-                            filteredCheckedIn.length === 0 ? (
-                                <div className="list-empty">
-                                    <i className="fas fa-qrcode"></i>
-                                    <p>{searchQuery ? 'No matches found' : 'No checked-in guests yet'}</p>
-                                </div>
-                            ) : filteredCheckedIn.map(guest => (
-                                <div key={guest.id} className="g-row">
-                                    <div className="g-avatar" style={{ background: getAvatarColor(guest.name) }}>
-                                        {getInitials(guest.name)}
-                                    </div>
-                                    <div className="g-info">
-                                        <span className="g-name">{guest.name}</span>
-                                        <span className="g-sub">{guest.email || guest.phone}</span>
-                                    </div>
-                                    <div className="g-right">
-                                        <span className="g-count gc-green">
-                                            +{guest.guests_count || 0}
-                                        </span>
-                                        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                                            <span className="g-pct gp-green" style={{ margin: 0 }}>
-                                                <i className="fas fa-check-circle"></i> Checked In
-                                            </span>
-                                            {guest.checked_in_at && (
-                                                <span style={{ fontSize: '0.62rem', color: '#6b7280' }}>
-                                                    {new Date(guest.checked_in_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="g-acts">
-                                            <button className="ga-ico ga-amber" onClick={() => handleUndoCheckIn(guest)} disabled={!!processingAction} title="Undo Check-In">
-                                                {processingAction === `${guest.id}-undocheckin`
-                                                    ? <i className="fas fa-spinner fa-spin"></i>
-                                                    : <i className="fas fa-undo"></i>}
-                                            </button>
-                                            <button className="ga-ico ga-red" onClick={() => handleDelete(guest.id, guest.name, false)} disabled={!!processingAction} title="Delete">
-                                                {processingAction === `${guest.id}-delete`
-                                                    ? <i className="fas fa-spinner fa-spin"></i>
-                                                    : <i className="fas fa-trash"></i>}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            filteredGuests.length === 0 ? (
-                                <div className="list-empty">
-                                    <i className="fas fa-users"></i>
-                                    <p>{searchQuery ? 'No matches found' : 'No approved guests yet'}</p>
-                                </div>
-                            ) : filteredGuests.map(guest => {
-                                const isAttending = guest.attending?.toLowerCase() === 'yes' || guest.attending?.toLowerCase() === 'attending';
-                                return (
-                                    <div key={guest.id} className={`g-row ${editingId === guest.id ? 'g-row-edit' : ''}`}>
-                                        {editingId === guest.id ? (
-                                            <div className="edit-form">
-                                                <input className="ef-inp" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="Name" />
-                                                <input className="ef-inp" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} placeholder="Email" type="email" />
-                                                <input className="ef-inp" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} placeholder="Phone" />
-                                                <select className="ef-inp" value={editForm.attending} onChange={e => setEditForm({ ...editForm, attending: e.target.value })}>
-                                                    <option value="Yes">Yes — Attending</option>
-                                                    <option value="No">No — Declined</option>
-                                                </select>
-                                                <input className="ef-inp" value={editForm.guests_count} onChange={e => setEditForm({ ...editForm, guests_count: e.target.value })} placeholder="# Guests" type="number" min="1" />
-                                                <div className="ef-btns">
-                                                    <button className="ga-approve" onClick={() => saveEdit(guest.id)}><i className="fas fa-check"></i> Save</button>
-                                                    <button className="ga-del" onClick={cancelEdit}><i className="fas fa-times"></i></button>
+                                <div className="templates-list">
+                                    {TEMPLATE_THEMES.map(theme => {
+                                        const isActive = (wedding?.template_id?.toString() || '1') === theme.id.toString();
+                                        return (
+                                            <div key={theme.id} className={`theme-card ${isActive ? 'theme-card-active' : ''}`}>
+                                                <div className="theme-card-body">
+                                                    <div className="theme-card-header">
+                                                        <div className="theme-card-title-row">
+                                                            <h4 className="theme-card-name">{theme.name}</h4>
+                                                            {isActive && <span className="theme-badge-active">✔ Active</span>}
+                                                        </div>
+                                                        <div className="theme-tags">
+                                                            {theme.tags.map(tag => (
+                                                                <span key={tag} className="theme-tag">{tag}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <p className="theme-desc">{theme.description}</p>
+                                                    
+                                                    <div className="theme-palette">
+                                                        {theme.colors.map(color => (
+                                                            <div 
+                                                                key={color} 
+                                                                className="theme-color-swatch" 
+                                                                style={{ backgroundColor: color }} 
+                                                                title={color}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                    
+                                                    <div className="theme-actions">
+                                                        <a 
+                                                            href={`${window.location.origin}/w/${wedding.slug}?template=${theme.id}`} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer" 
+                                                            className="theme-btn-preview"
+                                                        >
+                                                            <i className="fas fa-eye"></i> Live Preview
+                                                        </a>
+                                                        {!isActive && (
+                                                            <button 
+                                                                onClick={() => handleActivateTemplate(theme.id)} 
+                                                                className="theme-btn-activate"
+                                                                disabled={!!processingAction}
+                                                            >
+                                                                {processingAction === `template-${theme.id}` ? (
+                                                                    <i className="fas fa-spinner fa-spin"></i>
+                                                                ) : (
+                                                                    <><i className="fas fa-check"></i> Activate</>
+                                                                )}
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        ) : (
-                                            <>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Stat pills */}
+                                <div className="stat-row">
+                                    <div className="stat-pill">
+                                        <span className="sp-num sp-green">{attendingCount}</span>
+                                        <span className="sp-lbl">Attending</span>
+                                    </div>
+                                    <div className="sp-sep"></div>
+                                    <div className="stat-pill">
+                                        <span className="sp-num sp-red">{declinedCount}</span>
+                                        <span className="sp-lbl">Declined</span>
+                                    </div>
+                                    <div className="sp-sep"></div>
+                                    <div className="stat-pill">
+                                        <span className="sp-num">{totalSeats}</span>
+                                        <span className="sp-lbl">Seats</span>
+                                    </div>
+                                    <div className="sp-sep"></div>
+                                    <div className="stat-pill">
+                                        <span className={`sp-num ${pendingGuests.length > 0 ? 'sp-amber' : ''}`}>{pendingGuests.length}</span>
+                                        <span className="sp-lbl">Pending</span>
+                                    </div>
+                                </div>
+
+                                {/* Reminder Status Card */}
+                                <div className="reminder-status-card">
+                                    <div className="rsc-left">
+                                        <i className="fas fa-bell rsc-icon"></i>
+                                        <div className="rsc-info">
+                                            <span className="rsc-title">Guest Email Reminders</span>
+                                            <span className="rsc-desc">Limit: 2 rounds of manual reminders</span>
+                                        </div>
+                                    </div>
+                                    <div className="rsc-badge">
+                                        {2 - (wedding?.manual_reminders_count || 0)} left
+                                    </div>
+                                </div>
+
+                                {/* Search */}
+                                <div className="search-wrap">
+                                    <i className="fas fa-search si"></i>
+                                    <input
+                                        className="search-inp"
+                                        type="text"
+                                        placeholder='Try "John Doe"'
+                                        value={searchQuery}
+                                        onChange={e => setSearchQuery(e.target.value)}
+                                    />
+                                    {searchQuery && (
+                                        <button className="search-clear" onClick={() => setSearchQuery('')}><i className="fas fa-times"></i></button>
+                                    )}
+                                </div>
+
+                                {/* Section header */}
+                                <div className="sec-hdr">
+                                    <span className="sec-title"> Activities</span>
+                                    <div className="sec-tabs">
+                                        <button
+                                            className={`sec-tab ${activeTab === 'approved' ? 'sec-tab-on' : ''}`}
+                                            onClick={() => setActiveTab('approved')}
+                                        >
+                                            Approved
+                                        </button>
+                                        <button
+                                            className={`sec-tab ${activeTab === 'checked_in' ? 'sec-tab-on' : ''}`}
+                                            onClick={() => setActiveTab('checked_in')}
+                                        >
+                                            Checked In {checkedInGuests.length > 0 && <span className="sec-badge sec-badge-green">{checkedInGuests.length}</span>}
+                                        </button>
+                                        <button
+                                            className={`sec-tab ${activeTab === 'pending' ? 'sec-tab-on' : ''}`}
+                                            onClick={() => setActiveTab('pending')}
+                                        >
+                                            Pending {pendingGuests.length > 0 && <span className="sec-badge">{pendingGuests.length}</span>}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* ─── GUEST ROWS ─── */}
+                                <div className="guest-list">
+                                    {activeTab === 'pending' ? (
+                                        filteredPending.length === 0 ? (
+                                            <div className="list-empty">
+                                                <i className="fas fa-check-circle"></i>
+                                                <p>{searchQuery ? 'No matches found' : 'No pending requests'}</p>
+                                            </div>
+                                        ) : filteredPending.map(guest => (
+                                            <div key={guest.id} className="g-row">
+                                                <div className="g-avatar" style={{ background: getAvatarColor(guest.name) }}>
+                                                    {getInitials(guest.name)}
+                                                </div>
+                                                <div className="g-info">
+                                                    <span className="g-name">{guest.name}</span>
+                                                    <span className="g-sub">{guest.email}</span>
+                                                </div>
+                                                <div className="g-right">
+                                                    <span className={`g-status ${guest.attending?.toLowerCase() === 'yes' ? 'gs-yes' : 'gs-no'}`}>
+                                                        {guest.attending}
+                                                    </span>
+                                                    <div className="g-acts">
+                                                        <button className="ga-approve" onClick={() => handleApprove(guest)} disabled={!!processingAction}>
+                                                            {processingAction === `${guest.id}-approve`
+                                                                ? <i className="fas fa-spinner fa-spin"></i>
+                                                                : <><i className="fas fa-check"></i> Approve</>}
+                                                        </button>
+                                                        <button className="ga-del" onClick={() => handleDelete(guest.id, guest.name, true)} disabled={!!processingAction}>
+                                                            {processingAction === `${guest.id}-delete`
+                                                                ? <i className="fas fa-spinner fa-spin"></i>
+                                                                : <i className="fas fa-times"></i>}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : activeTab === 'checked_in' ? (
+                                        filteredCheckedIn.length === 0 ? (
+                                            <div className="list-empty">
+                                                <i className="fas fa-qrcode"></i>
+                                                <p>{searchQuery ? 'No matches found' : 'No checked-in guests yet'}</p>
+                                            </div>
+                                        ) : filteredCheckedIn.map(guest => (
+                                            <div key={guest.id} className="g-row">
                                                 <div className="g-avatar" style={{ background: getAvatarColor(guest.name) }}>
                                                     {getInitials(guest.name)}
                                                 </div>
@@ -1103,19 +1183,22 @@ const RSVPReport = () => {
                                                     <span className="g-sub">{guest.email || guest.phone}</span>
                                                 </div>
                                                 <div className="g-right">
-                                                    <span className={`g-count ${isAttending ? 'gc-green' : 'gc-red'}`}>
+                                                    <span className="g-count gc-green">
                                                         +{guest.guests_count || 0}
                                                     </span>
-                                                    <span className={`g-pct ${isAttending ? 'gp-green' : 'gp-red'}`}>
-                                                        <i className={`fas fa-${isAttending ? 'check' : 'times'}`}></i>
-                                                        &nbsp;{isAttending ? 'Attending' : 'Declined'}
-                                                    </span>
+                                                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                                        <span className="g-pct gp-green" style={{ margin: 0 }}>
+                                                            <i className="fas fa-check-circle"></i> Checked In
+                                                        </span>
+                                                        {guest.checked_in_at && (
+                                                            <span style={{ fontSize: '0.62rem', color: '#6b7280' }}>
+                                                                {new Date(guest.checked_in_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <div className="g-acts">
-                                                        <button className="ga-ico" onClick={() => startEdit(guest)} title="Edit">
-                                                            <i className="fas fa-edit"></i>
-                                                        </button>
-                                                        <button className="ga-ico ga-amber" onClick={() => handleMoveToPending(guest)} disabled={!!processingAction} title="Move to Pending">
-                                                            {processingAction === `${guest.id}-pending`
+                                                        <button className="ga-ico ga-amber" onClick={() => handleUndoCheckIn(guest)} disabled={!!processingAction} title="Undo Check-In">
+                                                            {processingAction === `${guest.id}-undocheckin`
                                                                 ? <i className="fas fa-spinner fa-spin"></i>
                                                                 : <i className="fas fa-undo"></i>}
                                                         </button>
@@ -1126,54 +1209,116 @@ const RSVPReport = () => {
                                                         </button>
                                                     </div>
                                                 </div>
-                                            </>
-                                        )}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        filteredGuests.length === 0 ? (
+                                            <div className="list-empty">
+                                                <i className="fas fa-users"></i>
+                                                <p>{searchQuery ? 'No matches found' : 'No approved guests yet'}</p>
+                                            </div>
+                                        ) : filteredGuests.map(guest => {
+                                            const isAttending = guest.attending?.toLowerCase() === 'yes' || guest.attending?.toLowerCase() === 'attending';
+                                            return (
+                                                <div key={guest.id} className={`g-row ${editingId === guest.id ? 'g-row-edit' : ''}`}>
+                                                    {editingId === guest.id ? (
+                                                        <div className="edit-form">
+                                                            <input className="ef-inp" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="Name" />
+                                                            <input className="ef-inp" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} placeholder="Email" type="email" />
+                                                            <input className="ef-inp" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} placeholder="Phone" />
+                                                            <select className="ef-inp" value={editForm.attending} onChange={e => setEditForm({ ...editForm, attending: e.target.value })}>
+                                                                <option value="Yes">Yes — Attending</option>
+                                                                <option value="No">No — Declined</option>
+                                                            </select>
+                                                            <input className="ef-inp" value={editForm.guests_count} onChange={e => setEditForm({ ...editForm, guests_count: e.target.value })} placeholder="# Guests" type="number" min="1" />
+                                                            <div className="ef-btns">
+                                                                <button className="ga-approve" onClick={() => saveEdit(guest.id)}><i className="fas fa-check"></i> Save</button>
+                                                                <button className="ga-del" onClick={cancelEdit}><i className="fas fa-times"></i></button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <div className="g-avatar" style={{ background: getAvatarColor(guest.name) }}>
+                                                                {getInitials(guest.name)}
+                                                            </div>
+                                                            <div className="g-info">
+                                                                <span className="g-name">{guest.name}</span>
+                                                                <span className="g-sub">{guest.email || guest.phone}</span>
+                                                            </div>
+                                                            <div className="g-right">
+                                                                <span className={`g-count ${isAttending ? 'gc-green' : 'gc-red'}`}>
+                                                                    +{guest.guests_count || 0}
+                                                                </span>
+                                                                <span className={`g-pct ${isAttending ? 'gp-green' : 'gp-red'}`}>
+                                                                    <i className={`fas fa-${isAttending ? 'check' : 'times'}`}></i>
+                                                                    &nbsp;{isAttending ? 'Attending' : 'Declined'}
+                                                                </span>
+                                                                <div className="g-acts">
+                                                                    <button className="ga-ico" onClick={() => startEdit(guest)} title="Edit">
+                                                                        <i className="fas fa-edit"></i>
+                                                                    </button>
+                                                                    <button className="ga-ico ga-amber" onClick={() => handleMoveToPending(guest)} disabled={!!processingAction} title="Move to Pending">
+                                                                        {processingAction === `${guest.id}-pending`
+                                                                            ? <i className="fas fa-spinner fa-spin"></i>
+                                                                            : <i className="fas fa-undo"></i>}
+                                                                    </button>
+                                                                    <button className="ga-ico ga-red" onClick={() => handleDelete(guest.id, guest.name, false)} disabled={!!processingAction} title="Delete">
+                                                                        {processingAction === `${guest.id}-delete`
+                                                                            ? <i className="fas fa-spinner fa-spin"></i>
+                                                                            : <i className="fas fa-trash"></i>}
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+
+                                {/* ─── VENDORS ─── */}
+                                <div className="sec-hdr" style={{ marginTop: '1.5rem' }}>
+                                    <span className="sec-title">Featured Vendors</span>
+                                    <div className="sec-tabs" style={{ flexWrap: 'wrap' }}>
+                                        {['all', 'Makeup', 'Photography', 'Decor', 'Catering', 'Venues'].map(cat => (
+                                            <button
+                                                key={cat}
+                                                className={`sec-tab ${selectedVendorFilter === cat ? 'sec-tab-on' : ''}`}
+                                                onClick={() => setSelectedVendorFilter(cat)}
+                                            >
+                                                {cat === 'all' ? 'All' : cat}
+                                            </button>
+                                        ))}
                                     </div>
-                                );
-                            })
+                                </div>
+
+                                <div className="vendor-list">
+                                    {vendors
+                                        .filter(v => selectedVendorFilter === 'all' || v.category === selectedVendorFilter)
+                                        .map((vendor, idx) => (
+                                            <div key={idx} className="v-row" onClick={() => setActiveVendor(vendor)}>
+                                                <img src={vendor.image} alt={vendor.name} className="v-thumb" />
+                                                <div className="v-info">
+                                                    <span className="v-name">{vendor.name}</span>
+                                                    <span className="v-sub">{vendor.category} · {vendor.city}</span>
+                                                </div>
+                                                <div className="v-right">
+                                                    <span className="v-rating"><i className="fas fa-star"></i> {vendor.rating?.split(' ')[0] || '5.0'}</span>
+                                                    <span className="v-cta">View <i className="fas fa-chevron-right"></i></span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                </div>
+                            </>
                         )}
-                        </div>
-
-                        {/* ─── VENDORS ─── */}
-                        <div className="sec-hdr" style={{ marginTop: '1.5rem' }}>
-                            <span className="sec-title">Featured Vendors</span>
-                            <div className="sec-tabs" style={{ flexWrap: 'wrap' }}>
-                                {['all', 'Makeup', 'Photography', 'Decor', 'Catering', 'Venues'].map(cat => (
-                                    <button
-                                        key={cat}
-                                        className={`sec-tab ${selectedVendorFilter === cat ? 'sec-tab-on' : ''}`}
-                                        onClick={() => setSelectedVendorFilter(cat)}
-                                    >
-                                        {cat === 'all' ? 'All' : cat}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="vendor-list">
-                            {vendors
-                                .filter(v => selectedVendorFilter === 'all' || v.category === selectedVendorFilter)
-                                .map((vendor, idx) => (
-                                    <div key={idx} className="v-row" onClick={() => setActiveVendor(vendor)}>
-                                        <img src={vendor.image} alt={vendor.name} className="v-thumb" />
-                                        <div className="v-info">
-                                            <span className="v-name">{vendor.name}</span>
-                                            <span className="v-sub">{vendor.category} · {vendor.city}</span>
-                                        </div>
-                                        <div className="v-right">
-                                            <span className="v-rating"><i className="fas fa-star"></i> {vendor.rating?.split(' ')[0] || '5.0'}</span>
-                                            <span className="v-cta">View <i className="fas fa-chevron-right"></i></span>
-                                        </div>
-                                    </div>
-                                ))}
-                        </div>
 
                     </div>{/* end content-pad */}
                 </div>{/* end scroll-area */}
 
                 {/* ─── BOTTOM NAV ─── (outside scroll, always at bottom) */}
                 <nav className="btm-nav">
-                    <button className={`bn-item ${activeTab === 'approved' ? 'bn-active' : ''}`} onClick={() => setActiveTab('approved')}>
+                    <button className={`bn-item ${activeTab === 'approved' || activeTab === 'checked_in' ? 'bn-active' : ''}`} onClick={() => setActiveTab('approved')}>
                         <i className="fas fa-th-large"></i>
                         <span>Summary</span>
                     </button>
@@ -1182,13 +1327,13 @@ const RSVPReport = () => {
                         <span>Guests</span>
                         {pendingGuests.length > 0 && <span className="bn-badge">{pendingGuests.length}</span>}
                     </button>
-                    <button className="bn-item" onClick={handleSendRemindersNow} disabled={sendingReminders}>
-                        <i className={`fas fa-${sendingReminders ? 'spinner fa-spin' : 'bell'}`}></i>
-                        <span>Remind</span>
+                    <button className={`bn-item ${activeTab === 'templates' ? 'bn-active' : ''}`} onClick={() => setActiveTab('templates')}>
+                        <i className="fas fa-palette"></i>
+                        <span>Themes</span>
                     </button>
-                    <button className="bn-item" onClick={() => setShowReminderModal(true)}>
-                        <i className="fas fa-cog"></i>
-                        <span>Settings</span>
+                    <button className="bn-item" onClick={handleSendRemindersNow} disabled={sendingReminders || (wedding?.manual_reminders_count || 0) >= 2}>
+                        <i className={`fas fa-${sendingReminders ? 'spinner fa-spin' : 'bell'}`}></i>
+                        <span>Remind ({2 - (wedding?.manual_reminders_count || 0)} left)</span>
                     </button>
                 </nav>
 
@@ -1497,6 +1642,211 @@ const RSVPReport = () => {
                 .v-rating { font-size:.72rem; font-weight:700; color:#d97706; display:flex; align-items:center; gap:3px; }
                 .v-rating i { font-size:.62rem; }
                 .v-cta { font-size:.65rem; font-weight:600; color:#9ca3af; display:flex; align-items:center; gap:3px; }
+
+                /* TEMPLATE SECTION */
+                .templates-section {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
+                }
+                .templates-hdr {
+                    text-align: center;
+                    padding: 0.5rem 0;
+                }
+                .templates-title {
+                    font-size: 1.15rem;
+                    font-weight: 800;
+                    color: #12121c;
+                    margin-bottom: 0.25rem;
+                }
+                .templates-subtitle {
+                    font-size: 0.76rem;
+                    color: #6b7280;
+                    line-height: 1.4;
+                }
+                .templates-list {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.9rem;
+                }
+                .theme-card {
+                    background: #fff;
+                    border-radius: 20px;
+                    border: 1px solid #e5e7eb;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+                    overflow: hidden;
+                    transition: all 0.2s ease;
+                }
+                .theme-card:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.07);
+                }
+                .theme-card-active {
+                    border: 2px solid #a3e635;
+                    box-shadow: 0 4px 16px rgba(163, 230, 53, 0.15);
+                }
+                .theme-card-body {
+                    padding: 1.25rem;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.8rem;
+                }
+                .theme-card-header {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.35rem;
+                }
+                .theme-card-title-row {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                }
+                .theme-card-name {
+                    font-size: 1.05rem;
+                    font-weight: 800;
+                    color: #111;
+                }
+                .theme-badge-active {
+                    background: #ecfdf5;
+                    color: #047857;
+                    font-size: 0.68rem;
+                    font-weight: 700;
+                    padding: 2px 8px;
+                    border-radius: 999px;
+                    border: 1px solid rgba(4, 120, 87, 0.15);
+                }
+                .theme-tags {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0.3rem;
+                }
+                .theme-tag {
+                    font-size: 0.62rem;
+                    font-weight: 700;
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                    background: #f3f4f6;
+                    color: #4b5563;
+                    text-transform: uppercase;
+                    letter-spacing: 0.03em;
+                }
+                .theme-desc {
+                    font-size: 0.78rem;
+                    color: #6b7280;
+                    line-height: 1.45;
+                }
+                .theme-palette {
+                    display: flex;
+                    gap: 0.35rem;
+                    align-items: center;
+                }
+                .theme-color-swatch {
+                    width: 22px;
+                    height: 22px;
+                    border-radius: 50%;
+                    border: 1px solid rgba(0,0,0,0.08);
+                    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+                }
+                .theme-actions {
+                    display: flex;
+                    gap: 0.5rem;
+                    margin-top: 0.3rem;
+                }
+                .theme-btn-preview {
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.35rem;
+                    padding: 0.55rem;
+                    border-radius: 10px;
+                    background: #f3f4f6;
+                    color: #374151;
+                    font-size: 0.76rem;
+                    font-weight: 700;
+                    text-decoration: none;
+                    transition: all 0.15s ease;
+                    border: 1px solid #e5e7eb;
+                }
+                .theme-btn-preview:hover {
+                    background: #e5e7eb;
+                    color: #111;
+                }
+                .theme-btn-activate {
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.35rem;
+                    padding: 0.55rem;
+                    border-radius: 10px;
+                    background: #12121c;
+                    color: #a3e635;
+                    font-size: 0.76rem;
+                    font-weight: 700;
+                    border: none;
+                    cursor: pointer;
+                    transition: all 0.15s ease;
+                }
+                .theme-btn-activate:hover:not(:disabled) {
+                    background: #1e1e30;
+                }
+                .theme-btn-activate:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+
+                /* REMINDER STATUS CARD */
+                .reminder-status-card {
+                    background: #fff;
+                    border-radius: 18px;
+                    padding: 0.9rem 1.15rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    box-shadow: 0 2px 10px rgba(0,0,0,.04);
+                    border: 1px solid #e5e7eb;
+                    margin-top: 0.25rem;
+                }
+                .rsc-left {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                }
+                .rsc-icon {
+                    font-size: 1.15rem;
+                    color: #4f46e5;
+                    background: #eef2ff;
+                    width: 38px;
+                    height: 38px;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .rsc-info {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.15rem;
+                }
+                .rsc-title {
+                    font-size: 0.8rem;
+                    font-weight: 700;
+                    color: #1f2937;
+                }
+                .rsc-desc {
+                    font-size: 0.65rem;
+                    color: #6b7280;
+                }
+                .rsc-badge {
+                    font-size: 0.72rem;
+                    font-weight: 800;
+                    padding: 3px 10px;
+                    border-radius: 999px;
+                    background: #eef2ff;
+                    color: #4f46e5;
+                    border: 1px solid rgba(79, 70, 229, 0.15);
+                }
 
                 /* BOTTOM NAV — always visible, never scrolls */
                 .btm-nav {
