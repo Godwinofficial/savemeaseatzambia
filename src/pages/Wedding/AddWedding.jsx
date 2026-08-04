@@ -711,7 +711,7 @@ const AddWedding = () => {
     const [showSidebar, setShowSidebar] = useState(false);
 
     const initialFormState = {
-        client_id: "",
+        extra_card_text: "",
         cover_image: "",
         bride_name: "", bride_image: "", bride_description: "",
         groom_name: "", groom_image: "", groom_description: "",
@@ -781,6 +781,7 @@ const AddWedding = () => {
             if (data) {
                 setFormData({
                     ...data,
+                    extra_card_text: data.extra_card_text || (data.venue_description?.startsWith("EXTRA_CARD_TEXT:") ? data.venue_description.replace("EXTRA_CARD_TEXT:", "") : ""),
                     rsvp_deadline: data.rsvp_deadline || "",
                     tagline: data.tagline || "We are getting married",
                     slider_images: typeof data.slider_images === 'string' ? JSON.parse(data.slider_images) : data.slider_images || [],
@@ -1110,12 +1111,7 @@ const AddWedding = () => {
 
             const { data: { user } } = await supabase.auth.getUser();
             const payload = { ...formData, slug };
-            // Do not save client_id to the database as a raw column
-            delete payload.client_id;
-            
-            if (user) {
-                payload.user_id = formData.client_id ? formData.client_id.trim() : user.id;
-            }
+            if (payload.client_id) delete payload.client_id;
 
             // Sanitize empty dates/times to NULL to prevent SQL errors
             const nullableFields = [
@@ -1146,18 +1142,31 @@ const AddWedding = () => {
             }
 
             if (error) {
-                // If dress_code_colors column is missing in the database schema cache
-                if (error.message && error.message.includes("dress_code_colors")) {
-                    console.warn("dress_code_colors column is missing from weddings table, retrying save with fallback storage inside theme_colors.");
-                    const retryPayload = { ...payload };
-                    delete retryPayload.dress_code_colors;
+                const missingExtraCardText = error.message && error.message.includes("extra_card_text");
+                const missingDressCodeColors = error.message && error.message.includes("dress_code_colors");
 
-                    // Fallback storage: Pack dress_code_colors inside theme_colors array
-                    const dressCodePrefixes = (payload.dress_code_colors || []).map(c => `DRESS_CODE_COLOR:${c}`);
-                    retryPayload.theme_colors = [
-                        ...(payload.theme_colors || []).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:")),
-                        ...dressCodePrefixes
-                    ];
+                if (missingExtraCardText || missingDressCodeColors) {
+                    console.warn("Missing database columns, applying fallbacks...");
+                    const retryPayload = { ...payload };
+                    let msg = "";
+
+                    if (missingExtraCardText) {
+                        delete retryPayload.extra_card_text;
+                        retryPayload.venue_description = `EXTRA_CARD_TEXT:${payload.extra_card_text || ""}`;
+                        msg += '\n- "extra_card_text" saved inside venue_description';
+                    }
+
+                    if (missingDressCodeColors || (payload.dress_code_colors && payload.dress_code_colors.length > 0)) {
+                        delete retryPayload.dress_code_colors;
+                        const dressCodePrefixes = (payload.dress_code_colors || []).map(c => `DRESS_CODE_COLOR:${c}`);
+                        retryPayload.theme_colors = [
+                            ...(payload.theme_colors || []).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:")),
+                            ...dressCodePrefixes
+                        ];
+                        if (missingDressCodeColors) {
+                            msg += '\n- "dress_code_colors" saved inside theme_colors';
+                        }
+                    }
 
                     let retryError;
                     if (isEditMode) {
@@ -1168,11 +1177,45 @@ const AddWedding = () => {
                         retryError = insertError;
                     }
 
-                    if (retryError) throw retryError;
+                    if (retryError && retryError.message) {
+                        const secondRetryPayload = { ...retryPayload };
+                        let secondRetryNeeded = false;
+
+                        if (retryError.message.includes("dress_code_colors")) {
+                            delete secondRetryPayload.dress_code_colors;
+                            const dressCodePrefixes = (payload.dress_code_colors || []).map(c => `DRESS_CODE_COLOR:${c}`);
+                            secondRetryPayload.theme_colors = [
+                                ...(payload.theme_colors || []).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:")),
+                                ...dressCodePrefixes
+                            ];
+                            msg += '\n- "dress_code_colors" saved inside theme_colors';
+                            secondRetryNeeded = true;
+                        }
+                        if (retryError.message.includes("extra_card_text")) {
+                            delete secondRetryPayload.extra_card_text;
+                            secondRetryPayload.venue_description = `EXTRA_CARD_TEXT:${payload.extra_card_text || ""}`;
+                            msg += '\n- "extra_card_text" saved inside venue_description';
+                            secondRetryNeeded = true;
+                        }
+
+                        if (secondRetryNeeded) {
+                            let finalError;
+                            if (isEditMode) {
+                                const { error: updateError } = await supabase.from('weddings').update(secondRetryPayload).eq('id', id);
+                                finalError = updateError;
+                            } else {
+                                const { error: insertError } = await supabase.from('weddings').insert([secondRetryPayload]);
+                                finalError = insertError;
+                            }
+                            if (finalError) throw finalError;
+                        } else {
+                            throw retryError;
+                        }
+                    }
 
                     alert((isEditMode ? 'Wedding Updated Successfully!' : 'Wedding Website Created Successfully!') +
-                        '\n\n⚠️ NOTE: The "dress_code_colors" column is missing from your Supabase database. ' +
-                        'We saved your dress code colors inside the theme colors as a fallback. To fully upgrade your schema, please run the SQL inside the "SUPABASE_DRESS_CODE_COLORS.sql" file.');
+                        '\n\n⚠️ NOTE: Some table columns were missing from your Supabase database. ' +
+                        'We automatically applied fallbacks:' + msg);
                     navigate(isEditMode ? '/admin' : `/w/${slug}`);
                     return;
                 }
@@ -1199,16 +1242,7 @@ const AddWedding = () => {
                 <p className="section-description">Tell us about the bride and groom. Add beautiful photos that capture your personality.</p>
             </div>
 
-            <div className="form-group" style={{ marginBottom: '2rem', padding: '1rem', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '12px' }}>
-                <label className="form-label" style={{ color: '#b91c1c' }}>
-                    <i className="fas fa-user-shield"></i> Assign to Client (Admin Only)
-                </label>
-                <p style={{ fontSize: '0.85rem', color: '#dc2626', marginBottom: '0.75rem' }}>Enter the client's Supabase User ID (UUID) to assign this event to them. Leave blank to assign to yourself.</p>
-                <div className="input-with-icon">
-                    <i className="fas fa-id-badge"></i>
-                    <input className="form-input" name="client_id" value={formData.client_id || ''} onChange={handleChange} placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000" />
-                </div>
-            </div>
+
 
             <div className="cover-upload-section">
                 <ImageUpload
@@ -1414,6 +1448,12 @@ const AddWedding = () => {
                                 <i className="fas fa-tshirt"></i> Dress Code
                             </label>
                             <input type="text" className="form-input" name="dress_code" value={formData.dress_code} onChange={handleChange} placeholder="e.g., Formal, Cocktail Attire" />
+                        </div>
+                        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                            <label className="form-label">
+                                <i className="fas fa-comment-dots"></i> Pass Card Extra Text (e.g. Monetary gift guidelines, K350 per person)
+                            </label>
+                            <input type="text" className="form-input" name="extra_card_text" value={formData.extra_card_text || ''} onChange={handleChange} placeholder="e.g. Gifts in monetary form, K350 per person" />
                         </div>
                         {/* Wedding Website Theme Colors */}
                         <div className="form-group theme-colors-section" style={{ gridColumn: '1 / -1', borderTop: '1px solid #e5e7eb', paddingTop: '1.5rem', marginTop: '0.5rem' }}>

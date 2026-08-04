@@ -374,9 +374,6 @@ const AdminDashboard = () => {
     const fetchWeddings = async (userSession) => {
         try {
             let query = supabase.from('weddings').select('*');
-            if (userSession && !SUPER_USER_EMAILS.includes(userSession.email)) {
-                query = query.eq('user_id', userSession.id);
-            }
             const { data: weddingsData, error: weddingsError } = await query
                 .order('created_at', { ascending: false });
 
@@ -404,9 +401,6 @@ const AdminDashboard = () => {
         setBirthdayLoading(true);
         try {
             let query = supabase.from('birthday_events').select('*');
-            if (userSession && !SUPER_USER_EMAILS.includes(userSession.email)) {
-                query = query.eq('user_id', userSession.id);
-            }
             const { data: events, error } = await query
                 .order('date', { ascending: false });
             if (error) throw error;
@@ -429,9 +423,6 @@ const AdminDashboard = () => {
         setBridalShowerLoading(true);
         try {
             let query = supabase.from('bridal_showers').select('*');
-            if (userSession && !SUPER_USER_EMAILS.includes(userSession.email)) {
-                query = query.eq('user_id', userSession.id);
-            }
             const { data, error } = await query
                 .order('created_at', { ascending: false });
             if (error) throw error;
@@ -749,15 +740,6 @@ const AdminDashboard = () => {
 
         try {
             setLoading(true);
-            const { error: wError } = await supabase.from('weddings').delete().eq('user_id', currentUser.id);
-            if (wError) throw wError;
-            
-            const { error: bError } = await supabase.from('birthday_events').delete().eq('user_id', currentUser.id);
-            if (bError) throw bError;
-
-            const { error: sError } = await supabase.from('bridal_showers').delete().eq('user_id', currentUser.id);
-            if (sError) throw sError;
-
             await supabase.auth.signOut();
             setShowMobileMenu(false);
             

@@ -72,6 +72,48 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
   const [localIsSubmitting, setLocalIsSubmitting] = useState(false);
   const isSubmitting = parentIsSubmitting !== undefined ? parentIsSubmitting : localIsSubmitting;
   const setIsSubmitting = parentIsSubmitting !== undefined ? () => {} : setLocalIsSubmitting;
+
+  // Background Music State & Logic
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audio] = useState(() => {
+    const a = new Audio("https://archive.org/download/100ClassicalMusicMasterpieces/1801%20Beethoven-%20%27Moonlight%27%20Sonata%2C%201st%20movement.mp3");
+    a.loop = true;
+    return a;
+  });
+
+  const togglePlay = () => {
+    if (isPlaying) {
+      audio.pause();
+      setIsPlaying(false);
+    } else {
+      audio.play().then(() => {
+        setIsPlaying(true);
+      }).catch(err => {
+        console.error("Audio playback failed:", err);
+      });
+    }
+  };
+
+  useEffect(() => {
+    const handleInteraction = () => {
+      audio.play().then(() => {
+        setIsPlaying(true);
+        cleanup();
+      }).catch(() => { });
+    };
+    const cleanup = () => {
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('scroll', handleInteraction);
+      window.removeEventListener('touchstart', handleInteraction);
+    };
+    window.addEventListener('click', handleInteraction);
+    window.addEventListener('scroll', handleInteraction);
+    window.addEventListener('touchstart', handleInteraction);
+    return () => {
+      cleanup();
+      audio.pause();
+    };
+  }, [audio]);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -244,7 +286,8 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
   const initialData = {
     couple: { bride: { name: "Catherine", image: "" }, groom: { name: "Alexander", image: "" } },
     sliderImages: [], bridesmaids: [], groomsmen: [],
-    ceremony: {}, reception: {}, gifts: [], galleryImages: [], allowedGuests: ["1"], otherEvents: []
+    ceremony: {}, reception: {}, gifts: [], galleryImages: [], allowedGuests: ["1"], otherEvents: [],
+    dress_code_colors: []
   };
   const weddingData = propsWeddingData || initialData;
   
@@ -1790,6 +1833,45 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
       letter-spacing: 0.05em;
     }
 
+    .dress-code-colors-container {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 2;
+    }
+
+    .dress-code-color-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dress-code-color-swatch {
+      width: 24px;
+      height: 38px;
+      border-radius: 15px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.1), 0 2px 6px rgba(0, 0, 0, 0.08);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .dress-code-color-swatch:hover {
+      transform: scale(1.18);
+    }
+
+    .dress-code-color-hex {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.65rem;
+      color: var(--light-text);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
     /* Gifts Section */
     .btn-luxury-sm {
       padding: 10px 24px;
@@ -2171,6 +2253,40 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
       100% { transform: scale(1); }
     }
 
+    /* Floating Audio Player Button */
+    .inv-music-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background: #FDFBF9;
+      border: 1px solid rgba(138, 154, 117, 0.3);
+      color: #8A9A75;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(138, 154, 117, 0.25);
+      z-index: 9999;
+      transition: all 0.3s ease;
+    }
+    .inv-music-btn:hover {
+      transform: scale(1.1);
+      background: #8A9A75;
+      color: #FFF;
+    }
+    .inv-music-btn.playing i {
+      animation: invMusicPulse 1.5s linear infinite;
+    }
+    @keyframes invMusicPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
     /* Responsive Design */
     @media (max-width: 992px) {
       .slide-content h1 {
@@ -2348,11 +2464,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
         min-width: 70px;
       }
 
-      .fade-in-section, .party-member, .couple, .gallery-item {
-        opacity: 1 !important;
-        transform: none !important;
-        transition: none !important;
-      }
+
 
       .party-container {
         gap: 40px;
@@ -2660,7 +2772,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
 
           <div className="hero-names-container">
             <h1 className="hero-name-title">
-              {weddingData.couple.groom.name?.split(' ')[0]}
+              {weddingData.couple.bride.name?.split(' ')[0]}
             </h1>
             <div className="hero-ampersand-divider">
               <span className="hero-ampersand-line"></span>
@@ -2668,7 +2780,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
               <span className="hero-ampersand-line"></span>
             </div>
             <h1 className="hero-name-title">
-              {weddingData.couple.bride.name?.split(' ')[0]}
+              {weddingData.couple.groom.name?.split(' ')[0]}
             </h1>
           </div>
 
@@ -2920,6 +3032,19 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
                 {(weddingData.dressCodeDescription || weddingData.dress_code_desc) && (
                   <p className="details-card-address">{weddingData.dressCodeDescription || weddingData.dress_code_desc}</p>
                 )}
+                {weddingData.dress_code_colors && weddingData.dress_code_colors.length > 0 && (
+                  <div className="dress-code-colors-container">
+                    {weddingData.dress_code_colors.map((color, idx) => (
+                      <div key={idx} className="dress-code-color-item">
+                        <div
+                          className="dress-code-color-swatch"
+                          style={{ backgroundColor: color }}
+                          title={color}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -3015,7 +3140,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
         <div className="map-container">
           <iframe
             id="location-map-iframe"
-            src={weddingData.mapLocation || null}
+            src={weddingData.mapLocation || `https://maps.google.com/maps?q=${encodeURIComponent((weddingData.venue?.name || '') + ' ' + (weddingData.venue?.address || weddingData.location || ''))}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
             width="100%"
             height="500"
             style={{ border: 0 }}
@@ -3114,6 +3239,20 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
                   <p style={{ fontFamily: 'Montserrat', fontSize: '0.7rem', color: '#666', margin: '0' }}>
                     {weddingData.venue.name || weddingData.location || 'Wedding Venue'}
                   </p>
+                  {(weddingData.extra_card_text || (weddingData.venue?.description?.startsWith("EXTRA_CARD_TEXT:") ? weddingData.venue.description.replace("EXTRA_CARD_TEXT:", "") : "")) && (
+                    <p style={{ 
+                      fontFamily: 'Montserrat', 
+                      fontSize: '0.7rem', 
+                      color: '#b91c1c', 
+                      fontWeight: '600', 
+                      marginTop: '8px', 
+                      borderTop: '1px dashed #E6E1D6', 
+                      paddingTop: '8px', 
+                      lineHeight: '1.4' 
+                    }}>
+                      {weddingData.extra_card_text || weddingData.venue?.description?.replace("EXTRA_CARD_TEXT:", "")}
+                    </p>
+                  )}
                 </div>
 
                 <div style={{ borderTop: '1px solid #F0EDE9', width: '100%', paddingTop: '12px', marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -3220,12 +3359,20 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
       {/* Footer */}
       <footer className="elegant-footer">
         <div className="footer-bottom" style={{ width: "100%", display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: "20px 0" }}>
-          <img src={logoImg} alt="SaveMeASeat Logo" style={{ height: 24, width: 'auto', objectFit: 'contain' }} />
           <div className="copyright" style={{ fontSize: "1rem", color: "var(--text-color)", margin: 0, padding: "10px 0", lineHeight: "1.5" }}>
-            &copy; {new Date().getFullYear()} {weddingData.couple.groom.name} & {weddingData.couple.bride.name}. All rights reserved.
+            &copy; {new Date().getFullYear()} {weddingData.couple.groom.name?.split(' ')[0]} & {weddingData.couple.bride.name?.split(' ')[0]}. All rights reserved.
           </div>
         </div>
       </footer>
+
+      {/* Floating Audio Player */}
+      <button
+        onClick={togglePlay}
+        className={`inv-music-btn ${isPlaying ? 'playing' : ''}`}
+        aria-label="Toggle Background Music"
+      >
+        <i className={`fa-solid ${isPlaying ? 'fa-music' : 'fa-volume-xmark'}`}></i>
+      </button>
 
     </>
   );
