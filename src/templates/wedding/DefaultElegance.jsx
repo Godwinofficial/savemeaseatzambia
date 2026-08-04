@@ -1581,7 +1581,8 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
     .party-members {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 50px;
+      gap: 40px 30px;
+      justify-content: center;
     }
 
     .party-member {
@@ -1589,6 +1590,9 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
       opacity: 0;
       transform: translateY(30px);
       transition: all 0.8s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     .party-member.visible {
@@ -1598,104 +1602,105 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
 
     .member-img-container {
       position: relative;
-      width: 100%;
-      aspect-ratio: 3/4;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
       overflow: hidden;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
-      border-radius: 2px;
-      margin-bottom: 20px;
+      box-shadow: 0 8px 24px rgba(138, 154, 117, 0.12);
+      border: 1px solid rgba(138, 154, 117, 0.35);
+      padding: 4px;
+      background: #FFF;
+      margin: 0 auto 15px auto;
+      transition: all 0.3s ease;
     }
 
     .member-img {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      border-radius: 50%;
       transition: var(--transition);
     }
 
-    .member-img-border {
-      position: absolute;
-      inset: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      pointer-events: none;
-      z-index: 2;
-      border-radius: 1px;
+    .party-member:hover .member-img-container {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 28px rgba(138, 154, 117, 0.2);
+      border-color: var(--accent-color);
     }
 
     .party-member:hover .member-img {
-      transform: scale(1.05);
+      transform: scale(1.08);
     }
 
     .member-details-card {
-      text-align: left;
-      padding: 0 5px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
     }
 
     .member-info-row {
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
       align-items: center;
-      margin-bottom: 10px;
+      gap: 4px;
+      margin-bottom: 6px;
+      width: 100%;
     }
 
     .member-meta-left {
       display: flex;
       flex-direction: column;
-      gap: 2px;
-      text-align: left;
+      align-items: center;
+      gap: 3px;
+      text-align: center;
     }
 
     .member-meta-left h4 {
       margin: 0 !important;
-      font-size: 1.3rem !important;
+      font-size: 1.15rem !important;
       font-weight: 500;
       color: var(--text-color);
       line-height: 1.2;
+      font-family: 'Cormorant Garamond', serif;
     }
 
     .member-meta-left .member-role {
       margin: 0 !important;
-      font-size: 0.75rem !important;
+      font-size: 0.68rem !important;
       color: var(--accent-color);
       text-transform: uppercase;
       letter-spacing: 0.12em;
       font-weight: 600;
-      display: block;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .member-icon-right {
-      font-size: 1.2rem;
+      font-size: 0.75rem;
       color: var(--accent-color);
-      display: flex;
+      opacity: 0.75;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      transition: var(--transition);
-    }
-
-    .party-member:hover .member-icon-right {
-      transform: scale(1.15);
     }
 
     .party-member p {
       color: var(--light-text);
-      font-size: 0.85rem;
-      margin-top: 8px;
-      margin-bottom: 12px;
-      line-height: 1.6;
+      font-size: 0.8rem;
+      margin: 6px 0 10px 0;
+      line-height: 1.5;
       font-family: 'Montserrat', sans-serif;
-      text-align: left;
+      text-align: center;
+      max-width: 200px;
     }
 
     .member-social {
       display: flex;
-      justify-content: flex-start;
-      gap: 15px;
-      opacity: 0;
-      transition: var(--transition);
-    }
-
-    .party-member:hover .member-social {
-      opacity: 1;
+      justify-content: center;
+      gap: 12px;
     }
 
     .member-social a {
@@ -2903,16 +2908,17 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
                             alt={member.name}
                             className="member-img"
                           />
-                          <div className="member-img-border"></div>
                         </div>
                         <div className="member-details-card">
                           <div className="member-info-row">
                             <div className="member-meta-left">
                               <h4>{member.name}</h4>
-                              <div className="member-role">{member.role}</div>
-                            </div>
-                            <div className="member-icon-right">
-                              <i className="fas fa-heart"></i>
+                              <div className="member-role">
+                                {member.role}
+                                <span className="member-icon-right" style={{ marginLeft: 6 }}>
+                                  <i className="fas fa-heart"></i>
+                                </span>
+                              </div>
                             </div>
                           </div>
                           {member.description && <p>{member.description}</p>}
@@ -2947,16 +2953,17 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
                             alt={member.name}
                             className="member-img"
                           />
-                          <div className="member-img-border"></div>
                         </div>
                         <div className="member-details-card">
                           <div className="member-info-row">
                             <div className="member-meta-left">
                               <h4>{member.name}</h4>
-                              <div className="member-role">{member.role}</div>
-                            </div>
-                            <div className="member-icon-right">
-                              <i className="fas fa-crown"></i>
+                              <div className="member-role">
+                                {member.role}
+                                <span className="member-icon-right" style={{ marginLeft: 6 }}>
+                                  <i className="fas fa-crown"></i>
+                                </span>
+                              </div>
                             </div>
                           </div>
                           {member.description && <p>{member.description}</p>}
