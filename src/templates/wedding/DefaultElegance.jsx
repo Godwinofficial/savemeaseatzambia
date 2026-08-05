@@ -2669,18 +2669,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
         font-size: 0.8rem;
       }
 
-      .member-img-container {
-        aspect-ratio: 3/4;
-        margin-bottom: 15px;
-      }
 
-      .member-img {
-        width: 100%;
-        height: 100%;
-        max-width: none;
-        border-radius: 0;
-        aspect-ratio: auto;
-      }
 
       .party-members {
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -3241,7 +3230,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
                     {(submittedRSVP?.guests_count || parseInt(formData.guests, 10) || 1) > 1 ? `Admit ${(submittedRSVP?.guests_count || parseInt(formData.guests, 10) || 1)} Guests` : 'Admit 1 Guest'}
                   </p>
                   <p style={{ fontFamily: 'Montserrat', fontSize: '0.7rem', color: '#666', margin: '0 0 3px 0' }}>
-                    {formatDate(weddingData.date)} {weddingData.ceremony.time ? `at ${formatTime(weddingData.ceremony.time)}` : ''}
+                    {formatDate(weddingData.date)} {weddingData.reception?.time ? `at ${formatTime(weddingData.reception.time)}` : ''}
                   </p>
                   <p style={{ fontFamily: 'Montserrat', fontSize: '0.7rem', color: '#666', margin: '0' }}>
                     {weddingData.venue.name || weddingData.location || 'Wedding Venue'}
