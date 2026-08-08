@@ -78,7 +78,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
   const [audio] = useState(() => {
     const musicUrl = propsWeddingData?.music_url;
     if (musicUrl === "none") return null;
-    const a = new Audio(musicUrl || "https://archive.org/download/100ClassicalMusicMasterpieces/1801%20Beethoven-%20%27Moonlight%27%20Sonata%2C%201st%20movement.mp3");
+    const a = new Audio(musicUrl || "https://archive.org/download/100ClassicalMusicMasterpieces/1838%20Schumann%20-%20Traumerei.mp3");
     a.loop = true;
     return a;
   });

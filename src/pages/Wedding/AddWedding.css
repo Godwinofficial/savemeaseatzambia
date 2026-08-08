@@ -1358,3 +1358,90 @@
 .form-steps-container {
     width: 100%;
 }
+
+/* ======================================
+   MUSIC TRACK PICKER
+   ====================================== */
+.music-track-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.music-track-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border: 1.5px solid var(--aw-border);
+    border-radius: 10px;
+    cursor: pointer;
+    background: #ffffff;
+    transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+    user-select: none;
+}
+.music-track-row:hover {
+    border-color: var(--aw-primary-light);
+    background: #f5f3ff;
+}
+.music-track-row.selected {
+    border-color: var(--aw-primary);
+    background: #ede9fe;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.music-preview-btn {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: var(--aw-primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: background 0.18s, transform 0.15s;
+}
+.music-preview-btn:hover {
+    background: var(--aw-primary-dark);
+    transform: scale(1.08);
+}
+.music-preview-btn.playing {
+    background: #dc2626;
+    animation: musicPulseRing 1.4s ease-in-out infinite;
+}
+@keyframes musicPulseRing {
+    0%   { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5); }
+    70%  { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+.music-track-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.music-track-label {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.music-track-meta {
+    font-size: 0.76rem;
+    color: var(--aw-text-muted);
+}
+
+.music-track-select-indicator {
+    flex-shrink: 0;
+    font-size: 1.1rem;
+    line-height: 1;
+}

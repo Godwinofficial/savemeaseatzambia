@@ -746,6 +746,22 @@ const AddWedding = () => {
     const [tempDressHex, setTempDressHex] = useState("");
     const [editingThemeIdx, setEditingThemeIdx] = useState(null);
     const [editingDressIdx, setEditingDressIdx] = useState(null);
+    const [previewingUrl, setPreviewingUrl] = useState(null);
+    const previewAudioRef = useRef(null);
+
+    const MUSIC_TRACKS = [
+        { url: "https://archive.org/download/100ClassicalMusicMasterpieces/1838%20Schumann%20-%20Traumerei.mp3", label: "Träumerei (Dreaming)", artist: "Schumann", mood: "Soft Romantic Piano (Recommended)" },
+        { url: "https://archive.org/download/100ClassicalMusicMasterpieces/1847%20Liszt%20-%20Liebestraum%20No.3%20in%20A%20flat.mp3", label: "Liebestraum (Love Dream)", artist: "Liszt", mood: "Sweet Wedding Piano" },
+        { url: "https://archive.org/download/100ClassicalMusicMasterpieces/1698%20Pachelbel%20%2C%20Canon%20in%20D.mp3", label: "Canon in D", artist: "Pachelbel", mood: "Classic Wedding Strings & Piano" },
+        { url: "https://archive.org/download/100ClassicalMusicMasterpieces/1841%20Mendelssohn%20-Spring%20Song.mp3", label: "Spring Song", artist: "Mendelssohn", mood: "Soft & Uplifting Piano" },
+        { url: "https://archive.org/download/100ClassicalMusicMasterpieces/1858%20Rubinstein-%20Melody%20in%20F.mp3", label: "Melody in F", artist: "Rubinstein", mood: "Warm Gentle Piano" },
+        { url: "https://archive.org/download/100ClassicalMusicMasterpieces/1865%20Brahms-%20Waltz.mp3", label: "Romantic Waltz in A-Flat", artist: "Brahms", mood: "Gentle Piano Waltz" },
+        { url: "https://archive.org/download/100ClassicalMusicMasterpieces/1727%20Bach%20%2C%20Air%20%28from%20Orchestral%20Suite%20No.%203%20in%20D%29.mp3", label: "Air on the G String", artist: "J.S. Bach", mood: "Soft Elegant Strings" },
+        { url: "https://archive.org/download/100ClassicalMusicMasterpieces/1825%20Schubert%20-%20Ave%20Maria.mp3", label: "Ave Maria", artist: "Schubert", mood: "Serene & Peaceful" },
+        { url: "https://archive.org/download/100ClassicalMusicMasterpieces/1725%20Vivaldi%20%2C%20The%20Four%20Seasons%20-%20Spring.mp3", label: "Spring (The Four Seasons)", artist: "Vivaldi", mood: "Joyful & Bright Strings" },
+        { url: "https://archive.org/download/100ClassicalMusicMasterpieces/1810%20Beethoven-%20Fur%20Elise.mp3", label: "Für Elise", artist: "Beethoven", mood: "Gentle Solo Piano" },
+        { url: "https://archive.org/download/100ClassicalMusicMasterpieces/1843%20Mendelssohn%20-%20Wedding%20March%2C%20from%20%27A%20Midsummer%20Night%27s%20Dream%27.mp3", label: "Traditional Wedding March", artist: "Mendelssohn", mood: "Grand Processional" },
+    ];
 
     // Sync draft form data for real-time live preview
     useEffect(() => {
@@ -1448,63 +1464,105 @@ const AddWedding = () => {
             </div>
 
             <div className="form-group">
-                <label className="form-label">Soundtrack Selection</label>
-                <select
-                    className="form-input"
-                    value={
-                        !formData.music_url
-                            ? ""
-                            : [
-                                  "",
-                                  "https://archive.org/download/100ClassicalMusicMasterpieces/1801%20Beethoven-%20%27Moonlight%27%20Sonata%2C%201st%20movement.mp3",
-                                  "https://archive.org/download/PachelbelCanonInD_201610/Pachelbel%20Canon%20in%20D.mp3",
-                                  "https://archive.org/download/DebussyClairDeLune_584/ClaudeDebussy-ClairDeLune.mp3",
-                                  "https://archive.org/download/MendelssohnWeddingMarch/Mendelssohn%20-%20Wedding%20March.mp3",
-                                  "none"
-                              ].includes(formData.music_url)
-                            ? formData.music_url
-                            : "custom"
-                    }
-                    onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "custom") {
-                            setFormData(prev => ({ ...prev, music_url: "https://" }));
-                        } else {
-                            setFormData(prev => ({ ...prev, music_url: val }));
-                        }
-                    }}
-                >
-                    <option value="">Beethoven's Moonlight Sonata (Default Piano)</option>
-                    <option value="https://archive.org/download/PachelbelCanonInD_201610/Pachelbel%20Canon%20in%20D.mp3">Pachelbel's Canon in D (Strings)</option>
-                    <option value="https://archive.org/download/DebussyClairDeLune_584/ClaudeDebussy-ClairDeLune.mp3">Debussy's Clair de Lune (Romantic Piano)</option>
-                    <option value="https://archive.org/download/MendelssohnWeddingMarch/Mendelssohn%20-%20Wedding%20March.mp3">Mendelssohn's Wedding March (Traditional Brass)</option>
-                    <option value="none">No Background Music (Leave it out)</option>
-                    <option value="custom">Custom Audio Link (.mp3)...</option>
-                </select>
-            </div>
+                <p style={{ color: 'var(--gray)', fontSize: '0.85rem', margin: '0 0 14px 0' }}>
+                    Click <i className="fas fa-play" style={{ color: 'var(--aw-primary)' }}></i> to preview a track before selecting it. The selected track will play on your guests' invitation.
+                </p>
 
-            {formData.music_url && ![
-                "",
-                "https://archive.org/download/100ClassicalMusicMasterpieces/1801%20Beethoven-%20%27Moonlight%27%20Sonata%2C%201st%20movement.mp3",
-                "https://archive.org/download/PachelbelCanonInD_201610/Pachelbel%20Canon%20in%20D.mp3",
-                "https://archive.org/download/DebussyClairDeLune_584/ClaudeDebussy-ClairDeLune.mp3",
-                "https://archive.org/download/MendelssohnWeddingMarch/Mendelssohn%20-%20Wedding%20March.mp3",
-                "none"
-            ].includes(formData.music_url) && (
-                <div className="form-group" style={{ marginTop: '10px' }}>
-                    <label className="form-label">Custom Audio URL (.mp3)</label>
-                    <input
-                        type="url"
-                        className="form-input"
-                        placeholder="https://example.com/song.mp3"
-                        value={formData.music_url}
-                        onChange={(e) => setFormData(prev => ({ ...prev, music_url: e.target.value }))}
-                    />
-                    <small style={{ color: 'var(--gray)', fontSize: '0.8rem' }}>
-                        Provide a direct link to an MP3 file hosted online.
-                    </small>
+                {/* Hidden shared preview audio element */}
+                <audio ref={previewAudioRef} style={{ display: 'none' }} />
+
+                <div className="music-track-list">
+                    {MUSIC_TRACKS.map((track) => {
+                        const isSelected = formData.music_url === track.url;
+                        const isPreviewing = previewingUrl === track.url;
+                        return (
+                            <div
+                                key={track.url}
+                                className={`music-track-row ${isSelected ? 'selected' : ''}`}
+                                onClick={() => setFormData(prev => ({ ...prev, music_url: track.url }))}
+                            >
+                                <button
+                                    type="button"
+                                    className={`music-preview-btn ${isPreviewing ? 'playing' : ''}`}
+                                    title={isPreviewing ? 'Stop preview' : 'Preview this track'}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        const audioEl = previewAudioRef.current;
+                                        if (!audioEl) return;
+                                        if (isPreviewing) {
+                                            audioEl.pause();
+                                            audioEl.currentTime = 0;
+                                            setPreviewingUrl(null);
+                                        } else {
+                                            audioEl.src = track.url;
+                                            audioEl.play().catch(() => {});
+                                            setPreviewingUrl(track.url);
+                                            audioEl.onended = () => setPreviewingUrl(null);
+                                        }
+                                    }}
+                                >
+                                    <i className={`fas ${isPreviewing ? 'fa-stop' : 'fa-play'}`}></i>
+                                </button>
+
+                                <div className="music-track-info">
+                                    <span className="music-track-label">{track.label}</span>
+                                    <span className="music-track-meta">{track.artist} &bull; {track.mood}</span>
+                                </div>
+
+                                <div className="music-track-select-indicator">
+                                    {isSelected
+                                        ? <i className="fas fa-check-circle" style={{ color: 'var(--aw-primary)' }}></i>
+                                        : <i className="far fa-circle" style={{ color: '#cbd5e1' }}></i>
+                                    }
+                                </div>
+                            </div>
+                        );
+                    })}
+
+                    {/* No Music option */}
+                    <div
+                        className={`music-track-row ${formData.music_url === 'none' ? 'selected' : ''}`}
+                        onClick={() => {
+                            if (previewAudioRef.current) { previewAudioRef.current.pause(); }
+                            setPreviewingUrl(null);
+                            setFormData(prev => ({ ...prev, music_url: 'none' }));
+                        }}
+                    >
+                        <div className="music-preview-btn" style={{ background: '#f1f5f9', color: '#94a3b8', cursor: 'default' }}>
+                            <i className="fas fa-volume-xmark"></i>
+                        </div>
+                        <div className="music-track-info">
+                            <span className="music-track-label">No Background Music</span>
+                            <span className="music-track-meta">Leave it out entirely</span>
+                        </div>
+                        <div className="music-track-select-indicator">
+                            {formData.music_url === 'none'
+                                ? <i className="fas fa-check-circle" style={{ color: 'var(--aw-primary)' }}></i>
+                                : <i className="far fa-circle" style={{ color: '#cbd5e1' }}></i>
+                            }
+                        </div>
+                    </div>
                 </div>
-            )}
+
+                {/* Custom URL fallback */}
+                <div style={{ marginTop: '12px' }}>
+                    <details>
+                        <summary style={{ cursor: 'pointer', fontSize: '0.82rem', color: 'var(--gray)', userSelect: 'none' }}>
+                            Use a custom audio URL instead...
+                        </summary>
+                        <div className="form-group" style={{ marginTop: '10px' }}>
+                            <input
+                                type="url"
+                                className="form-input"
+                                placeholder="https://example.com/song.mp3"
+                                value={MUSIC_TRACKS.some(t => t.url === formData.music_url) || formData.music_url === 'none' ? '' : formData.music_url}
+                                onChange={(e) => setFormData(prev => ({ ...prev, music_url: e.target.value }))}
+                            />
+                            <small style={{ color: 'var(--gray)', fontSize: '0.8rem' }}>Paste a direct link to any .mp3 file.</small>
+                        </div>
+                    </details>
+                </div>
+            </div>
         </div>
     );
 
