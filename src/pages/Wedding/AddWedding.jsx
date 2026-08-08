@@ -728,7 +728,8 @@ const AddWedding = () => {
         slider_images: [], bridesmaids: [], groomsmen: [], gifts: [], gallery_images: [], other_events: [],
         allowed_guests: ["1"],
         theme_colors: ['#A68A64', '#FAFAF9', '#E7E5E4', '#292524'],
-        dress_code_colors: []
+        dress_code_colors: [],
+        music_url: ""
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -797,7 +798,7 @@ const AddWedding = () => {
                         try {
                             const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
                             return Array.isArray(parsed) && parsed.length > 0
-                                ? parsed.filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:"))
+                                ? parsed.filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:") && !c.startsWith("MUSIC_URL:"))
                                 : ['#A68A64', '#FAFAF9', '#E7E5E4', '#292524'];
                         } catch (e) {
                             return ['#A68A64', '#FAFAF9', '#E7E5E4', '#292524'];
@@ -823,6 +824,22 @@ const AddWedding = () => {
                             }
                         } catch (e) { }
                         return [];
+                    })(),
+                    music_url: (() => {
+                        if (data.music_url !== undefined && data.music_url !== null) {
+                            return data.music_url;
+                        }
+                        // Fallback: check theme_colors for MUSIC_URL: prefix
+                        const rawTheme = data.theme_colors;
+                        if (!rawTheme) return "";
+                        try {
+                            const parsed = typeof rawTheme === 'string' ? JSON.parse(rawTheme) : rawTheme;
+                            if (Array.isArray(parsed)) {
+                                const found = parsed.find(c => typeof c === 'string' && c.startsWith("MUSIC_URL:"));
+                                return found ? found.substring("MUSIC_URL:".length) : "";
+                            }
+                        } catch (e) { }
+                        return "";
                     })(),
                     template_id: data.template_id || 1
                 });
@@ -1128,7 +1145,7 @@ const AddWedding = () => {
             });
 
             // Clean theme_colors of any prefix tags if saving normally
-            payload.theme_colors = (payload.theme_colors || []).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:"));
+            payload.theme_colors = (payload.theme_colors || []).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:") && !c.startsWith("MUSIC_URL:"));
 
             // Removed hack that deletes template_id when it's 1, as the database column type will be fixed.
 
@@ -1144,8 +1161,9 @@ const AddWedding = () => {
             if (error) {
                 const missingExtraCardText = error.message && error.message.includes("extra_card_text");
                 const missingDressCodeColors = error.message && error.message.includes("dress_code_colors");
+                const missingMusicUrl = error.message && error.message.includes("music_url");
 
-                if (missingExtraCardText || missingDressCodeColors) {
+                if (missingExtraCardText || missingDressCodeColors || missingMusicUrl) {
                     console.warn("Missing database columns, applying fallbacks...");
                     const retryPayload = { ...payload };
                     let msg = "";
@@ -1160,11 +1178,25 @@ const AddWedding = () => {
                         delete retryPayload.dress_code_colors;
                         const dressCodePrefixes = (payload.dress_code_colors || []).map(c => `DRESS_CODE_COLOR:${c}`);
                         retryPayload.theme_colors = [
-                            ...(payload.theme_colors || []).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:")),
+                            ...(payload.theme_colors || []).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:") && !c.startsWith("MUSIC_URL:")),
                             ...dressCodePrefixes
                         ];
                         if (missingDressCodeColors) {
                             msg += '\n- "dress_code_colors" saved inside theme_colors';
+                        }
+                    }
+
+                    if (missingMusicUrl || payload.music_url) {
+                        delete retryPayload.music_url;
+                        if (payload.music_url) {
+                            const musicPrefix = `MUSIC_URL:${payload.music_url}`;
+                            retryPayload.theme_colors = [
+                                ...(retryPayload.theme_colors || []).filter(c => typeof c === 'string' && !c.startsWith("MUSIC_URL:")),
+                                musicPrefix
+                            ];
+                        }
+                        if (missingMusicUrl) {
+                            msg += '\n- "music_url" saved inside theme_colors';
                         }
                     }
 
@@ -1185,7 +1217,7 @@ const AddWedding = () => {
                             delete secondRetryPayload.dress_code_colors;
                             const dressCodePrefixes = (payload.dress_code_colors || []).map(c => `DRESS_CODE_COLOR:${c}`);
                             secondRetryPayload.theme_colors = [
-                                ...(payload.theme_colors || []).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:")),
+                                ...(payload.theme_colors || []).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:") && !c.startsWith("MUSIC_URL:")),
                                 ...dressCodePrefixes
                             ];
                             msg += '\n- "dress_code_colors" saved inside theme_colors';
@@ -1195,6 +1227,18 @@ const AddWedding = () => {
                             delete secondRetryPayload.extra_card_text;
                             secondRetryPayload.venue_description = `EXTRA_CARD_TEXT:${payload.extra_card_text || ""}`;
                             msg += '\n- "extra_card_text" saved inside venue_description';
+                            secondRetryNeeded = true;
+                        }
+                        if (retryError.message.includes("music_url")) {
+                            delete secondRetryPayload.music_url;
+                            if (payload.music_url) {
+                                const musicPrefix = `MUSIC_URL:${payload.music_url}`;
+                                secondRetryPayload.theme_colors = [
+                                    ...(secondRetryPayload.theme_colors || []).filter(c => typeof c === 'string' && !c.startsWith("MUSIC_URL:")),
+                                    musicPrefix
+                                ];
+                            }
+                            msg += '\n- "music_url" saved inside theme_colors';
                             secondRetryNeeded = true;
                         }
 
@@ -1395,6 +1439,72 @@ const AddWedding = () => {
                     <span style={{ fontWeight: 600, fontSize: '0.8rem', color: '#374151' }}>Terracotta Earth</span>
                 </div>
             </div>
+
+            <div className="section-header" style={{ marginTop: '30px' }}>
+                <h3 className="section-subtitle">
+                    <i className="fas fa-music"></i>
+                    Background Music
+                </h3>
+            </div>
+
+            <div className="form-group">
+                <label className="form-label">Soundtrack Selection</label>
+                <select
+                    className="form-input"
+                    value={
+                        !formData.music_url
+                            ? ""
+                            : [
+                                  "",
+                                  "https://archive.org/download/100ClassicalMusicMasterpieces/1801%20Beethoven-%20%27Moonlight%27%20Sonata%2C%201st%20movement.mp3",
+                                  "https://archive.org/download/PachelbelCanonInD_201610/Pachelbel%20Canon%20in%20D.mp3",
+                                  "https://archive.org/download/DebussyClairDeLune_584/ClaudeDebussy-ClairDeLune.mp3",
+                                  "https://archive.org/download/MendelssohnWeddingMarch/Mendelssohn%20-%20Wedding%20March.mp3",
+                                  "none"
+                              ].includes(formData.music_url)
+                            ? formData.music_url
+                            : "custom"
+                    }
+                    onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "custom") {
+                            setFormData(prev => ({ ...prev, music_url: "https://" }));
+                        } else {
+                            setFormData(prev => ({ ...prev, music_url: val }));
+                        }
+                    }}
+                >
+                    <option value="">Beethoven's Moonlight Sonata (Default Piano)</option>
+                    <option value="https://archive.org/download/PachelbelCanonInD_201610/Pachelbel%20Canon%20in%20D.mp3">Pachelbel's Canon in D (Strings)</option>
+                    <option value="https://archive.org/download/DebussyClairDeLune_584/ClaudeDebussy-ClairDeLune.mp3">Debussy's Clair de Lune (Romantic Piano)</option>
+                    <option value="https://archive.org/download/MendelssohnWeddingMarch/Mendelssohn%20-%20Wedding%20March.mp3">Mendelssohn's Wedding March (Traditional Brass)</option>
+                    <option value="none">No Background Music (Leave it out)</option>
+                    <option value="custom">Custom Audio Link (.mp3)...</option>
+                </select>
+            </div>
+
+            {formData.music_url && ![
+                "",
+                "https://archive.org/download/100ClassicalMusicMasterpieces/1801%20Beethoven-%20%27Moonlight%27%20Sonata%2C%201st%20movement.mp3",
+                "https://archive.org/download/PachelbelCanonInD_201610/Pachelbel%20Canon%20in%20D.mp3",
+                "https://archive.org/download/DebussyClairDeLune_584/ClaudeDebussy-ClairDeLune.mp3",
+                "https://archive.org/download/MendelssohnWeddingMarch/Mendelssohn%20-%20Wedding%20March.mp3",
+                "none"
+            ].includes(formData.music_url) && (
+                <div className="form-group" style={{ marginTop: '10px' }}>
+                    <label className="form-label">Custom Audio URL (.mp3)</label>
+                    <input
+                        type="url"
+                        className="form-input"
+                        placeholder="https://example.com/song.mp3"
+                        value={formData.music_url}
+                        onChange={(e) => setFormData(prev => ({ ...prev, music_url: e.target.value }))}
+                    />
+                    <small style={{ color: 'var(--gray)', fontSize: '0.8rem' }}>
+                        Provide a direct link to an MP3 file hosted online.
+                    </small>
+                </div>
+            )}
         </div>
     );
 
@@ -2561,6 +2671,13 @@ const AddWedding = () => {
 
                         {/* Mobile Horizontal Progress Tracker */}
                         <div className="mobile-steps-tracker">
+                            <button
+                                className="mobile-admin-link-btn"
+                                onClick={() => navigate('/admin')}
+                                title="Back to Admin"
+                            >
+                                <i className="fas fa-arrow-left"></i> Admin
+                            </button>
                             {steps.map((_, idx) => (
                                 <div
                                     key={idx}

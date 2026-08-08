@@ -43,7 +43,7 @@ const TropicalElegance = ({ weddingData }) => {
 
   const dressCodeColors = d.dress_code_colors && d.dress_code_colors.length > 0
     ? d.dress_code_colors
-    : ['#072417', '#cba052', '#f8f5ed'];
+    : [];
 
   const eventDate = d.date ? new Date(d.date) : new Date('2026-09-28T17:00:00');
   const pad = (n) => String(n).padStart(2, '0');
@@ -61,12 +61,15 @@ const TropicalElegance = ({ weddingData }) => {
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio] = useState(() => {
-    const a = new Audio("https://archive.org/download/100ClassicalMusicMasterpieces/1801%20Beethoven-%20%27Moonlight%27%20Sonata%2C%201st%20movement.mp3");
+    const musicUrl = d.music_url;
+    if (musicUrl === "none") return null;
+    const a = new Audio(musicUrl || "https://archive.org/download/100ClassicalMusicMasterpieces/1801%20Beethoven-%20%27Moonlight%27%20Sonata%2C%201st%20movement.mp3");
     a.loop = true;
     return a;
   });
 
   const togglePlay = () => {
+    if (!audio) return;
     if (isPlaying) {
       audio.pause();
       setIsPlaying(false);
@@ -125,6 +128,7 @@ const TropicalElegance = ({ weddingData }) => {
   }, [eventDate]);
 
   useEffect(() => {
+    if (!audio) return;
     const handleInteraction = () => {
       audio.play().then(() => {
         setIsPlaying(true);
@@ -574,7 +578,7 @@ const TropicalElegance = ({ weddingData }) => {
                 <div className="inv-section-item animate-on-scroll">
                   <SectionPill icon="fa-gift" topText="GIFT" bottomText="Registry" iconLeft={true} />
                   <div className="inv-section-content">
-                    <p>Your presence is our biggest gift. If you'd like to gift us:</p>
+                    <p>As we prepare to celebrate our special day, we warmly welcome your contribution towards making our wedding celebration a memorable one. Your support is sincerely appreciated.</p>
                     {safeGifts.map((gift, idx) => (
                       <div key={idx} style={{
                         background: '#FFF',
@@ -962,13 +966,15 @@ const TropicalElegance = ({ weddingData }) => {
         </div>
       )}
       {/* Floating Audio Player */}
-      <button
-        onClick={togglePlay}
-        className={`inv-music-btn ${isPlaying ? 'playing' : ''}`}
-        aria-label="Toggle Background Music"
-      >
-        <i className={`fa-solid ${isPlaying ? 'fa-music' : 'fa-volume-xmark'}`}></i>
-      </button>
+      {audio && (
+        <button
+          onClick={togglePlay}
+          className={`inv-music-btn ${isPlaying ? 'playing' : ''}`}
+          aria-label="Toggle Background Music"
+        >
+          <i className={`fa-solid ${isPlaying ? 'fa-music' : 'fa-volume-xmark'}`}></i>
+        </button>
+      )}
     </>
   );
 };

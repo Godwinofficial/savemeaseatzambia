@@ -887,7 +887,31 @@
 /* Mobile adjustments */
 .mobile-steps-tracker { display: none; }
 
+/* Mobile top nav — hidden on desktop */
+.mobile-top-nav {
+    display: none;
+}
+
 @media (max-width: 768px) {
+    .mobile-admin-link-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--aw-primary, #4f46e5);
+        background: rgba(79, 70, 229, 0.08);
+        border: 1px solid rgba(79, 70, 229, 0.2);
+        border-radius: 6px;
+        padding: 0.25rem 0.6rem;
+        cursor: pointer;
+        transition: background 0.2s;
+        white-space: nowrap;
+    }
+    .mobile-admin-link-btn:active {
+        background: rgba(79, 70, 229, 0.18);
+    }
+
     .builder-sidebar { display: none !important; }
     .builder-preview-area { display: none !important; }
     .builder-editor-area { width: 100% !important; height: 100% !important; }

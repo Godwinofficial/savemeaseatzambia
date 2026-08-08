@@ -108,9 +108,17 @@ const TemplatePreviewWrapper = ({ children, slug }) => {
             },
             dressCode: dbData.dress_code,
             dressCodeDescription: dbData.dress_code_desc,
-             theme_colors: parseArray(dbData.theme_colors),
-             dress_code_colors: parseArray(dbData.dress_code_colors),
-             extra_card_text: dbData.extra_card_text || (dbData.venue_description?.startsWith("EXTRA_CARD_TEXT:") ? dbData.venue_description.replace("EXTRA_CARD_TEXT:", "") : ""),
+            theme_colors: parseArray(dbData.theme_colors).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:") && !c.startsWith("MUSIC_URL:")),
+            dress_code_colors: parseArray(dbData.dress_code_colors),
+            music_url: (() => {
+              if (dbData.music_url !== undefined && dbData.music_url !== null) {
+                return dbData.music_url;
+              }
+              const parsedTheme = parseArray(dbData.theme_colors);
+              const found = parsedTheme.find(c => typeof c === 'string' && c.startsWith("MUSIC_URL:"));
+              return found ? found.substring("MUSIC_URL:".length) : "";
+            })(),
+            extra_card_text: dbData.extra_card_text || (dbData.venue_description?.startsWith("EXTRA_CARD_TEXT:") ? dbData.venue_description.replace("EXTRA_CARD_TEXT:", "") : ""),
             gifts: parseArray(dbData.gifts),
             galleryImages: parseArray(dbData.gallery_images),
             mapLocation: dbData.map_location,

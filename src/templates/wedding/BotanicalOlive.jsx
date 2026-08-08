@@ -121,12 +121,15 @@ const BotanicalOlive = ({ weddingData }) => {
   // Audio Player State
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio] = useState(() => {
-    const a = new Audio("https://archive.org/download/100ClassicalMusicMasterpieces/1801%20Beethoven-%20%27Moonlight%27%20Sonata%2C%201st%20movement.mp3");
+    const musicUrl = weddingData?.music_url;
+    if (musicUrl === "none") return null;
+    const a = new Audio(musicUrl || "https://archive.org/download/100ClassicalMusicMasterpieces/1801%20Beethoven-%20%27Moonlight%27%20Sonata%2C%201st%20movement.mp3");
     a.loop = true;
     return a;
   });
 
   const togglePlay = () => {
+    if (!audio) return;
     if (isPlaying) {
       audio.pause();
       setIsPlaying(false);
@@ -140,6 +143,7 @@ const BotanicalOlive = ({ weddingData }) => {
   };
 
   useEffect(() => {
+    if (!audio) return;
     const handleInteraction = () => {
       audio.play().then(() => {
         setIsPlaying(true);
@@ -1248,13 +1252,15 @@ const BotanicalOlive = ({ weddingData }) => {
       </div>
 
       {/* Floating Audio Player */}
-      <button
-        onClick={togglePlay}
-        className={`bo-music-btn ${isPlaying ? 'playing' : ''}`}
-        aria-label="Toggle Background Music"
-      >
-        <i className={`fa-solid ${isPlaying ? 'fa-music' : 'fa-volume-xmark'}`}></i>
-      </button>
+      {audio && (
+        <button
+          onClick={togglePlay}
+          className={`bo-music-btn ${isPlaying ? 'playing' : ''}`}
+          aria-label="Toggle Background Music"
+        >
+          <i className={`fa-solid ${isPlaying ? 'fa-music' : 'fa-volume-xmark'}`}></i>
+        </button>
+      )}
     </>
   );
 };
