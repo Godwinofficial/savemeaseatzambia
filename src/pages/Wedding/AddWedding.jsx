@@ -694,6 +694,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useNavigate, useParams } from 'react-router-dom';
 import './AddWedding.css';
+import defaultMusic from '../../assets/music/music.mp3';
 
 const SUPER_USER_EMAILS = ['admin@savemeaseat.com', 'godwinbanda19@gmail.com'];
 
@@ -750,7 +751,8 @@ const AddWedding = () => {
     const previewAudioRef = useRef(null);
 
     const MUSIC_TRACKS = [
-        { url: "https://archive.org/download/100ClassicalMusicMasterpieces/1838%20Schumann%20-%20Traumerei.mp3", label: "Träumerei (Dreaming)", artist: "Schumann", mood: "Soft Romantic Piano (Recommended)" },
+        { url: defaultMusic, label: "SaveMeASeat Wedding Soundtrack", artist: "Default", mood: "Soft & Romantic (Recommended Default)" },
+        { url: "https://archive.org/download/100ClassicalMusicMasterpieces/1838%20Schumann%20-%20Traumerei.mp3", label: "Träumerei (Dreaming)", artist: "Schumann", mood: "Soft Romantic Piano" },
         { url: "https://archive.org/download/100ClassicalMusicMasterpieces/1847%20Liszt%20-%20Liebestraum%20No.3%20in%20A%20flat.mp3", label: "Liebestraum (Love Dream)", artist: "Liszt", mood: "Sweet Wedding Piano" },
         { url: "https://archive.org/download/100ClassicalMusicMasterpieces/1698%20Pachelbel%20%2C%20Canon%20in%20D.mp3", label: "Canon in D", artist: "Pachelbel", mood: "Classic Wedding Strings & Piano" },
         { url: "https://archive.org/download/100ClassicalMusicMasterpieces/1841%20Mendelssohn%20-Spring%20Song.mp3", label: "Spring Song", artist: "Mendelssohn", mood: "Soft & Uplifting Piano" },

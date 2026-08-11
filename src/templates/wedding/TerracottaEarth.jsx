@@ -3,6 +3,7 @@ import { supabase } from '../../supabaseClient';
 import { QRCodeCanvas } from 'qrcode.react';
 import html2canvas from 'html2canvas';
 import logoImg from '../../assets/images/logo1.png';
+import defaultMusic from '../../assets/music/music.mp3';
 
 // Helper to format time safely (HH:MM:SS -> 12h AM/PM)
 const formatTime = (timeString) => {
@@ -153,7 +154,7 @@ const TerracottaEarth = ({ weddingData }) => {
   const [audio] = useState(() => {
     const musicUrl = weddingData?.music_url;
     if (musicUrl === "none") return null;
-    const a = new Audio(musicUrl || "https://archive.org/download/100ClassicalMusicMasterpieces/1838%20Schumann%20-%20Traumerei.mp3");
+    const a = new Audio(musicUrl || defaultMusic);
     a.loop = true;
     return a;
   });
