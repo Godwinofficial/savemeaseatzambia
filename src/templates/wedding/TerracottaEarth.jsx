@@ -247,7 +247,10 @@ const TerracottaEarth = ({ weddingData }) => {
 
   useEffect(() => { if (rsvpId) { const t = setTimeout(() => downloadPassCard(), 800); return () => clearTimeout(t); } }, [rsvpId]);
 
-  const paletteColors = d.dress_code_colors && d.dress_code_colors.length > 0 ? d.dress_code_colors : ['#2C2421', '#887064', '#C16E5A', '#E2D1C3', '#FAF7F2'];
+  // Only show palette colors if admin has actually configured them (don't fall back to hardcoded defaults when real data is present)
+  const paletteColors = weddingData
+    ? (d.dress_code_colors && d.dress_code_colors.length > 0 ? d.dress_code_colors : [])
+    : (d.dress_code_colors && d.dress_code_colors.length > 0 ? d.dress_code_colors : ['#2C2421', '#887064', '#C16E5A', '#E2D1C3', '#FAF7F2']);
   const heroImage = sliderImages[0];
 
   return (
@@ -963,6 +966,11 @@ const TerracottaEarth = ({ weddingData }) => {
                   <div className="te-timeline-content">
                     <div className="te-timeline-time">{formatTime(d.ceremony.time)}</div>
                     <div className="te-timeline-event">Marriage Blessings</div>
+                    {(d.ceremony.venue || d.ceremony.location) && (
+                      <div style={{ fontSize: '0.7rem', color: textMuted, marginTop: '4px', lineHeight: '1.4' }}>
+                        {d.ceremony.venue || d.ceremony.location}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -971,6 +979,13 @@ const TerracottaEarth = ({ weddingData }) => {
                   <div className="te-timeline-content">
                     <div className="te-timeline-time">{formatTime(d.reception.time)}</div>
                     <div className="te-timeline-event">Reception</div>
+                    {(d.reception.venue || d.reception.address || d.reception.location) && (
+                      <div style={{ fontSize: '0.7rem', color: textMuted, marginTop: '4px', lineHeight: '1.4' }}>
+                        {d.reception.venue}
+                        {d.reception.venue && d.reception.address ? <br /> : null}
+                        {d.reception.address || d.reception.location}
+                      </div>
+                    )}
                   </div>
                   <div className="te-timeline-dot"></div>
                   <div className="te-timeline-content" style={{ opacity: 0 }}></div>
