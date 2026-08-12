@@ -133,11 +133,11 @@ const AddBirthday = () => {
         const marker = L.marker([-15.3875, 28.3228], { draggable: true }).addTo(map);
         marker.on('dragend', () => {
             const { lat, lng } = marker.getLatLng();
-            setForm(p => ({ ...p, map_embed: `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed` }));
+            setForm(p => ({ ...p, map_embed: `https://maps.google.com/maps?q=${lat},${lng}&t=&z=15&ie=UTF8&iwloc=&output=embed` }));
         });
         map.on('click', (e) => {
             marker.setLatLng(e.latlng);
-            setForm(p => ({ ...p, map_embed: `https://maps.google.com/maps?q=${e.latlng.lat},${e.latlng.lng}&z=15&output=embed` }));
+            setForm(p => ({ ...p, map_embed: `https://maps.google.com/maps?q=${e.latlng.lat},${e.latlng.lng}&t=&z=15&ie=UTF8&iwloc=&output=embed` }));
         });
         setMapInstance(map);
         setMarkerInstance(marker);
@@ -177,7 +177,7 @@ const AddBirthday = () => {
             ...p,
             venue_name: p.venue_name || shortName,
             venue_address: result.display_name,
-            map_embed: `https://maps.google.com/maps?q=${lat},${lon}&z=15&output=embed`,
+            map_embed: `https://maps.google.com/maps?q=${lat},${lon}&t=&z=15&ie=UTF8&iwloc=&output=embed`,
         }));
         setAddressQuery(result.display_name);
         setSearchResults([]);
@@ -427,7 +427,7 @@ const AddBirthday = () => {
                                     </div>
                                     <div className="bd-form-group">
                                         <label className="bd-form-label">Theme</label>
-                                        <input className="bd-form-input" name="theme" value={form.theme} onChange={handleChange} placeholder="e.g. Princess 👑" />
+                                        <input className="bd-form-input" name="theme" value={form.theme} onChange={handleChange} placeholder="e.g. Princess" />
                                     </div>
                                     <div className="bd-form-group">
                                         <label className="bd-form-label">Dress Code</label>

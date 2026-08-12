@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 import { getEmailTemplate } from '../../utils/emailTemplates';
 import { sendEmail as sendEmailService } from '../../utils/emailService';
 import ReminderModal from '../../components/ReminderModal';
+import QRScanner from '../../components/QRScanner';
 
 const setThemeColor = (color) => {
     let meta = document.querySelector('meta[name="theme-color"]');
@@ -28,6 +29,38 @@ const attendingLabel = (guest) => {
     return String(guest?.attending ?? '—');
 };
 
+const playBeepSound = () => {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.2);
+    } catch (e) { console.error(e); }
+};
+
+const playWarningSound = () => {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(300, ctx.currentTime);
+        gain.gain.setValueAtTime(0.4, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.4);
+    } catch (e) { console.error(e); }
+};
+
 const BirthdayReport = () => {
     const { slug } = useParams();
     const [loading, setLoading] = useState(true);
@@ -44,6 +77,13 @@ const BirthdayReport = () => {
     const [sendingReminders, setSendingReminders] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
+    // QR Scanner state
+    const [showQrScanner, setShowQrScanner] = useState(false);
+    const [scanMessage, setScanMessage] = useState(null);
+    const [scannedGuest, setScannedGuest] = useState(null);
+    const [checkedInGuests, setCheckedInGuests] = useState([]);
+    const [checkingIn, setCheckingIn] = useState(false);
+
     useEffect(() => {
         const prev = document.querySelector('meta[name="theme-color"]')?.content;
         setThemeColor('#12121c');
@@ -58,14 +98,29 @@ const BirthdayReport = () => {
         try {
             if (!isRefresh) setLoading(true);
 
-            const { data: eventData, error: eventError } = await supabase
+            // Fetch event by slug or fallback to ID
+            let { data: eventData, error: eventError } = await supabase
                 .from('birthday_events')
-                .select('id, child_name, date, time, venue_name, venue_address')
+                .select('*')
                 .eq('slug', slug)
                 .single();
 
-            if (eventError) throw new Error("Event not found");
-            if (!eventData) throw new Error("Event not found");
+            if (eventError || !eventData) {
+                const { data: dataById } = await supabase
+                    .from('birthday_events')
+                    .select('*')
+                    .eq('id', slug)
+                    .maybeSingle();
+                if (dataById) {
+                    eventData = dataById;
+                    eventError = null;
+                }
+            }
+
+            if (eventError || !eventData) throw new Error("Event not found");
+
+            // Normalize celebrant/child name
+            eventData.child_name = eventData.child_name || eventData.celebrant_name || 'Birthday';
 
             setWedding(eventData);
 
@@ -85,6 +140,32 @@ const BirthdayReport = () => {
             setError(err.message);
         } finally {
             if (!isRefresh) setLoading(false);
+        }
+    };
+
+    const handleCheckInGuest = async (guest) => {
+        setCheckingIn(true);
+        try {
+            const isNumericId = /^\d+$/.test(String(guest.id));
+            if (isNumericId) {
+                const { error: updateErr } = await supabase
+                    .from('birthday_rsvps')
+                    .update({ checked_in: true })
+                    .eq('id', guest.id);
+                if (updateErr) console.error("Database update error:", updateErr);
+            }
+
+            setCheckedInGuests(prev => [...prev, { ...guest, checked_in: true }]);
+            setGuests(prev => prev.map(g => g.id === guest.id ? { ...g, checked_in: true } : g));
+
+            setSuccessMessage(`✅ ${guest.name} checked in successfully!`);
+            setTimeout(() => setSuccessMessage(null), 4000);
+            setScannedGuest(null);
+            window.isProcessingScan = false;
+        } catch (err) {
+            alert("Check-in error: " + err.message);
+        } finally {
+            setCheckingIn(false);
         }
     };
 
@@ -261,9 +342,19 @@ const BirthdayReport = () => {
     };
 
     const handleSendRemindersNow = async () => {
+        const currentCount = wedding?.manual_reminders_count || 0;
+        if (currentCount >= 2) {
+            alert("Limit reached: You have already sent 2 rounds of reminders.");
+            return;
+        }
+
         const approvedGuests = guests.filter(g => (g.status === 'approved' || !g.status) && g.email);
         if (!approvedGuests.length) { alert("No approved guests with email addresses found."); return; }
-        if (!window.confirm(`Send an immediate reminder to all ${approvedGuests.length} approved guests?`)) return;
+        
+        const remaining = 2 - currentCount;
+        const confirmMessage = `WARNING: You only have ${remaining} round${remaining === 1 ? '' : 's'} of sending reminders left. Users are strictly limited to 2 rounds to prevent email abuse.\n\nAre you sure you want to send reminders to all ${approvedGuests.length} approved guests now? This will consume 1 round.`;
+        
+        if (!window.confirm(confirmMessage)) return;
 
         setSendingReminders(true);
         let sentCount = 0, failCount = 0;
@@ -273,6 +364,8 @@ const BirthdayReport = () => {
                 const birthdayName = wedding.child_name.replace(/['']s\s+Birthday$/i, '');
                 const templateParams = {
                     to_name: guest.name,
+                    to_email: guest.email,
+                    email: guest.email,
                     wedding_name: birthdayName,
                     event_type: 'birthday',
                     event_date: `${new Date(wedding.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at ${(() => {
@@ -315,6 +408,22 @@ const BirthdayReport = () => {
                     console.error(`Failed to email ${guest.email}`, e);
                     failCount++;
                 }
+            }
+
+            const newCount = currentCount + 1;
+            try {
+                const { error: updateError } = await supabase
+                    .from('birthday_events')
+                    .update({ manual_reminders_count: newCount })
+                    .eq('id', wedding.id);
+
+                if (!updateError) {
+                    setWedding(prev => ({ ...prev, manual_reminders_count: newCount }));
+                } else {
+                    setWedding(prev => ({ ...prev, manual_reminders_count: newCount }));
+                }
+            } catch (e) {
+                setWedding(prev => ({ ...prev, manual_reminders_count: newCount }));
             }
 
             setSuccessMessage(`🔔 Sent reminders to ${sentCount} guests${failCount > 0 ? ` (${failCount} failed)` : ''}!`);
@@ -413,15 +522,25 @@ const BirthdayReport = () => {
                         </p>
 
                         <div className="hero-btns">
+                            <button className="hbtn" onClick={() => { window.isProcessingScan = false; setScanMessage(null); setShowQrScanner(true); }}>
+                                <span className="hbtn-icon"><i className="fas fa-qrcode"></i></span>
+                                <span className="hbtn-lbl">Scan Pass</span>
+                            </button>
                             <button className="hbtn" onClick={() => setShowReminderModal(true)}>
                                 <span className="hbtn-icon"><i className="fas fa-clock"></i></span>
                                 <span className="hbtn-lbl">Schedule</span>
                             </button>
-                            <button className="hbtn" onClick={handleSendRemindersNow} disabled={sendingReminders}>
+                            <button 
+                                className="hbtn" 
+                                onClick={handleSendRemindersNow} 
+                                disabled={sendingReminders || (wedding?.manual_reminders_count || 0) >= 2}
+                            >
                                 <span className="hbtn-icon">
                                     <i className={`fas fa-${sendingReminders ? 'spinner fa-spin' : 'bell'}`}></i>
                                 </span>
-                                <span className="hbtn-lbl">Reminders</span>
+                                <span className="hbtn-lbl">
+                                    {(wedding?.manual_reminders_count || 0) >= 2 ? 'Reminders (0 left)' : `Reminders (${2 - (wedding?.manual_reminders_count || 0)} left)`}
+                                </span>
                             </button>
                             <button className="hbtn hbtn-lime" onClick={downloadExcel}>
                                 <span className="hbtn-icon"><i className="fas fa-file-excel"></i></span>
@@ -600,12 +719,16 @@ const BirthdayReport = () => {
                         <span>Guests</span>
                         {pendingGuests.length > 0 && <span className="bn-badge">{pendingGuests.length}</span>}
                     </button>
-                    <button className="bn-center" onClick={downloadExcel}>
-                        <i className="fas fa-file-excel"></i>
+                    <button className="bn-center" onClick={() => { window.isProcessingScan = false; setScanMessage(null); setShowQrScanner(true); }}>
+                        <i className="fas fa-qrcode"></i>
                     </button>
-                    <button className="bn-item" onClick={handleSendRemindersNow} disabled={sendingReminders}>
+                    <button 
+                        className="bn-item" 
+                        onClick={handleSendRemindersNow} 
+                        disabled={sendingReminders || (wedding?.manual_reminders_count || 0) >= 2}
+                    >
                         <i className={`fas fa-${sendingReminders ? 'spinner fa-spin' : 'bell'}`}></i>
-                        <span>Remind</span>
+                        <span>Remind ({(wedding?.manual_reminders_count || 0) >= 2 ? '0' : 2 - (wedding?.manual_reminders_count || 0)})</span>
                     </button>
                     <button className="bn-item" onClick={() => setShowReminderModal(true)}>
                         <i className="fas fa-cog"></i>
@@ -614,6 +737,151 @@ const BirthdayReport = () => {
                 </nav>
 
             </div>
+
+            {/* QR Scanner Modal - Full Screen */}
+            {showQrScanner && (
+                <div className="qr-fs-overlay">
+                    {/* Top Header */}
+                    <div className="qr-fs-header">
+                        <div className="qr-fs-title">
+                            <i className="fas fa-qrcode"></i>
+                            <span>Scan Guest Pass</span>
+                        </div>
+                        <button className="qr-fs-close" onClick={() => { window.isProcessingScan = false; setScanMessage(null); setShowQrScanner(false); }}>
+                            <i className="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    {/* Camera Viewfinder */}
+                    <div className="qr-fs-camera">
+                        <QRScanner
+                            onScan={async (detectedCodes) => {
+                                const rawCode = detectedCodes[0]?.rawValue;
+                                if (rawCode && !window.isProcessingScan) {
+                                    window.isProcessingScan = true;
+                                    setScanMessage(`Scanning code...`);
+                                    try {
+                                        let code = rawCode;
+                                        let embeddedData = null;
+                                        if (rawCode.startsWith('{')) {
+                                            try {
+                                                const parsed = JSON.parse(rawCode);
+                                                code = parsed.id;
+                                                embeddedData = parsed;
+                                                setScanMessage(`✅ Decoded pass for ${parsed.name}`);
+                                            } catch (e) { /* Not valid JSON */ }
+                                        }
+
+                                        const isNumericId = /^\d+$/.test(String(code));
+                                        let data = null;
+                                        let error = null;
+                                        if (isNumericId) {
+                                            const result = await supabase.from('birthday_rsvps').select('*').eq('id', code).eq('event_id', wedding.id).single();
+                                            data = result.data;
+                                            error = result.error;
+                                        } else {
+                                            error = new Error('Skipping DB lookup for non-numeric pass ID');
+                                        }
+
+                                        let guestRecord = data;
+                                        if (error || !data) {
+                                            if (embeddedData && (embeddedData.event_id === wedding.id || embeddedData.type === 'birthday')) {
+                                                guestRecord = { id: embeddedData.id, name: embeddedData.name, email: embeddedData.email || '', phone: embeddedData.phone || '', guests_count: embeddedData.guests || 1, event_id: embeddedData.event_id, checked_in: false };
+                                            }
+                                        }
+
+                                        if (!guestRecord) {
+                                            playWarningSound();
+                                            setScanMessage("❌ Invalid or not found in this guest list.");
+                                            setTimeout(() => { window.isProcessingScan = false; }, 2500);
+                                            return;
+                                        }
+
+                                        const localCheckedIn = checkedInGuests.some(g => g.id === guestRecord.id);
+                                        if (localCheckedIn || guestRecord.checked_in) {
+                                            playWarningSound();
+                                            setScanMessage("❌ Already Checked In!");
+                                            setScannedGuest({ ...guestRecord, checked_in: true });
+                                            return;
+                                        }
+
+                                        playBeepSound();
+                                        setScanMessage("✅ Guest Found!");
+                                        setScannedGuest(guestRecord);
+                                    } catch (err) {
+                                        console.error("Scanning Error:", err);
+                                        setScanMessage("❌ Error checking database.");
+                                        setTimeout(() => { window.isProcessingScan = false; }, 2500);
+                                    }
+                                }
+                            }}
+                            onError={(e) => console.error("Scanner Error:", e)}
+                        />
+                    </div>
+
+                    {/* Status bar */}
+                    {scanMessage && (
+                        <div className="qr-fs-status">{scanMessage}</div>
+                    )}
+
+                    {/* Bottom hint */}
+                    <div className="qr-fs-hint">
+                        <i className="fas fa-camera"></i>
+                        Point the camera at a guest's QR code pass
+                    </div>
+                </div>
+            )}
+
+            {/* Scanned Guest Confirmation Modal */}
+            {scannedGuest && (
+                <div className="vm-overlay" style={{ zIndex: 3100 }} onClick={() => { window.isProcessingScan = false; setScannedGuest(null); }}>
+                    <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '2rem', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
+                        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: scannedGuest.checked_in ? '#f59e0b' : '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
+                            <i className={`fas fa-${scannedGuest.checked_in ? 'exclamation' : 'check'}`} style={{ fontSize: '32px', color: '#fff' }}></i>
+                        </div>
+                        <h4 className="vm-name" style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{scannedGuest.name}</h4>
+                        <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+                            {scannedGuest.email || scannedGuest.phone || 'Guest Pass'}
+                        </p>
+
+                        <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', textAlign: 'left' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                <span style={{ color: '#64748b' }}>Pass ID:</span>
+                                <span style={{ fontWeight: 600, color: '#0f172a' }}>#{scannedGuest.id}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                <span style={{ color: '#64748b' }}>Party Size:</span>
+                                <span style={{ fontWeight: 600, color: '#0f172a' }}>{scannedGuest.guests_count || 1} Person(s)</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#64748b' }}>Status:</span>
+                                <span style={{ fontWeight: 600, color: scannedGuest.checked_in ? '#f59e0b' : '#10b981' }}>
+                                    {scannedGuest.checked_in ? 'Already Checked In' : 'Valid Pass'}
+                                </span>
+                            </div>
+                        </div>
+
+                        {!scannedGuest.checked_in ? (
+                            <button
+                                onClick={() => handleCheckInGuest(scannedGuest)}
+                                disabled={checkingIn}
+                                className="ga-approve"
+                                style={{ background: '#10b981', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '1rem', width: '100%' }}
+                            >
+                                <i className="fas fa-check-circle"></i> {checkingIn ? 'Checking In...' : 'Confirm Check-In'}
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => { window.isProcessingScan = false; setScannedGuest(null); }}
+                                className="ga-approve"
+                                style={{ background: '#64748b', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '1rem', width: '100%' }}
+                            >
+                                Close
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <style jsx>{`
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
@@ -901,6 +1169,58 @@ const BirthdayReport = () => {
                         height: 100vh;
                         max-height: 100vh;
                     }
+                }
+
+                /* ── Full-Screen QR Scanner ── */
+                .qr-fs-overlay {
+                    position: fixed; inset: 0;
+                    background: #000;
+                    z-index: 9998;
+                    display: flex; flex-direction: column;
+                }
+                .qr-fs-header {
+                    display: flex; align-items: center; justify-content: space-between;
+                    padding: 1rem 1.25rem;
+                    background: rgba(0,0,0,.85);
+                    backdrop-filter: blur(10px);
+                    flex-shrink: 0;
+                    z-index: 2;
+                }
+                .qr-fs-title {
+                    display: flex; align-items: center; gap: .6rem;
+                    color: #a3e635; font-size: 1rem; font-weight: 700;
+                }
+                .qr-fs-title i { font-size: 1.2rem; }
+                .qr-fs-close {
+                    width: 38px; height: 38px; border-radius: 50%; border: none;
+                    background: rgba(255,255,255,.12); color: #fff; font-size: 1rem;
+                    cursor: pointer; display: flex; align-items: center; justify-content: center;
+                    transition: background .15s;
+                }
+                .qr-fs-close:hover { background: rgba(255,255,255,.25); }
+                .qr-fs-camera {
+                    flex: 1; min-height: 0;
+                    display: flex; align-items: center; justify-content: center;
+                    overflow: hidden;
+                    background: #000;
+                }
+                .qr-fs-camera > div,
+                .qr-fs-camera > div > video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+                .qr-fs-status {
+                    padding: .9rem 1.5rem;
+                    background: rgba(0,0,0,.88);
+                    color: #fff;
+                    font-size: .9rem; font-weight: 600;
+                    text-align: center; flex-shrink: 0; z-index: 2;
+                    letter-spacing: .01em;
+                }
+                .qr-fs-hint {
+                    padding: .7rem 1rem 1.5rem;
+                    background: rgba(0,0,0,.85);
+                    color: rgba(255,255,255,.5);
+                    font-size: .75rem; font-weight: 500;
+                    text-align: center; flex-shrink: 0; z-index: 2;
+                    display: flex; align-items: center; justify-content: center; gap: .45rem;
                 }
             `}</style>
         </div>

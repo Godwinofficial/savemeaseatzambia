@@ -61,7 +61,7 @@ const QRScanner = ({ onScan, onError }) => {
     }, []);
 
     return (
-        <div id="qr-reader" ref={scannerRef} style={{ width: '100%', maxWidth: '400px', margin: '0 auto', background: 'white' }}></div>
+        <div id="qr-reader" ref={scannerRef} style={{ width: '100%', height: '100%', minHeight: '300px', background: '#000' }}></div>
     );
 };
 

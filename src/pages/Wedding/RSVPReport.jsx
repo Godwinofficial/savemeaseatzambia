@@ -551,109 +551,103 @@ const RSVPReport = () => {
 
 
 
-            {/* QR Scanner Modal */}
+            {/* QR Scanner Modal - Full Screen */}
             {showQrScanner && (
-                <div className="vm-overlay" onClick={() => { window.isProcessingScan = false; setShowQrScanner(false); }}>
-                    <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '1.5rem', maxWidth: '550px', width: '95%', textAlign: 'center' }}>
-                        <h4 className="vm-name">Scan Guest Pass</h4>
-                        <p className="vm-desc" style={{ marginBottom: '1.5rem' }}>Point the camera at the guest's QR code.</p>
-
-                        <div style={{ width: '100%', height: '420px', background: '#000', borderRadius: '12px', overflow: 'hidden', position: 'relative' }}>
-                            <QRScanner
-                                onScan={async (detectedCodes) => {
-                                    const rawCode = detectedCodes[0]?.rawValue;
-                                    if (rawCode && !window.isProcessingScan) {
-                                        window.isProcessingScan = true;
-                                        setScanMessage(`Scanning code...`);
-                                        try {
-                                            let code = rawCode;
-                                            let embeddedData = null;
-                                            if (rawCode.startsWith('{')) {
-                                                try {
-                                                    const parsed = JSON.parse(rawCode);
-                                                    code = parsed.id;
-                                                    embeddedData = parsed;
-                                                    setScanMessage(`✅ Decoded pass for ${parsed.name}`);
-                                                } catch (e) {
-                                                    // Not valid JSON, fallback to raw string
-                                                }
-                                            }
-
-                                            // Check if it exists and belongs to this wedding.
-                                            // Only query the DB when the guest ID is numeric, because local test IDs like "local-..." are not valid bigint values.
-                                            const isNumericId = /^\d+$/.test(String(code));
-                                            let data = null;
-                                            let error = null;
-                                            if (isNumericId) {
-                                                const result = await supabase.from('rsvps').select('*').eq('id', code).eq('wedding_id', wedding.id).single();
-                                                data = result.data;
-                                                error = result.error;
-                                            } else {
-                                                error = new Error('Skipping DB lookup for non-numeric pass ID');
-                                            }
-
-                                            let guestRecord = data;
-                                            let isFallback = false;
-                                            if (error || !data) {
-                                                console.error("DB lookup fail or skipped, checking embedded data:", error);
-                                                if (embeddedData && embeddedData.wedding_id === wedding.id) {
-                                                    guestRecord = {
-                                                        id: embeddedData.id,
-                                                        name: embeddedData.name,
-                                                        email: embeddedData.email,
-                                                        phone: embeddedData.phone,
-                                                        guests_count: embeddedData.guests_count || 1,
-                                                        wedding_id: embeddedData.wedding_id,
-                                                        checked_in: false
-                                                    };
-                                                    isFallback = true;
-                                                }
-                                            }
-
-                                            if (!guestRecord) {
-                                                playWarningSound();
-                                                setScanMessage("❌ Invalid or not found in this guest list.");
-                                                setTimeout(() => { window.isProcessingScan = false; }, 2500);
-                                                return;
-                                            }
-
-                                            // Check if already checked in locally or in database
-                                            const localCheckedIn = checkedInGuests.some(g => g.id === guestRecord.id);
-                                            const isAlreadyCheckedIn = localCheckedIn || guestRecord.checked_in;
-
-                                            if (isAlreadyCheckedIn) {
-                                                playWarningSound();
-                                                setScanMessage("❌ Already Checked In!");
-
-                                                // Load details to show warning modal
-                                                setScannedGuest({ ...guestRecord, checked_in: true });
-                                                return;
-                                            }
-
-                                            // Successful scan! Play success beep!
-                                            playBeepSound();
-                                            setScanMessage("✅ Guest Found!");
-                                            setScannedGuest(guestRecord);
-                                            // We keep isProcessingScan true until the modal is closed to prevent re-scans in background
-                                        } catch (err) {
-                                            console.error("Scanning Error:", err);
-                                            setScanMessage("❌ Error checking database.");
-                                            setTimeout(() => { window.isProcessingScan = false; }, 2500);
-                                        }
-                                    }
-                                }}
-                                onError={(e) => console.error("Scanner Error:", e)}
-                            />
-                            {scanMessage && (
-                                <div style={{ position: 'absolute', bottom: '10px', left: '10px', right: '10px', background: 'rgba(0,0,0,0.8)', color: '#fff', padding: '10px', borderRadius: '8px', zIndex: 10 }}>
-                                    {scanMessage}
-                                </div>
-                            )}
+                <div className="qr-fs-overlay">
+                    {/* Top Header */}
+                    <div className="qr-fs-header">
+                        <div className="qr-fs-title">
+                            <i className="fas fa-qrcode"></i>
+                            <span>Scan Guest Pass</span>
                         </div>
-
-                        <button onClick={() => { window.isProcessingScan = false; setScanMessage(null); setShowQrScanner(false); }} className="ga-approve" style={{ background: '#ef4444', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem', marginTop: '1.5rem' }}>
-                            Close Scanner
+                        <button className="qr-fs-close" onClick={() => { window.isProcessingScan = false; setScanMessage(null); setShowQrScanner(false); }}>
+                            <i className="fas fa-times"></i>
                         </button>
+                    </div>
+
+                    {/* Camera Viewfinder */}
+                    <div className="qr-fs-camera">
+                        <QRScanner
+                            onScan={async (detectedCodes) => {
+                                const rawCode = detectedCodes[0]?.rawValue;
+                                if (rawCode && !window.isProcessingScan) {
+                                    window.isProcessingScan = true;
+                                    setScanMessage(`Scanning code...`);
+                                    try {
+                                        let code = rawCode;
+                                        let embeddedData = null;
+                                        if (rawCode.startsWith('{')) {
+                                            try {
+                                                const parsed = JSON.parse(rawCode);
+                                                code = parsed.id;
+                                                embeddedData = parsed;
+                                                setScanMessage(`✅ Decoded pass for ${parsed.name}`);
+                                            } catch (e) {
+                                                // Not valid JSON, fallback to raw string
+                                            }
+                                        }
+
+                                        const isNumericId = /^\d+$/.test(String(code));
+                                        let data = null;
+                                        let error = null;
+                                        if (isNumericId) {
+                                            const result = await supabase.from('rsvps').select('*').eq('id', code).eq('wedding_id', wedding.id).single();
+                                            data = result.data;
+                                            error = result.error;
+                                        } else {
+                                            error = new Error('Skipping DB lookup for non-numeric pass ID');
+                                        }
+
+                                        let guestRecord = data;
+                                        let isFallback = false;
+                                        if (error || !data) {
+                                            console.error("DB lookup fail or skipped, checking embedded data:", error);
+                                            if (embeddedData && embeddedData.wedding_id === wedding.id) {
+                                                guestRecord = { id: embeddedData.id, name: embeddedData.name, email: embeddedData.email, phone: embeddedData.phone, guests_count: embeddedData.guests_count || 1, wedding_id: embeddedData.wedding_id, checked_in: false };
+                                                isFallback = true;
+                                            }
+                                        }
+
+                                        if (!guestRecord) {
+                                            playWarningSound();
+                                            setScanMessage("❌ Invalid or not found in this guest list.");
+                                            setTimeout(() => { window.isProcessingScan = false; }, 2500);
+                                            return;
+                                        }
+
+                                        const localCheckedIn = checkedInGuests.some(g => g.id === guestRecord.id);
+                                        const isAlreadyCheckedIn = localCheckedIn || guestRecord.checked_in;
+
+                                        if (isAlreadyCheckedIn) {
+                                            playWarningSound();
+                                            setScanMessage("❌ Already Checked In!");
+                                            setScannedGuest({ ...guestRecord, checked_in: true });
+                                            return;
+                                        }
+
+                                        playBeepSound();
+                                        setScanMessage("✅ Guest Found!");
+                                        setScannedGuest(guestRecord);
+                                    } catch (err) {
+                                        console.error("Scanning Error:", err);
+                                        setScanMessage("❌ Error checking database.");
+                                        setTimeout(() => { window.isProcessingScan = false; }, 2500);
+                                    }
+                                }
+                            }}
+                            onError={(e) => console.error("Scanner Error:", e)}
+                        />
+                    </div>
+
+                    {/* Status bar */}
+                    {scanMessage && (
+                        <div className="qr-fs-status">{scanMessage}</div>
+                    )}
+
+                    {/* Bottom hint */}
+                    <div className="qr-fs-hint">
+                        <i className="fas fa-camera"></i>
+                        Point the camera at a guest's QR code pass
                     </div>
                 </div>
             )}
@@ -1396,6 +1390,54 @@ const RSVPReport = () => {
                 .vm-tag-gray  { background:#f3f4f6; color:#374151; }
                 .vm-tag-amber { background:rgba(234,179,8,.1); color:#b45309; }
                 .vm-desc { font-size:.86rem; color:#6b7280; line-height:1.55; }
+
+                /* ── Full-Screen QR Scanner ── */
+                .qr-fs-overlay {
+                    position: fixed; inset: 0;
+                    background: #000;
+                    z-index: 9998;
+                    display: flex; flex-direction: column;
+                }
+                .qr-fs-header {
+                    display: flex; align-items: center; justify-content: space-between;
+                    padding: 1rem 1.25rem;
+                    background: rgba(0,0,0,.85);
+                    backdrop-filter: blur(10px);
+                    flex-shrink: 0; z-index: 2;
+                }
+                .qr-fs-title {
+                    display: flex; align-items: center; gap: .6rem;
+                    color: #a3e635; font-size: 1rem; font-weight: 700;
+                }
+                .qr-fs-title i { font-size: 1.2rem; }
+                .qr-fs-close {
+                    width: 38px; height: 38px; border-radius: 50%; border: none;
+                    background: rgba(255,255,255,.12); color: #fff; font-size: 1rem;
+                    cursor: pointer; display: flex; align-items: center; justify-content: center;
+                    transition: background .15s;
+                }
+                .qr-fs-close:hover { background: rgba(255,255,255,.25); }
+                .qr-fs-camera {
+                    flex: 1; min-height: 0;
+                    display: flex; align-items: center; justify-content: center;
+                    overflow: hidden; background: #000;
+                }
+                .qr-fs-camera > div,
+                .qr-fs-camera > div > video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+                .qr-fs-status {
+                    padding: .9rem 1.5rem;
+                    background: rgba(0,0,0,.88); color: #fff;
+                    font-size: .9rem; font-weight: 600;
+                    text-align: center; flex-shrink: 0; z-index: 2;
+                }
+                .qr-fs-hint {
+                    padding: .7rem 1rem 1.5rem;
+                    background: rgba(0,0,0,.85);
+                    color: rgba(255,255,255,.5);
+                    font-size: .75rem; font-weight: 500;
+                    text-align: center; flex-shrink: 0; z-index: 2;
+                    display: flex; align-items: center; justify-content: center; gap: .45rem;
+                }
 
                 /* PHONE SHELL — fixed height, two children: scroll-area + btm-nav */
                 .phone-shell {

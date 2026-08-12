@@ -13,6 +13,70 @@ interface Event {
   theme?: string;
 }
 
+// Mini calendar helper
+const MiniCalendar = ({ dateStr }: { dateStr: string }) => {
+  const target = new Date(dateStr + "T00:00:00");
+  const targetDay = target.getDate();
+  const year = target.getFullYear();
+  const month = target.getMonth();
+  const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const dayHeaders = ["M","T","W","T","F","S","S"];
+
+  const firstDay = new Date(year, month, 1);
+  let startDay = firstDay.getDay() - 1;
+  if (startDay < 0) startDay = 6;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const prevMonthDays = new Date(year, month, 0).getDate();
+
+  const cells: { day: number; current: boolean; isTarget: boolean }[] = [];
+  for (let i = startDay - 1; i >= 0; i--) cells.push({ day: prevMonthDays - i, current: false, isTarget: false });
+  for (let i = 1; i <= daysInMonth; i++) cells.push({ day: i, current: true, isTarget: i === targetDay });
+  while (cells.length % 7 !== 0) cells.push({ day: cells.length - (startDay + daysInMonth) + 1, current: false, isTarget: false });
+
+  return (
+    <div style={{ marginTop: 20, width: "100%" }}>
+      <div style={{
+        fontFamily: "'Sacramento', cursive",
+        fontSize: "2rem",
+        color: "var(--primary, #FFD700)",
+        textAlign: "center",
+        lineHeight: 1,
+        marginBottom: 12,
+      }}>
+        {monthNames[month]}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "6px 2px" }}>
+        {dayHeaders.map((d, i) => (
+          <div key={i} style={{
+            fontSize: "0.6rem", fontWeight: 700, textTransform: "uppercase",
+            color: "var(--primary, #FFD700)", textAlign: "center", opacity: 0.8,
+          }}>{d}</div>
+        ))}
+        {cells.map((cell, idx) => (
+          <div key={idx} style={{
+            position: "relative", display: "flex", alignItems: "center",
+            justifyContent: "center", height: 28, fontSize: "0.78rem",
+            color: cell.isTarget
+              ? "var(--primary-foreground, #000)"
+              : cell.current
+                ? "var(--foreground, hsl(210,40%,98%))"
+                : "rgba(255,255,255,0.2)",
+            fontWeight: cell.isTarget ? 700 : 400,
+          }}>
+            {cell.isTarget && (
+              <div style={{
+                position: "absolute", width: 28, height: 28, borderRadius: "50%",
+                background: "var(--primary, #FFD700)", zIndex: 0,
+              }} />
+            )}
+            <span style={{ position: "relative", zIndex: 1 }}>{cell.day}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const CountdownSection = ({ event }: { event: Event | null }) => {
   const [time, setTime] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [isPast, setIsPast] = useState(false);
@@ -74,6 +138,7 @@ const CountdownSection = ({ event }: { event: Event | null }) => {
       title: "Date",
       icon: CalendarDays,
       items: [{ icon: CalendarDays, text: dateLabel }],
+      showCalendar: !!event?.date,
     },
     {
       title: "Time & Venue",
@@ -105,7 +170,7 @@ const CountdownSection = ({ event }: { event: Event | null }) => {
   };
 
   return (
-    <section className="relative py-20 overflow-hidden">
+    <section id="counting-down" className="relative py-20 overflow-hidden">
       <ConfettiDecorations />
       <div className="container mx-auto px-6 relative z-10">
         <motion.div
@@ -177,12 +242,15 @@ const CountdownSection = ({ event }: { event: Event | null }) => {
               <h3 className="font-bold text-lg mb-4">{card.title}</h3>
               <ul className="space-y-3">
                 {card.items.map((item, i) => (
-                  <li key={i} className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
-                    <item.icon size={14} className="text-accent" />
+                  <li key={i} className="flex items-center justify-center gap-2 text-muted-foreground text-sm font-medium">
                     {item.text}
                   </li>
                 ))}
               </ul>
+              {/* Mini calendar for the Date card */}
+              {'showCalendar' in card && card.showCalendar && event?.date && (
+                <MiniCalendar dateStr={event.date} />
+              )}
             </motion.div>
           ))}
         </motion.div>

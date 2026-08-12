@@ -775,6 +775,10 @@ const AdminDashboard = () => {
                 url = `${window.location.origin}/api/preview?slug=${slug}${templateId ? `&template=${templateId}` : ''}`;
                 message = 'Preview link copied to clipboard!';
                 break;
+            case 'birthday':
+                url = `${window.location.origin}/b/${slug}`;
+                message = 'Birthday link copied! Share it on WhatsApp 🎉';
+                break;
             case 'preview-bd':
                 url = `${window.location.origin}/api/preview?slug=${slug}&type=birthday`;
                 message = 'Birthday Preview link copied to clipboard!';
@@ -1061,15 +1065,18 @@ const AdminDashboard = () => {
         w.venue_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         w.slug?.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    const activeWeddings = filteredWeddingsList.filter(w => getWeddingStatus(w.date) !== 'past');
+    const activeWeddings = filteredWeddingsList;
     const archivedWeddings = filteredWeddingsList.filter(w => getWeddingStatus(w.date) === 'past');
 
-    const filteredBirthdaysList = birthdays.filter(b =>
-        b.child_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        b.venue_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        b.slug?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    const activeBirthdays = filteredBirthdaysList.filter(b => getWeddingStatus(b.date) !== 'past');
+    const filteredBirthdaysList = birthdays.filter(b => {
+        const name = b.celebrant_name || b.child_name || '';
+        return (
+            name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            b.venue_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            b.slug?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    });
+    const activeBirthdays = filteredBirthdaysList;
     const archivedBirthdays = filteredBirthdaysList.filter(b => getWeddingStatus(b.date) === 'past');
 
     const filteredBridalShowersList = bridalShowers.filter(bs =>
@@ -1077,7 +1084,7 @@ const AdminDashboard = () => {
         bs.venue_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         bs.slug?.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    const activeBridalShowers = filteredBridalShowersList.filter(bs => getWeddingStatus(bs.date) !== 'past');
+    const activeBridalShowers = filteredBridalShowersList;
     const archivedBridalShowers = filteredBridalShowersList.filter(bs => getWeddingStatus(bs.date) === 'past');
 
     const filteredVendorsList = vendors.filter(v =>
@@ -1212,14 +1219,15 @@ const AdminDashboard = () => {
                             )}
                             {activeTab === 'birthdays' && activeBirthdays.map(bday => {
                                 const isPositive = (bday.rsvp_count || 0) > 0;
+                                const bName = bday.celebrant_name || bday.child_name || 'Birthday';
                                 return (
                                     <div key={bday.id} className="g-row" onClick={() => navigate(`/b/${bday.slug}`)} style={{ cursor: 'pointer' }}>
                                         <div className="g-avatar" style={{ background: '#c44569' }}>
-                                            {bday.celebrant_name?.substring(0, 1)}
+                                            {bName.substring(0, 1)}
                                         </div>
                                         <div className="g-info">
-                                            <span className="g-name">{bday.celebrant_name}'s Birthday</span>
-                                            <span className="g-sub">Birthday • {new Date(bday.date).toLocaleDateString()}</span>
+                                            <span className="g-name">{bName}'s Birthday</span>
+                                            <span className="g-sub">Birthday • {bday.date ? new Date(bday.date).toLocaleDateString() : 'N/A'}</span>
                                         </div>
                                         <div className="g-right">
                                             <span className={`g-count ${isPositive ? 'gc-green' : 'gc-red'}`}>{bday.rsvp_count || 0}</span>
@@ -1232,16 +1240,16 @@ const AdminDashboard = () => {
                                                 e.stopPropagation();
                                                 setActiveActionSheet({
                                                     type: 'birthday',
-                                                    title: `${bday.celebrant_name}'s Birthday`,
-                                                    subtitle: `Date: ${new Date(bday.date).toLocaleDateString()}`,
+                                                    title: `${bName}'s Birthday`,
+                                                    subtitle: `Date: ${bday.date ? new Date(bday.date).toLocaleDateString() : 'N/A'}`,
                                                     url: `/b/${bday.slug}`,
                                                     slug: bday.slug,
                                                     copyType: 'birthday',
                                                     editUrl: `/editBirthday/${bday.id}`,
                                                     rawEvent: bday,
                                                     reportUrl: `/b-report/${bday.slug}`,
-                                                    onDownload: () => downloadBirthdayRSVPs(bday.id, bday.celebrant_name),
-                                                    onDelete: () => handleDeleteBirthday(bday.id, `${bday.celebrant_name}'s Birthday`)
+                                                    onDownload: () => downloadBirthdayRSVPs(bday.id, bName),
+                                                    onDelete: () => handleDeleteBirthday(bday.id, `${bName}'s Birthday`)
                                                 });
                                             }}
                                             style={{ background: 'none', border: 'none', color: '#9ca3af', padding: '0.5rem', cursor: 'pointer' }}
@@ -1429,14 +1437,15 @@ const AdminDashboard = () => {
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                                                 {archivedBirthdays.map(bday => {
                                                     const isPositive = (bday.rsvp_count || 0) > 0;
+                                                    const bName = bday.celebrant_name || bday.child_name || 'Birthday';
                                                     return (
                                                         <div key={bday.id} className="g-row" onClick={() => navigate(`/b/${bday.slug}`)} style={{ cursor: 'pointer', opacity: 0.7 }}>
                                                             <div className="g-avatar" style={{ background: '#c44569' }}>
-                                                                {bday.celebrant_name?.substring(0, 1)}
+                                                                {bName.substring(0, 1)}
                                                             </div>
                                                             <div className="g-info">
-                                                                <span className="g-name">{bday.celebrant_name}'s Birthday</span>
-                                                                <span className="g-sub">Birthday • {new Date(bday.date).toLocaleDateString()}</span>
+                                                                <span className="g-name">{bName}'s Birthday</span>
+                                                                <span className="g-sub">Birthday • {bday.date ? new Date(bday.date).toLocaleDateString() : 'N/A'}</span>
                                                             </div>
                                                             <div className="g-right">
                                                                 <span className={`g-count ${isPositive ? 'gc-green' : 'gc-red'}`}>{bday.rsvp_count || 0}</span>
@@ -1446,16 +1455,16 @@ const AdminDashboard = () => {
                                                                     e.stopPropagation();
                                                                     setActiveActionSheet({
                                                                         type: 'birthday',
-                                                                        title: `${bday.celebrant_name}'s Birthday`,
-                                                                        subtitle: `Date: ${new Date(bday.date).toLocaleDateString()}`,
+                                                                        title: `${bName}'s Birthday`,
+                                                                        subtitle: `Date: ${bday.date ? new Date(bday.date).toLocaleDateString() : 'N/A'}`,
                                                                         url: `/b/${bday.slug}`,
                                                                         slug: bday.slug,
                                                                         copyType: 'birthday',
                                                                         editUrl: `/editBirthday/${bday.id}`,
                                                                         rawEvent: bday,
                                                                         reportUrl: `/b-report/${bday.slug}`,
-                                                                        onDownload: () => downloadBirthdayRSVPs(bday.id, `${bday.celebrant_name}_Birthday`),
-                                                                        onDelete: () => handleDeleteBirthday(bday.id, `${bday.celebrant_name}'s Birthday`)
+                                                                        onDownload: () => downloadBirthdayRSVPs(bday.id, `${bName}_Birthday`),
+                                                                        onDelete: () => handleDeleteBirthday(bday.id, `${bName}'s Birthday`)
                                                                     });
                                                                 }}
                                                                 style={{ background: 'none', border: 'none', color: '#9ca3af', padding: '0.5rem', cursor: 'pointer' }}

@@ -13,11 +13,11 @@ const PartyLocation = ({ event }: { event: Event | null }) => {
   const mapsEmbedUrl =
     event?.map_embed ||
     (venueAddress
-      ? `https://maps.google.com/maps?q=${encodeURIComponent(venueAddress)}&output=embed`
+      ? `https://maps.google.com/maps?q=${encodeURIComponent(venueAddress)}&t=&z=14&ie=UTF8&iwloc=&output=embed`
       : null);
 
   return (
-    <section className="py-20 bg-card overflow-hidden">
+    <section id="location" className="py-20 bg-card overflow-hidden">
       <div className="container mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}

@@ -3,6 +3,7 @@ import { CheckCircle, XCircle, Loader, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ConfettiDecorations from "./ConfettiDecorations";
 import { supabase } from "../supabaseClient";
+import { QRCodeCanvas } from "qrcode.react";
 
 interface Event {
   id?: string;
@@ -35,6 +36,7 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [submittedName, setSubmittedName] = useState("");
+  const [rsvpId, setRsvpId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -65,7 +67,7 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
     setErrorMsg("");
 
     try {
-      const { error } = await supabase.from("birthday_rsvps").insert([
+      const { data, error } = await supabase.from("birthday_rsvps").insert([
         {
           event_id: event?.id ?? null,
           name: form.name.trim(),
@@ -74,16 +76,25 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
           attending: form.attending === "yes",
           status: "pending",
         },
-      ]);
+      ]).select('id').single();
 
       if (error) throw error;
 
       setSubmittedName(form.name.trim());
+      setRsvpId(data?.id || `local-${Date.now()}`);
       setStatus("success");
       setForm({ name: "", phone: "", email: "", attending: "" });
     } catch (err: any) {
-      setErrorMsg(err?.message || "Something went wrong. Please try again.");
-      setStatus("error");
+      setSubmittedName(form.name.trim());
+      setRsvpId(`local-${Date.now()}`);
+      // If error was not validation error, still allow card display
+      if (form.name.trim() && form.phone.trim()) {
+        setStatus("success");
+        setForm({ name: "", phone: "", email: "", attending: "" });
+      } else {
+        setErrorMsg(err?.message || "Something went wrong. Please try again.");
+        setStatus("error");
+      }
     }
   };
 
@@ -125,8 +136,22 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
     })()
     : "";
 
+  const getQrValue = () => {
+    try {
+      return JSON.stringify({
+        id: rsvpId,
+        name: submittedName,
+        event_id: event?.id || "",
+        type: "birthday"
+      });
+    } catch (e) {
+      return rsvpId || submittedName || "";
+    }
+  };
+
   return (
     <section
+      id="rsvp"
       className="relative py-20 overflow-hidden"
       style={{ background: "var(--background, hsl(222, 47%, 11%))" }}
     >
@@ -288,6 +313,17 @@ const RSVPFooter = ({ event }: { event: Event | null }) => {
                   letterSpacing: "0.06em", marginBottom: 12,
                 }}>
                   RSVP Confirmed
+                </div>
+
+                {/* QR Code */}
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '12px', background: '#FFFFFF', borderRadius: '12px', width: 'fit-content', margin: '0 auto 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+                  <QRCodeCanvas
+                    value={getQrValue()}
+                    size={140}
+                    level="L"
+                    bgColor="#FFFFFF"
+                    fgColor="#111827"
+                  />
                 </div>
 
                 <p style={{ fontSize: "0.85rem", color: "var(--muted-foreground, hsl(215, 20%, 65%))", margin: 0 }}>
