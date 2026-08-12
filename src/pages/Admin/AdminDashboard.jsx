@@ -776,8 +776,8 @@ const AdminDashboard = () => {
                 message = 'Preview link copied to clipboard!';
                 break;
             case 'birthday':
-                url = `${window.location.origin}/b/${slug}`;
-                message = 'Birthday link copied! Share it on WhatsApp 🎉';
+                url = `${window.location.origin}/api/preview?slug=${slug}&type=birthday`;
+                message = 'Birthday preview link copied! Share it on WhatsApp 🎉';
                 break;
             case 'preview-bd':
                 url = `${window.location.origin}/api/preview?slug=${slug}&type=birthday`;

@@ -81,8 +81,10 @@ const BirthdayReport = () => {
     const [showQrScanner, setShowQrScanner] = useState(false);
     const [scanMessage, setScanMessage] = useState(null);
     const [scannedGuest, setScannedGuest] = useState(null);
+    const [scanNextPrompt, setScanNextPrompt] = useState(null);
     const [checkedInGuests, setCheckedInGuests] = useState([]);
     const [checkingIn, setCheckingIn] = useState(false);
+    const [scannerActive, setScannerActive] = useState(true);
 
     useEffect(() => {
         const prev = document.querySelector('meta[name="theme-color"]')?.content;
@@ -133,8 +135,9 @@ const BirthdayReport = () => {
             if (rsvpError) throw new Error("Error fetching RSVPs");
 
             const allGuests = rsvps || [];
-            setGuests(allGuests.filter(g => g.status === 'approved' || !g.status));
-            setPendingGuests(allGuests.filter(g => g.status === 'pending'));
+            setGuests(allGuests.filter(g => (g.status === 'approved' || !g.status) && !g.checked_in));
+            setCheckedInGuests(allGuests.filter(g => g.checked_in && (!g.status || g.status === 'pending')));
+            setPendingGuests(allGuests.filter(g => g.status === 'pending' && !g.checked_in));
         } catch (err) {
             console.error(err);
             setError(err.message);
@@ -152,15 +155,28 @@ const BirthdayReport = () => {
                     .from('birthday_rsvps')
                     .update({ checked_in: true })
                     .eq('id', guest.id);
-                if (updateErr) console.error("Database update error:", updateErr);
+                if (updateErr) throw updateErr;
             }
 
-            setCheckedInGuests(prev => [...prev, { ...guest, checked_in: true }]);
-            setGuests(prev => prev.map(g => g.id === guest.id ? { ...g, checked_in: true } : g));
+            const normalizedGuest = {
+                ...guest,
+                checked_in: true,
+                status: guest.status === 'approved' ? 'approved' : 'pending'
+            };
+
+            setCheckedInGuests(prev => {
+                const existing = prev.some(item => item.id === guest.id);
+                return existing ? prev.map(item => item.id === guest.id ? normalizedGuest : item) : [...prev, normalizedGuest];
+            });
+            setGuests(prev => prev.filter(g => g.id !== guest.id));
+            setPendingGuests(prev => prev.filter(g => g.id !== guest.id));
 
             setSuccessMessage(`✅ ${guest.name} checked in successfully!`);
             setTimeout(() => setSuccessMessage(null), 4000);
             setScannedGuest(null);
+            setScanMessage('✅ Scan Next');
+            setScannerActive(false);
+            setShowQrScanner(true);
             window.isProcessingScan = false;
         } catch (err) {
             alert("Check-in error: " + err.message);
@@ -449,6 +465,9 @@ const BirthdayReport = () => {
     const filteredPending = pendingGuests.filter(g =>
         !q || g.name?.toLowerCase().includes(q) || g.email?.toLowerCase().includes(q)
     );
+    const filteredCheckedIn = checkedInGuests.filter(g =>
+        !q || g.name?.toLowerCase().includes(q) || g.email?.toLowerCase().includes(q) || g.phone?.toLowerCase().includes(q)
+    );
     const attendingCount = guests.filter(isAttending).length;
     const declinedCount = guests.filter(isDeclined).length;
     const totalSeats = guests.reduce((s, g) => isDeclined(g) ? s : s + 1 + (parseInt(g.guests_count) || 0), 0);
@@ -522,7 +541,7 @@ const BirthdayReport = () => {
                         </p>
 
                         <div className="hero-btns">
-                            <button className="hbtn" onClick={() => { window.isProcessingScan = false; setScanMessage(null); setShowQrScanner(true); }}>
+                            <button className="hbtn" onClick={() => { window.isProcessingScan = false; setScanMessage(null); setScannerActive(true); setShowQrScanner(true); }}>
                                 <span className="hbtn-icon"><i className="fas fa-qrcode"></i></span>
                                 <span className="hbtn-lbl">Scan Pass</span>
                             </button>
@@ -597,6 +616,12 @@ const BirthdayReport = () => {
                                     Approved
                                 </button>
                                 <button
+                                    className={`sec-tab ${activeTab === 'checked_in' ? 'sec-tab-on' : ''}`}
+                                    onClick={() => setActiveTab('checked_in')}
+                                >
+                                    Checked In {checkedInGuests.length > 0 && <span className="sec-badge sec-badge-green">{checkedInGuests.length}</span>}
+                                </button>
+                                <button
                                     className={`sec-tab ${activeTab === 'pending' ? 'sec-tab-on' : ''}`}
                                     onClick={() => setActiveTab('pending')}
                                 >
@@ -606,7 +631,39 @@ const BirthdayReport = () => {
                         </div>
 
                         <div className="guest-list">
-                            {activeTab === 'pending' ? (
+                            {activeTab === 'checked_in' ? (
+                                filteredCheckedIn.length === 0 ? (
+                                    <div className="list-empty">
+                                        <i className="fas fa-check-circle"></i>
+                                        <p>{searchQuery ? 'No matches found' : 'No guests checked in before approval'}</p>
+                                    </div>
+                                ) : filteredCheckedIn.map(guest => (
+                                    <div key={guest.id} className="g-row">
+                                        <div className="g-avatar" style={{ background: getAvatarColor(guest.name) }}>
+                                            {getInitials(guest.name)}
+                                        </div>
+                                        <div className="g-info">
+                                            <span className="g-name">{guest.name}</span>
+                                            <span className="g-sub">{guest.email || guest.phone}</span>
+                                        </div>
+                                        <div className="g-right">
+                                            <span className="g-status gs-yes">Checked In</span>
+                                            <div className="g-acts">
+                                                <button className="ga-approve" onClick={() => handleApprove(guest)} disabled={!!processingAction}>
+                                                    {processingAction === `${guest.id}-approve`
+                                                        ? <i className="fas fa-spinner fa-spin"></i>
+                                                        : <><i className="fas fa-check"></i> Approve</>}
+                                                </button>
+                                                <button className="ga-del" onClick={() => handleMoveToPending(guest)} disabled={!!processingAction}>
+                                                    {processingAction === `${guest.id}-pending`
+                                                        ? <i className="fas fa-spinner fa-spin"></i>
+                                                        : <i className="fas fa-undo"></i>}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : activeTab === 'pending' ? (
                                 filteredPending.length === 0 ? (
                                     <div className="list-empty">
                                         <i className="fas fa-check-circle"></i>
@@ -719,7 +776,7 @@ const BirthdayReport = () => {
                         <span>Guests</span>
                         {pendingGuests.length > 0 && <span className="bn-badge">{pendingGuests.length}</span>}
                     </button>
-                    <button className="bn-center" onClick={() => { window.isProcessingScan = false; setScanMessage(null); setShowQrScanner(true); }}>
+                    <button className="bn-center" onClick={() => { window.isProcessingScan = false; setScanMessage(null); setScannerActive(true); setShowQrScanner(true); }}>
                         <i className="fas fa-qrcode"></i>
                     </button>
                     <button 
@@ -747,7 +804,7 @@ const BirthdayReport = () => {
                             <i className="fas fa-qrcode"></i>
                             <span>Scan Guest Pass</span>
                         </div>
-                        <button className="qr-fs-close" onClick={() => { window.isProcessingScan = false; setScanMessage(null); setShowQrScanner(false); }}>
+                        <button className="qr-fs-close" onClick={() => { window.isProcessingScan = false; setScanMessage(null); setScannerActive(false); setShowQrScanner(false); }}>
                             <i className="fas fa-times"></i>
                         </button>
                     </div>
@@ -755,10 +812,12 @@ const BirthdayReport = () => {
                     {/* Camera Viewfinder */}
                     <div className="qr-fs-camera">
                         <QRScanner
+                            isActive={scannerActive}
                             onScan={async (detectedCodes) => {
                                 const rawCode = detectedCodes[0]?.rawValue;
-                                if (rawCode && !window.isProcessingScan) {
+                                if (rawCode && !window.isProcessingScan && scannerActive) {
                                     window.isProcessingScan = true;
+                                    setScannerActive(false);
                                     setScanMessage(`Scanning code...`);
                                     try {
                                         let code = rawCode;
@@ -800,14 +859,15 @@ const BirthdayReport = () => {
                                         const localCheckedIn = checkedInGuests.some(g => g.id === guestRecord.id);
                                         if (localCheckedIn || guestRecord.checked_in) {
                                             playWarningSound();
-                                            setScanMessage("❌ Already Checked In!");
+                                            setScanMessage("⚠️ Already Checked In");
                                             setScannedGuest({ ...guestRecord, checked_in: true });
+                                            window.isProcessingScan = false;
                                             return;
                                         }
 
                                         playBeepSound();
-                                        setScanMessage("✅ Guest Found!");
-                                        setScannedGuest(guestRecord);
+                                        setScanMessage("✅ Scan Next");
+                                        await handleCheckInGuest(guestRecord);
                                     } catch (err) {
                                         console.error("Scanning Error:", err);
                                         setScanMessage("❌ Error checking database.");
@@ -819,15 +879,68 @@ const BirthdayReport = () => {
                         />
                     </div>
 
-                    {/* Status bar */}
+                    {/* Status banner */}
                     {scanMessage && (
-                        <div className="qr-fs-status">{scanMessage}</div>
+                        <div
+                            className={`qr-fs-banner ${scanMessage.includes('Already') || scanMessage.includes('⚠️') ? 'qr-fs-banner-warning' : 'qr-fs-banner-success'}`}
+                            role="status"
+                            aria-live="polite"
+                        >
+                            <div className="qr-fs-banner-text">
+                                {scanMessage === '✅ Scan Next' ? 'Checked in successfully' : scanMessage === '⚠️ Already Checked In' ? 'Already checked in' : scanMessage}
+                            </div>
+                            <button
+                                className="qr-fs-banner-btn"
+                                onClick={() => {
+                                    window.isProcessingScan = false;
+                                    setScanMessage(null);
+                                    setScannerActive(true);
+                                }}
+                            >
+                                Scan Next
+                            </button>
+                        </div>
                     )}
 
                     {/* Bottom hint */}
                     <div className="qr-fs-hint">
                         <i className="fas fa-camera"></i>
                         Point the camera at a guest's QR code pass
+                    </div>
+                </div>
+            )}
+
+            {scanNextPrompt && (
+                <div className="vm-overlay" style={{ zIndex: 3100 }} onClick={() => {
+                    window.isProcessingScan = false;
+                    setScanNextPrompt(null);
+                    setScannerActive(true);
+                    setShowQrScanner(true);
+                }}>
+                    <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '2rem', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
+                        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
+                            <i className="fas fa-check" style={{ fontSize: '32px', color: '#fff' }}></i>
+                        </div>
+                        <h4 className="vm-name" style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{scanNextPrompt.name}</h4>
+                        <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+                            {scanNextPrompt.email}
+                        </p>
+                        <div style={{ background: '#ecfdf5', color: '#166534', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600' }}>
+                            Checked in successfully. Ready for the next guest.
+                        </div>
+                        <button
+                            onClick={() => {
+                                window.isProcessingScan = false;
+                                setScanNextPrompt(null);
+                                setShowQrScanner(true);
+                                setScannerActive(true);
+                                setScanMessage(null);
+                            }}
+                            className="ga-approve"
+                            style={{ background: '#10b981', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '1rem', width: '100%' }}
+                        >
+                            <i className="fas fa-qrcode"></i> Scan Next
+                        </button>
                     </div>
                 </div>
             )}
@@ -872,11 +985,11 @@ const BirthdayReport = () => {
                             </button>
                         ) : (
                             <button
-                                onClick={() => { window.isProcessingScan = false; setScannedGuest(null); }}
+                                onClick={() => { window.isProcessingScan = false; setScannedGuest(null); setScannerActive(true); setShowQrScanner(true); }}
                                 className="ga-approve"
                                 style={{ background: '#64748b', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '1rem', width: '100%' }}
                             >
-                                Close
+                                Scan Next
                             </button>
                         )}
                     </div>
@@ -1052,6 +1165,9 @@ const BirthdayReport = () => {
                     background:#ef4444; color:#fff;
                     border-radius:999px; font-size:.58rem; padding:.05rem .35rem; font-weight:700;
                 }
+                .sec-badge-green {
+                    background:#16a34a; color:#fff;
+                }
 
                 .guest-list { display:flex; flex-direction:column; gap:.45rem; }
 
@@ -1206,13 +1322,57 @@ const BirthdayReport = () => {
                 }
                 .qr-fs-camera > div,
                 .qr-fs-camera > div > video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
-                .qr-fs-status {
-                    padding: .9rem 1.5rem;
-                    background: rgba(0,0,0,.88);
-                    color: #fff;
-                    font-size: .9rem; font-weight: 600;
-                    text-align: center; flex-shrink: 0; z-index: 2;
+                .qr-fs-banner {
+                    position: absolute;
+                    top: 1rem;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    z-index: 60;
+                    width: calc(100% - 1.5rem);
+                    max-width: 380px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: .75rem;
+                    padding: .7rem .8rem .7rem 1rem;
+                    border-radius: 16px;
+                    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.3);
+                    border: 1px solid rgba(255,255,255,0.12);
+                    backdrop-filter: blur(10px);
+                    pointer-events: auto;
+                }
+                .qr-fs-banner-success {
+                    background: rgba(16, 185, 129, 0.2);
+                    color: #d1fae5;
+                    border-color: rgba(16, 185, 129, 0.5);
+                }
+                .qr-fs-banner-warning {
+                    background: rgba(245, 158, 11, 0.18);
+                    color: #fef3c7;
+                    border-color: rgba(245, 158, 11, 0.5);
+                }
+                .qr-fs-banner-text {
+                    font-size: .8rem;
+                    font-weight: 700;
                     letter-spacing: .01em;
+                    flex: 1;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+                .qr-fs-banner-btn {
+                    border: none;
+                    background: linear-gradient(135deg, #10b981, #059669);
+                    color: #fff;
+                    padding: .7rem 1rem;
+                    border-radius: 12px;
+                    font-size: .78rem;
+                    font-weight: 800;
+                    cursor: pointer;
+                    white-space: nowrap;
+                    box-shadow: 0 10px 24px rgba(16, 185, 129, 0.38), inset 0 0 0 1px rgba(255,255,255,0.18);
+                    z-index: 70;
+                    min-width: 110px;
                 }
                 .qr-fs-hint {
                     padding: .7rem 1rem 1.5rem;

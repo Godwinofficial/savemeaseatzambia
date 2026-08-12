@@ -23,6 +23,16 @@ const Birthday = () => {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const setMetaTag = (selector, attrName, attrValue, content) => {
+    let meta = document.querySelector(selector);
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute(attrName, attrValue);
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', content);
+  };
+
   // Fetch event data from Supabase
   useEffect(() => {
     const fetchEvent = async () => {
@@ -58,6 +68,30 @@ const Birthday = () => {
     };
     fetchEvent();
   }, [slug]);
+
+  useEffect(() => {
+    if (!event) return;
+
+    const birthdayName = event.child_name || 'Birthday Celebration';
+    const birthdayTitle = `${birthdayName}'s Birthday`;
+    const birthdayDescription = event.welcome_message || event.message || `Join us for ${birthdayName}'s birthday celebration.`;
+    const birthdayImage = event.cover_image || event.hero_image || '';
+    const birthdayUrl = `${window.location.origin}/b/${slug}`;
+
+    document.title = birthdayTitle;
+
+    setMetaTag('meta[property="og:title"]', 'property', 'og:title', birthdayTitle);
+    setMetaTag('meta[property="og:description"]', 'property', 'og:description', birthdayDescription);
+    setMetaTag('meta[property="og:url"]', 'property', 'og:url', birthdayUrl);
+    setMetaTag('meta[property="og:site_name"]', 'property', 'og:site_name', 'Save Me A Seat');
+    if (birthdayImage) {
+      setMetaTag('meta[property="og:image"]', 'property', 'og:image', birthdayImage);
+      setMetaTag('meta[name="twitter:image"]', 'name', 'twitter:image', birthdayImage);
+    }
+    setMetaTag('meta[name="twitter:title"]', 'name', 'twitter:title', birthdayTitle);
+    setMetaTag('meta[name="twitter:description"]', 'name', 'twitter:description', birthdayDescription);
+    setMetaTag('meta[name="twitter:card"]', 'name', 'twitter:card', 'summary_large_image');
+  }, [event, slug]);
 
   // Load Tailwind CDN
   useEffect(() => {
