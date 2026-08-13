@@ -75,6 +75,7 @@ const BirthdayReport = () => {
     const [processingAction, setProcessingAction] = useState(null);
     const [showReminderModal, setShowReminderModal] = useState(false);
     const [sendingReminders, setSendingReminders] = useState(false);
+    const [clearingDeclined, setClearingDeclined] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
     // QR Scanner state
@@ -598,8 +599,39 @@ const BirthdayReport = () => {
                             </div>
                             <div className="sp-sep"></div>
                             <div className="stat-pill">
-                                <span className="sp-num sp-red">{declinedCount}</span>
-                                <span className="sp-lbl">Declined</span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span className="sp-num sp-red">{declinedCount}</span>
+                                        <button
+                                            title="Clear declined (set to pending)"
+                                            className="clear-declined-btn"
+                                            onClick={async () => {
+                                                if (!wedding) return;
+                                                if (declinedCount === 0) return alert('No declined RSVPs to clear.');
+                                                if (!window.confirm('Clear all declined RSVPs and set them to pending? This will set Declined to 0.')) return;
+                                                try {
+                                                    setClearingDeclined(true);
+                                                    const declinedIds = guests.filter(isDeclined).map(g => g.id).filter(Boolean);
+                                                    if (declinedIds.length === 0) { alert('No declined RSVPs found.'); setClearingDeclined(false); return; }
+                                                    const { error } = await supabase
+                                                        .from('birthday_rsvps')
+                                                        .delete()
+                                                        .in('id', declinedIds);
+                                                    if (error) throw error;
+                                                    await fetchReportData(true);
+                                                    setSuccessMessage('✅ Deleted declined RSVPs.');
+                                                    setTimeout(() => setSuccessMessage(null), 3000);
+                                                } catch (err) {
+                                                    console.error('Error deleting declined:', err);
+                                                    alert('Error deleting declined: ' + (err?.message || err));
+                                                } finally { setClearingDeclined(false); }
+                                            }}
+                                            disabled={clearingDeclined}
+                                            style={{ background: 'transparent', border: 'none', padding: 4, cursor: 'pointer', color: '#9ca3af' }}
+                                        >
+                                            {clearingDeclined ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-eraser" />}
+                                        </button>
+                                    </span>
+                                    <span className="sp-lbl">Declined</span>
                             </div>
                             <div className="sp-sep"></div>
                             <div className="stat-pill">
