@@ -52,6 +52,7 @@ const Birthday = () => {
             setIsDarkMode(mode);
             localStorage.setItem('bd-theme', data.visual_mode);
           }
+          
         }
 
         // Increment view count
@@ -92,6 +93,29 @@ const Birthday = () => {
     setMetaTag('meta[name="twitter:description"]', 'name', 'twitter:description', birthdayDescription);
     setMetaTag('meta[name="twitter:card"]', 'name', 'twitter:card', 'summary_large_image');
   }, [event, slug]);
+
+  // Apply saved/custom colors to both :root and page elements so light-mode uses them
+  useEffect(() => {
+    if (!event) return;
+    const primary = event.primary_color || event.katy_gold || null;
+    const gold = event.katy_gold || event.primary_color || null;
+    const root = document.documentElement;
+    const pageEls = Array.from(document.querySelectorAll('.bd-page, .bd-loader-wrapper'));
+
+    const applyToEl = (el, name, value) => {
+      try { el.style.setProperty(name, value); } catch (e) { /* ignore */ }
+    };
+
+    if (primary) {
+      applyToEl(root, '--primary', primary);
+      applyToEl(root, '--accent', primary);
+      pageEls.forEach((el) => { applyToEl(el, '--primary', primary); applyToEl(el, '--accent', primary); });
+    }
+    if (gold) {
+      applyToEl(root, '--katy-gold', gold);
+      pageEls.forEach((el) => applyToEl(el, '--katy-gold', gold));
+    }
+  }, [event]);
 
   // Load Tailwind CDN
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import * as XLSX from 'xlsx';
@@ -85,6 +85,8 @@ const BirthdayReport = () => {
     const [checkedInGuests, setCheckedInGuests] = useState([]);
     const [checkingIn, setCheckingIn] = useState(false);
     const [scannerActive, setScannerActive] = useState(true);
+    const [scannerKey, setScannerKey] = useState(0);
+    const recentScannedCodesRef = useRef(new Set());
 
     useEffect(() => {
         const prev = document.querySelector('meta[name="theme-color"]')?.content;
@@ -146,6 +148,20 @@ const BirthdayReport = () => {
         }
     };
 
+    const resetScannerSession = () => {
+        window.isProcessingScan = false;
+        setScanMessage(null);
+        setScannedGuest(null);
+        setScanNextPrompt(null);
+        setScannerActive(false);
+        setShowQrScanner(false);
+        setTimeout(() => {
+            setScannerKey(prev => prev + 1);
+            setScannerActive(true);
+            setShowQrScanner(true);
+        }, 50);
+    };
+
     const handleCheckInGuest = async (guest) => {
         setCheckingIn(true);
         try {
@@ -171,10 +187,15 @@ const BirthdayReport = () => {
             setGuests(prev => prev.filter(g => g.id !== guest.id));
             setPendingGuests(prev => prev.filter(g => g.id !== guest.id));
 
-            setSuccessMessage(`✅ ${guest.name} checked in successfully!`);
-            setTimeout(() => setSuccessMessage(null), 4000);
+            if (guest?.name) {
+                const normalizedScanKey = String(guest.id).trim().toLowerCase();
+                recentScannedCodesRef.current.add(normalizedScanKey);
+            }
+
+            await fetchReportData(true);
             setScannedGuest(null);
-            setScanMessage('✅ Scan Next');
+            setScanNextPrompt(null);
+            setScanMessage(`✅ ${guest.name} checked in successfully`);
             setScannerActive(false);
             setShowQrScanner(true);
             window.isProcessingScan = false;
@@ -541,7 +562,7 @@ const BirthdayReport = () => {
                         </p>
 
                         <div className="hero-btns">
-                            <button className="hbtn" onClick={() => { window.isProcessingScan = false; setScanMessage(null); setScannerActive(true); setShowQrScanner(true); }}>
+                            <button className="hbtn" onClick={() => { window.isProcessingScan = false; resetScannerSession(); }}>
                                 <span className="hbtn-icon"><i className="fas fa-qrcode"></i></span>
                                 <span className="hbtn-lbl">Scan Pass</span>
                             </button>
@@ -776,7 +797,7 @@ const BirthdayReport = () => {
                         <span>Guests</span>
                         {pendingGuests.length > 0 && <span className="bn-badge">{pendingGuests.length}</span>}
                     </button>
-                    <button className="bn-center" onClick={() => { window.isProcessingScan = false; setScanMessage(null); setScannerActive(true); setShowQrScanner(true); }}>
+                    <button className="bn-center" onClick={() => { window.isProcessingScan = false; resetScannerSession(); }}>
                         <i className="fas fa-qrcode"></i>
                     </button>
                     <button 
@@ -804,7 +825,7 @@ const BirthdayReport = () => {
                             <i className="fas fa-qrcode"></i>
                             <span>Scan Guest Pass</span>
                         </div>
-                        <button className="qr-fs-close" onClick={() => { window.isProcessingScan = false; setScanMessage(null); setScannerActive(false); setShowQrScanner(false); }}>
+                        <button className="qr-fs-close" onClick={() => { window.isProcessingScan = false; setScanMessage(null); setScannedGuest(null); setScanNextPrompt(null); setScannerActive(false); setShowQrScanner(false); }}>
                             <i className="fas fa-times"></i>
                         </button>
                     </div>
@@ -812,11 +833,24 @@ const BirthdayReport = () => {
                     {/* Camera Viewfinder */}
                     <div className="qr-fs-camera">
                         <QRScanner
+                            key={scannerKey}
                             isActive={scannerActive}
                             onScan={async (detectedCodes) => {
                                 const rawCode = detectedCodes[0]?.rawValue;
                                 if (rawCode && !window.isProcessingScan && scannerActive) {
+                                    const rawScanKey = String(rawCode).trim().toLowerCase();
+                                    if (recentScannedCodesRef.current.has(rawScanKey)) {
+                                        playWarningSound();
+                                        setScanMessage('⚠️ Already Checked In');
+                                        setScannedGuest({ name: 'This pass', checked_in: true });
+                                        window.isProcessingScan = false;
+                                        return;
+                                    }
+
                                     window.isProcessingScan = true;
+                                    setScanMessage(null);
+                                    setScannedGuest(null);
+                                    setScanNextPrompt(null);
                                     setScannerActive(false);
                                     setScanMessage(`Scanning code...`);
                                     try {
@@ -856,17 +890,38 @@ const BirthdayReport = () => {
                                             return;
                                         }
 
+                                        const { data: freshGuest, error: freshGuestError } = await supabase
+                                            .from('birthday_rsvps')
+                                            .select('*')
+                                            .eq('id', guestRecord.id)
+                                            .eq('event_id', wedding.id)
+                                            .single();
+
                                         const localCheckedIn = checkedInGuests.some(g => g.id === guestRecord.id);
-                                        if (localCheckedIn || guestRecord.checked_in) {
+                                        const isAlreadyCheckedIn = localCheckedIn || guestRecord.checked_in || freshGuest?.checked_in || (!freshGuestError && freshGuest?.checked_in);
+
+                                        if (isAlreadyCheckedIn) {
+                                            recentScannedCodesRef.current.add(String(guestRecord.id).trim().toLowerCase());
                                             playWarningSound();
                                             setScanMessage("⚠️ Already Checked In");
-                                            setScannedGuest({ ...guestRecord, checked_in: true });
+                                            setScannedGuest({ ...guestRecord, checked_in: true, ...(freshGuest || {}) });
                                             window.isProcessingScan = false;
                                             return;
                                         }
 
+                                        const guestStatus = freshGuest?.status ?? guestRecord?.status ?? 'pending';
+                                        if (guestStatus !== 'approved') {
+                                            playWarningSound();
+                                            const guestName = guestRecord?.name || freshGuest?.name || 'Guest';
+                                            setScanMessage(`❌ ${guestName} must be approved first`);
+                                            setScannedGuest({ ...guestRecord, checked_in: false, ...(freshGuest || {}) });
+                                            window.isProcessingScan = false;
+                                            return;
+                                        }
+
+                                        recentScannedCodesRef.current.add(String(guestRecord.id).trim().toLowerCase());
                                         playBeepSound();
-                                        setScanMessage("✅ Scan Next");
+                                        setScanMessage(`✅ ${guestRecord.name} checked in successfully`);
                                         await handleCheckInGuest(guestRecord);
                                     } catch (err) {
                                         console.error("Scanning Error:", err);
@@ -887,14 +942,13 @@ const BirthdayReport = () => {
                             aria-live="polite"
                         >
                             <div className="qr-fs-banner-text">
-                                {scanMessage === '✅ Scan Next' ? 'Checked in successfully' : scanMessage === '⚠️ Already Checked In' ? 'Already checked in' : scanMessage}
+                                {scanMessage?.startsWith('✅') ? 'Checked in successfully' : scanMessage === '⚠️ Already Checked In' ? 'Already checked in' : scanMessage?.startsWith('❌') ? 'Not approved yet' : scanMessage}
                             </div>
                             <button
                                 className="qr-fs-banner-btn"
                                 onClick={() => {
                                     window.isProcessingScan = false;
-                                    setScanMessage(null);
-                                    setScannerActive(true);
+                                    resetScannerSession();
                                 }}
                             >
                                 Scan Next
@@ -913,9 +967,7 @@ const BirthdayReport = () => {
             {scanNextPrompt && (
                 <div className="vm-overlay" style={{ zIndex: 3100 }} onClick={() => {
                     window.isProcessingScan = false;
-                    setScanNextPrompt(null);
-                    setScannerActive(true);
-                    setShowQrScanner(true);
+                    resetScannerSession();
                 }}>
                     <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '2rem', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
                         <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
@@ -931,10 +983,7 @@ const BirthdayReport = () => {
                         <button
                             onClick={() => {
                                 window.isProcessingScan = false;
-                                setScanNextPrompt(null);
-                                setShowQrScanner(true);
-                                setScannerActive(true);
-                                setScanMessage(null);
+                                resetScannerSession();
                             }}
                             className="ga-approve"
                             style={{ background: '#10b981', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '1rem', width: '100%' }}
@@ -947,7 +996,7 @@ const BirthdayReport = () => {
 
             {/* Scanned Guest Confirmation Modal */}
             {scannedGuest && (
-                <div className="vm-overlay" style={{ zIndex: 3100 }} onClick={() => { window.isProcessingScan = false; setScannedGuest(null); }}>
+                <div className="vm-overlay" style={{ zIndex: 3100 }} onClick={() => { window.isProcessingScan = false; setScannedGuest(null); setScanMessage(null); setScannerActive(true); setShowQrScanner(true); }}>
                     <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '2rem', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
                         <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: scannedGuest.checked_in ? '#f59e0b' : '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
                             <i className={`fas fa-${scannedGuest.checked_in ? 'exclamation' : 'check'}`} style={{ fontSize: '32px', color: '#fff' }}></i>
@@ -985,7 +1034,7 @@ const BirthdayReport = () => {
                             </button>
                         ) : (
                             <button
-                                onClick={() => { window.isProcessingScan = false; setScannedGuest(null); setScannerActive(true); setShowQrScanner(true); }}
+                                onClick={() => { window.isProcessingScan = false; setScannedGuest(null); setScanMessage(null); setScannerActive(true); setShowQrScanner(true); }}
                                 className="ga-approve"
                                 style={{ background: '#64748b', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '1rem', width: '100%' }}
                             >

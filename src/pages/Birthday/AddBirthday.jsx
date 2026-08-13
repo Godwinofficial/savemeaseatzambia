@@ -47,6 +47,9 @@ const AddBirthday = () => {
         gallery_images: [],
         template_id: 1,
         visual_mode: 'dark',
+        // Theme colors (hex)
+        primary_color: '#f4d05c',
+        katy_gold: '#f4d05c',
     };
 
     const [form, setForm] = useState(initialForm);
@@ -265,6 +268,9 @@ const AddBirthday = () => {
             const slug = form.slug || generateSlug(form.child_name, form.date);
             const { data: { user } } = await supabase.auth.getUser();
             const payload = { ...form, slug, gallery_images: JSON.stringify(form.gallery_images) };
+            // Ensure color fields are strings
+            if (payload.primary_color) payload.primary_color = String(payload.primary_color);
+            if (payload.katy_gold) payload.katy_gold = String(payload.katy_gold);
             if (payload.client_id) delete payload.client_id;
 
             let error;
@@ -377,6 +383,28 @@ const AddBirthday = () => {
                                             <i className="fas fa-sun" style={{ color: '#c5a021' }} />
                                         </div>
                                         <div style={{ textAlign: 'center', fontWeight: 600, fontSize: '0.75rem' }}>Light Mode</div>
+                                    </div>
+                                </div>
+
+                                {/* ── Colors ── */}
+                                <h2 className="bd-section-title" style={{ fontSize: '0.9rem', fontWeight: 800, color: '#12121c', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <i className="fas fa-fill-drip" style={{ color: '#c5a059' }} /> Colors (Customize)
+                                </h2>
+                                <div className="bd-grid-2" style={{ marginBottom: 20 }}>
+                                    <div className="bd-form-group">
+                                        <label className="bd-form-label">Primary Color</label>
+                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                            <input type="color" className="bd-form-input" name="primary_color" value={form.primary_color} onChange={handleChange} style={{ padding: 0, height: 40, width: 56 }} />
+                                            <input className="bd-form-input" name="primary_color" value={form.primary_color} onChange={handleChange} placeholder="#f4d05c" />
+                                        </div>
+                                    </div>
+
+                                    <div className="bd-form-group">
+                                        <label className="bd-form-label">Gold Accent</label>
+                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                            <input type="color" className="bd-form-input" name="katy_gold" value={form.katy_gold} onChange={handleChange} style={{ padding: 0, height: 40, width: 56 }} />
+                                            <input className="bd-form-input" name="katy_gold" value={form.katy_gold} onChange={handleChange} placeholder="#f4d05c" />
+                                        </div>
                                     </div>
                                 </div>
 
