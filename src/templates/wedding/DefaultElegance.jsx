@@ -3043,22 +3043,8 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
           <div className="couple-container">
             <div
               className="couple"
-              id="bride"
-              ref={el => coupleRefs.current[0] = el}
-            >
-              {weddingData.couple.bride.image && (
-                <div className="couple-img-container">
-                  <img src={weddingData.couple.bride.image} alt="Bride" className="couple-img bride-image" />
-                  <div className="couple-img-border"></div>
-                </div>
-              )}
-              <h3 className="bride-name">{weddingData.couple.bride.name}</h3>
-              <p className="bride-description">{weddingData.couple.bride.description}</p>
-            </div>
-            <div
-              className="couple"
               id="groom"
-              ref={el => coupleRefs.current[1] = el}
+              ref={el => coupleRefs.current[0] = el}
             >
               {weddingData.couple.groom.image && (
                 <div className="couple-img-container">
@@ -3068,6 +3054,20 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
               )}
               <h3 className="groom-name">{weddingData.couple.groom.name}</h3>
               <p className="groom-description">{weddingData.couple.groom.description}</p>
+            </div>
+            <div
+              className="couple"
+              id="bride"
+              ref={el => coupleRefs.current[1] = el}
+            >
+              {weddingData.couple.bride.image && (
+                <div className="couple-img-container">
+                  <img src={weddingData.couple.bride.image} alt="Bride" className="couple-img bride-image" />
+                  <div className="couple-img-border"></div>
+                </div>
+              )}
+              <h3 className="bride-name">{weddingData.couple.bride.name}</h3>
+              <p className="bride-description">{weddingData.couple.bride.description}</p>
             </div>
           </div>
           <div className="story-content">
