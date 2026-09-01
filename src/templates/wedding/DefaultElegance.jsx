@@ -26,10 +26,50 @@ const FontAwesomeCSS = () => (
 // Import Google Fonts CSS
 const GoogleFontsCSS = () => (
   <link
-    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Great+Vibes&family=Montserrat:ital,wght@0,200;0,300;0,400;0,500;0,600;1,300&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap"
     rel="stylesheet"
   />
 );
+
+// Helper to render and parse story highlight quotes dynamically (splitting parentage names and making them bold)
+const renderStoryHighlight = (text) => {
+  if (!text) return null;
+
+  // Strip outer quotes (single, double, smart quotes)
+  const cleanText = text.replace(/(^["'“”‘’]|["'“”‘’]$)/g, '').trim();
+
+  // Split by dot followed by optional whitespace
+  const sentences = cleanText.split(/\.(?:\s*)/).map(s => s.trim()).filter(s => s.length > 0);
+
+  // Check if any sentence has a dash character
+  const hasDash = sentences.some(s => /[-—–]/.test(s));
+
+  if (hasDash || sentences.length > 1) {
+    return (
+      <div className="story-highlight-parsed">
+        {sentences.map((sentence, idx) => {
+          const parts = sentence.split(/\s*[-—–]\s*/);
+          if (parts.length >= 2) {
+            const name = parts[0].trim();
+            const rest = parts.slice(1).join(' — ').trim();
+            return (
+              <div key={idx} className="story-highlight-item">
+                <strong>{name}</strong> — {rest}.
+              </div>
+            );
+          }
+          return (
+            <div key={idx} className="story-highlight-item">
+              {sentence}.
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return <span>"{cleanText}"</span>;
+};
 
 
 
@@ -63,7 +103,7 @@ const formatTime = (timeString) => {
 };
 
 const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromParent, parentIsSubmitting, parentShowAdmissionCard, parentSubmittedRSVP }) => {
-  
+
 
   const [loading, setLoading] = useState(true);
   const [scrolled, setScrolled] = useState(false);
@@ -72,7 +112,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
   const [progress, setProgress] = useState(0);
   const [localIsSubmitting, setLocalIsSubmitting] = useState(false);
   const isSubmitting = parentIsSubmitting !== undefined ? parentIsSubmitting : localIsSubmitting;
-  const setIsSubmitting = parentIsSubmitting !== undefined ? () => {} : setLocalIsSubmitting;
+  const setIsSubmitting = parentIsSubmitting !== undefined ? () => { } : setLocalIsSubmitting;
 
   // Background Music State & Logic
   const [isPlaying, setIsPlaying] = useState(false);
@@ -129,10 +169,10 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
   });
   const [localShowAdmissionCard, setLocalShowAdmissionCard] = useState(false);
   const showAdmissionCard = parentShowAdmissionCard !== undefined ? parentShowAdmissionCard : localShowAdmissionCard;
-  const setShowAdmissionCard = parentShowAdmissionCard !== undefined ? () => {} : setLocalShowAdmissionCard;
+  const setShowAdmissionCard = parentShowAdmissionCard !== undefined ? () => { } : setLocalShowAdmissionCard;
   const [localSubmittedRSVP, setLocalSubmittedRSVP] = useState(null);
   const submittedRSVP = parentSubmittedRSVP !== undefined ? parentSubmittedRSVP : localSubmittedRSVP;
-  const setSubmittedRSVP = parentSubmittedRSVP !== undefined ? () => {} : setLocalSubmittedRSVP;
+  const setSubmittedRSVP = parentSubmittedRSVP !== undefined ? () => { } : setLocalSubmittedRSVP;
   const [cdnLoaded, setCdnLoaded] = useState(false);
 
 
@@ -287,7 +327,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
     dress_code_colors: []
   };
 
-  
+
   const initialData = {
     couple: { bride: { name: "Catherine", image: "" }, groom: { name: "Alexander", image: "" } },
     sliderImages: [], bridesmaids: [], groomsmen: [],
@@ -295,7 +335,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
     dress_code_colors: []
   };
   const weddingData = propsWeddingData || initialData;
-  
+
   const dataFetched = true;
 
   const isRSVPClosed = (() => {
@@ -305,7 +345,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
     return new Date() > deadline;
   })();
 
-  
+
 
   // Load Tailwind CDN for bridal shower-style mobile menu classes
   useEffect(() => {
@@ -608,7 +648,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
   }, [weddingData.sliderImages.length]); // Re-run when images are loaded
 
   useEffect(() => {
-    // Intersection Observer for animations
+    // Intersection Observer for silky smooth animations
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -619,11 +659,11 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
           }
         });
       },
-      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
+      { threshold: 0.08, rootMargin: "0px 0px -40px 0px" }
     );
 
-    // Observe general fade-in sections
-    document.querySelectorAll('.fade-in-section').forEach((el) => {
+    // Observe general fade-in sections and reveal elements
+    document.querySelectorAll('.fade-in-section, .de-fade-up, .proposal-card, .details-card').forEach((el) => {
       observer.observe(el);
     });
 
@@ -642,19 +682,19 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
       if (ref) observer.observe(ref);
     });
 
-    // Scroll animations
+    // Scroll animations fallback check
     const checkVisibility = () => {
-      const elements = document.querySelectorAll('.couple, .party-member');
+      const elements = document.querySelectorAll('.couple, .party-member, .fade-in-section, .proposal-card');
       elements.forEach(element => {
         const elementTop = element.getBoundingClientRect().top;
-        const elementVisible = 150;
+        const elementVisible = 100;
         if (elementTop < window.innerHeight - elementVisible) {
           element.classList.add('visible');
         }
       });
     };
 
-    window.addEventListener('scroll', checkVisibility);
+    window.addEventListener('scroll', checkVisibility, { passive: true });
     checkVisibility(); // Check immediately in case already in view
 
     return () => {
@@ -1508,45 +1548,205 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
       margin: 0 auto;
     }
 
+    /* Animation & Smooth Scrolling */
+    .fade-in-section {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+    }
+
+    .fade-in-section.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .de-fade-up {
+      opacity: 0;
+      transform: translateY(25px);
+      transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+    }
+
+    .de-fade-up.visible,
+    .fade-in-section.visible .de-fade-up {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Staggered couple animation */
+    .fade-in-section.visible .couple:nth-child(1) {
+      transition-delay: 0.15s;
+    }
+    .fade-in-section.visible .couple:nth-child(2) {
+      transition-delay: 0.3s;
+    }
+
     /* Story Section */
     .story-content {
-      max-width: 800px;
-      margin: 0 auto;
+      max-width: 780px;
+      margin: 45px auto 0;
       text-align: center;
+      padding: 0 15px;
+    }
+
+    .story-block {
+      margin-bottom: 25px;
     }
 
     .story-text {
-      font-size: 1.1rem;
-      margin-bottom: 40px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 400;
+      line-height: 1.85;
       color: var(--light-text);
+      letter-spacing: 0.015em;
+      white-space: pre-line;
+      margin: 0 auto;
+      max-width: 680px;
+    }
+
+    .story-highlight-wrapper {
+      margin: 35px auto;
+      position: relative;
     }
 
     .story-highlight {
       display: inline-block;
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.8rem;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 1.35rem;
       font-style: italic;
+      line-height: 1.7;
       color: var(--accent-color);
-      margin: 40px 0;
-      padding: 0 20px;
+      padding: 22px 32px;
       position: relative;
+      background: rgba(166, 138, 100, 0.04);
+      border-top: 1px solid rgba(166, 138, 100, 0.22);
+      border-bottom: 1px solid rgba(166, 138, 100, 0.22);
+      border-radius: 4px;
+      max-width: 700px;
     }
 
-    .story-highlight::before,
-    .story-highlight::after {
-      content: '"';
-      font-size: 3rem;
-      color: var(--secondary-color);
-      position: absolute;
-      top: -10px;
+    .story-highlight-parsed {
+      display: block;
+      width: 100%;
+      text-align: center;
     }
 
-    .story-highlight::before {
-      left: -10px;
+    .story-highlight-item {
+      margin: 8px 0;
+      font-size: 1.15rem;
+      line-height: 1.6;
     }
 
-    .story-highlight::after {
-      right: 0;
+    .story-highlight-item strong {
+      font-weight: 600;
+      color: var(--text-color);
+      letter-spacing: 0.5px;
+    }
+
+    /* Proposal Section */
+    .proposal-card {
+      margin: 45px auto 10px;
+      padding: 40px 35px;
+      background: linear-gradient(145deg, #ffffff 0%, #faf8f5 100%);
+      border: 1px solid rgba(166, 138, 100, 0.25);
+      border-radius: 12px;
+      position: relative;
+      box-shadow: 0 10px 35px rgba(166, 138, 100, 0.07);
+      text-align: center;
+      transition: all 0.5s ease;
+      opacity: 0;
+      transform: translateY(25px);
+    }
+
+    .proposal-card.visible,
+    .fade-in-section.visible .proposal-card {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .proposal-card:hover {
+      box-shadow: 0 16px 45px rgba(166, 138, 100, 0.12);
+      border-color: rgba(166, 138, 100, 0.38);
+      transform: translateY(-3px);
+    }
+
+    .proposal-icon-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 8px;
+      color: var(--accent-color);
+    }
+
+    .proposal-ring-icon {
+      font-size: 1.4rem;
+      color: var(--accent-color);
+      filter: drop-shadow(0 2px 4px rgba(166, 138, 100, 0.2));
+      transition: transform 0.4s ease;
+    }
+
+    .proposal-card:hover .proposal-ring-icon {
+      transform: scale(1.15) rotate(10deg);
+    }
+
+    .proposal-sparkle {
+      font-size: 0.9rem;
+      opacity: 0.65;
+      color: var(--accent-color);
+    }
+
+    .proposal-title {
+      font-family: 'Great Vibes', cursive;
+      font-size: 2.9rem;
+      color: var(--accent-color);
+      margin: 0 0 6px 0;
+      font-weight: 400;
+      line-height: 1.15;
+      letter-spacing: 0.5px;
+      text-shadow: 0 1px 2px rgba(166, 138, 100, 0.1);
+    }
+
+    .proposal-divider {
+      width: 50px;
+      height: 1.5px;
+      background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+      margin: 10px auto 20px;
+    }
+
+    .proposal-text {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-style: italic;
+      font-size: 1.12rem;
+      line-height: 1.8;
+      color: #383431;
+      margin: 0 auto;
+      max-width: 620px;
+      white-space: pre-line;
+      opacity: 0.95;
+    }
+
+    @media (max-width: 768px) {
+      .proposal-card {
+        padding: 30px 20px;
+        margin: 35px auto 10px;
+      }
+      .proposal-title {
+        font-size: 2.3rem;
+      }
+      .proposal-text {
+        font-size: 1.05rem;
+        line-height: 1.7;
+      }
+      .story-text {
+        font-size: 0.9rem;
+      }
+      .story-highlight {
+        font-size: 1.15rem;
+        padding: 15px 20px;
+      }
     }
 
     /* Wedding Party Section */
@@ -2704,7 +2904,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
     `;
   };
 
-  
+
 
   return (
     <>
@@ -2871,9 +3071,31 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
             </div>
           </div>
           <div className="story-content">
-            <p className="story-text" id="story-part1">{weddingData.story.part1}</p>
-            <p className="story-highlight" id="story-highlight">{weddingData.story.highlight}</p>
-            <p className="story-text" id="story-part2">{weddingData.story.part2}</p>
+            {/* Part 1: How We Met / Love Story */}
+            <div className="story-block de-fade-up">
+              <p className="story-text" id="story-part1">
+                {weddingData.story?.part1 || weddingData.story_part1 || ''}
+              </p>
+            </div>
+
+            {/* Story Highlight Quote */}
+            {(weddingData.story?.highlight || weddingData.story_highlight) && (
+              <div className="story-highlight-wrapper de-fade-up">
+                <div className="story-highlight" id="story-highlight">
+                  {renderStoryHighlight(weddingData.story?.highlight || weddingData.story_highlight)}
+                </div>
+              </div>
+            )}
+
+            {/* The Proposal Section */}
+            <div className="proposal-card de-fade-up" id="proposal-section">
+
+              <h3 className="proposal-title">Our Love Story</h3>
+              <div className="proposal-divider"></div>
+              <p className="proposal-text" id="story-part2">
+                {weddingData.story?.part2 || weddingData.story_part2 || 'Share your proposal story'}
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -3241,15 +3463,15 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
                     {weddingData.venue.name || weddingData.location || 'Wedding Venue'}
                   </p>
                   {(weddingData.extra_card_text || (weddingData.venue?.description?.startsWith("EXTRA_CARD_TEXT:") ? weddingData.venue.description.replace("EXTRA_CARD_TEXT:", "") : "")) && (
-                    <p style={{ 
-                      fontFamily: 'Montserrat', 
-                      fontSize: '0.7rem', 
-                      color: '#b91c1c', 
-                      fontWeight: '600', 
-                      marginTop: '8px', 
-                      borderTop: '1px dashed #E6E1D6', 
-                      paddingTop: '8px', 
-                      lineHeight: '1.4' 
+                    <p style={{
+                      fontFamily: 'Montserrat',
+                      fontSize: '0.7rem',
+                      color: '#b91c1c',
+                      fontWeight: '600',
+                      marginTop: '8px',
+                      borderTop: '1px dashed #E6E1D6',
+                      paddingTop: '8px',
+                      lineHeight: '1.4'
                     }}>
                       {weddingData.extra_card_text || weddingData.venue?.description?.replace("EXTRA_CARD_TEXT:", "")}
                     </p>

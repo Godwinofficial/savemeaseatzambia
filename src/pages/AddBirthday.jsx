@@ -488,6 +488,35 @@ const AddBirthday = () => {
                             </div>
                         </div>
 
+                        {/* Generated / Manual Map URL */}
+                        <div className="bd-form-group" style={{ marginTop: 16 }}>
+                            <label className="bd-form-label">Google Maps Embed URL</label>
+                            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                                <input
+                                    className="bd-form-input"
+                                    name="map_embed"
+                                    value={form.map_embed}
+                                    onChange={handleChange}
+                                    placeholder="Auto-generated from map or paste Google Maps link..."
+                                    style={{ flex: 1 }}
+                                />
+                                {form.map_embed && (
+                                    <button
+                                        type="button"
+                                        className="bd-btn bd-btn-secondary"
+                                        onClick={() => window.open(form.map_embed, '_blank')}
+                                        style={{ marginTop: 6, whiteSpace: 'nowrap', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+                                    >
+                                        <i className="fas fa-external-link-alt"></i> Test Link
+                                    </button>
+                                )}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#888', marginTop: 8, padding: '0.5rem', background: '#f5f2eb', borderRadius: 6, border: '1px solid #e9e4d9' }}>
+                                <i className="fas fa-info-circle" style={{ marginRight: 6 }} />
+                                <strong>Tip:</strong> If you can't find the exact location, you can manually paste a Google Maps embed link. Use the map above to search and the URL will auto-generate, or paste one manually from Google Maps.
+                            </div>
+                        </div>
+
                         {/* ── Custom Texts ── */}
                         <h2 className="bd-section-title">
                             <i className="fas fa-heart" /> Custom Texts

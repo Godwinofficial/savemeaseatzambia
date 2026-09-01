@@ -235,7 +235,7 @@ const HeroSection = ({ event }: { event: Event | null }) => {
           position: absolute;
           top: 0;
           width: 1px;
-          border-left: 1px dashed rgba(244, 208, 92, 0.4);
+          border-left: 1px dashed var(--katy-gold, #f4d05c);
           animation: bd-glitter-fade ease-in-out infinite alternate;
           -webkit-transform: translate3d(0,0,0);
         }
@@ -244,18 +244,18 @@ const HeroSection = ({ event }: { event: Event | null }) => {
           position: absolute;
           bottom: -1px;
           left: -1px;
-          background-color: #f4d05c;
+          background-color: var(--katy-gold, #f4d05c);
           border-radius: 50%;
-          box-shadow: 0 0 6px 1px #f4d05c, 0 0 10px 2px rgba(244, 208, 92, 0.5);
+          box-shadow: 0 0 6px 1px var(--katy-gold, #f4d05c), 0 0 10px 2px var(--katy-gold, #f4d05c);
           animation: bd-glitter-star-pulse ease-in-out infinite alternate;
           -webkit-transform: translate3d(0,0,0);
         }
 
         .glitter-dust {
           position: absolute;
-          background-color: #f4d05c;
+          background-color: var(--katy-gold, #f4d05c);
           border-radius: 50%;
-          box-shadow: 0 0 6px 1px #f4d05c, 0 0 10px 2px rgba(244, 208, 92, 0.5);
+          box-shadow: 0 0 6px 1px var(--katy-gold, #f4d05c), 0 0 10px 2px var(--katy-gold, #f4d05c);
           animation: bd-glitter-dust-pulse ease-in-out infinite alternate;
           -webkit-transform: translate3d(0,0,0);
         }

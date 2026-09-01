@@ -235,6 +235,7 @@ const WeddingTemplate = () => {
               mapLocation: dbData.map_location,
               rsvpDeadline: dbData.rsvp_deadline,
               coverImage: dbData.cover_image,
+              hero_video_url: dbData.hero_video_url || null,
               tagline: dbData.tagline || "We are getting married",
               template_id: dbData.template_id || 1,
               allowedGuests: (() => {
@@ -343,6 +344,7 @@ const WeddingTemplate = () => {
             mapLocation: dbData.map_location,
             rsvpDeadline: dbData.rsvp_deadline,
             coverImage: dbData.cover_image,
+            hero_video_url: dbData.hero_video_url || null,
             tagline: dbData.tagline || "We are getting married",
             template_id: dbData.template_id || 1,
             allowedGuests: (() => {
@@ -455,6 +457,7 @@ const WeddingTemplate = () => {
               mapLocation: dbData.map_location,
               rsvpDeadline: dbData.rsvp_deadline,
               coverImage: dbData.cover_image,
+              hero_video_url: dbData.hero_video_url || null,
               tagline: dbData.tagline || "We are getting married",
               template_id: dbData.template_id || 1,
               allowedGuests: (() => {

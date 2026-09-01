@@ -1,4 +1,11 @@
 import React, { useEffect, useState } from 'react';
+
+const toPossessive = (name) => {
+    if (!name) return '';
+    const n = String(name).trim();
+    if (n.endsWith("'s") || n.endsWith("’s") || n.endsWith("'") || n.endsWith("’")) return n;
+    return `${n}'s`;
+};
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import * as XLSX from 'xlsx';
@@ -325,7 +332,7 @@ const BirthdayReport = () => {
 
         try {
             for (const guest of approvedGuests) {
-                const birthdayName = wedding.child_name.replace(/['’]s\s+Birthday$/i, '');
+                    const birthdayName = (wedding.child_name || '').replace(/['’]s\s+Birthday$/i, '');
                 const templateParams = {
                     to_name: guest.name,
                     wedding_name: birthdayName,
@@ -342,7 +349,7 @@ const BirthdayReport = () => {
                     location: wedding.venue_address || '',
                     message: `This is a friendly reminder that the birthday celebration of ${birthdayName} is coming up! We're so excited to celebrate with you. Please be ready and we can't wait to see you there!`,
                     link: `${window.location.origin}/b/${slug}`,
-                    title: `${birthdayName}'s Birthday Celebration`,
+                    title: `${toPossessive(birthdayName)} Birthday Celebration`,
                     subtitle: "Event Reminder",
                     action_text: "View Invitation & Details",
                     // Dynamic Theme Params
@@ -418,7 +425,7 @@ const BirthdayReport = () => {
             <header className="report-header">
                 <div className="header-content">
                     <div className="wedding-info">
-                        <h1>{wedding.child_name}'s Birthday</h1>
+                            <h1>{toPossessive(wedding.child_name)} Birthday</h1>
                         <p className="wedding-date">
                             <i className="far fa-calendar"></i>
                             {new Date(wedding.date).toLocaleDateString('en-US', {

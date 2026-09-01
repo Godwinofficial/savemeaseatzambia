@@ -132,6 +132,15 @@ const CountdownSection = ({ event }: { event: Event | null }) => {
   const venueAddress = event?.venue_address || "";
   const childName = event?.child_name || "the birthday child";
   const dressCode = event?.dress_code || event?.theme || "To be announced";
+  const dressColor = event?.dress_color_custom || null;
+  const dressColors = (() => {
+    if (!event) return [];
+    if (Array.isArray(event.dress_code_colors)) return event.dress_code_colors;
+    if (typeof event.dress_code_colors === 'string') {
+      try { return JSON.parse(event.dress_code_colors); } catch (e) { return [event.dress_color_custom].filter(Boolean); }
+    }
+    return event.dress_color_custom ? [event.dress_color_custom] : [];
+  })();
 
   const cards = [
     {
@@ -150,7 +159,7 @@ const CountdownSection = ({ event }: { event: Event | null }) => {
       ],
     },
     {
-      title: "Dress Code",
+      title: "Dress Color Theme",
       image: "/imgs/dress_code_clean.png",
       items: [{ icon: Sparkles, text: dressCode }],
     },
@@ -247,6 +256,19 @@ const CountdownSection = ({ event }: { event: Event | null }) => {
                   </li>
                 ))}
               </ul>
+              {/* If a dress color is set, show a small swatch beneath the Dress Code */}
+              {card.title === 'Dress Color Theme' && (dressColors.length > 0) && (
+                <div style={{ marginTop: 10, display: 'flex', justifyContent: 'center', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    {dressColors.map((c, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ width: 36, height: 20, borderRadius: 9999, background: c, border: '1px solid rgba(0,0,0,0.06)' }} />
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>{dressColors.join(' • ')}</div>
+                </div>
+              )}
               {/* Mini calendar for the Date card */}
               {'showCalendar' in card && card.showCalendar && event?.date && (
                 <MiniCalendar dateStr={event.date} />

@@ -97,8 +97,7 @@ const Birthday = () => {
   // Apply saved/custom colors to both :root and page elements so light-mode uses them
   useEffect(() => {
     if (!event) return;
-    const primary = event.primary_color || event.katy_gold || null;
-    const gold = event.katy_gold || event.primary_color || null;
+    const primary = event.primary_color || null;
     const root = document.documentElement;
     const pageEls = Array.from(document.querySelectorAll('.bd-page, .bd-loader-wrapper'));
 
@@ -111,10 +110,7 @@ const Birthday = () => {
       applyToEl(root, '--accent', primary);
       pageEls.forEach((el) => { applyToEl(el, '--primary', primary); applyToEl(el, '--accent', primary); });
     }
-    if (gold) {
-      applyToEl(root, '--katy-gold', gold);
-      pageEls.forEach((el) => applyToEl(el, '--katy-gold', gold));
-    }
+    // NOTE: intentionally do NOT override --katy-gold so glitter stays default gold
   }, [event]);
 
   // Load Tailwind CDN

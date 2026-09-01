@@ -4,59 +4,84 @@ import heroVideo from '../assets/videos/hero.MP4';
 const InvitationOverlay = ({ weddingData, onEnter, onStartClose }) => {
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isPlayingCustomVideo, setIsPlayingCustomVideo] = useState(false);
   const videoRef = useRef(null);
+  const customVideoRef = useRef(null);
+
+  // Check if couple uploaded a custom intro video
+  const customVideoUrl = weddingData?.hero_video_url || null;
+  const hasCustomVideo = !!customVideoUrl;
 
   useEffect(() => {
+    // Play background video muted so mobile renders immediately (no black screen)
     if (videoRef.current) {
       videoRef.current.defaultMuted = true;
       videoRef.current.muted = true;
-      videoRef.current.play().catch(e => console.log("Autoplay blocked:", e));
+      videoRef.current.play().catch(e => console.log('Autoplay blocked:', e));
     }
 
-    // Dynamically load elegant fonts for the cursive names and clean date
+    // Load fonts
     const link = document.createElement('link');
     link.href = 'https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@300;400;600&display=swap';
     link.rel = 'stylesheet';
     document.head.appendChild(link);
 
-    // Trigger entrance animations
     const timer = setTimeout(() => setMounted(true), 100);
     return () => clearTimeout(timer);
-  }, []);
+  }, [hasCustomVideo, customVideoUrl]);
 
   const groomName = weddingData?.couple?.groom?.name?.split(' ')[0] || 'Groom';
   const brideName = weddingData?.couple?.bride?.name?.split(' ')[0] || 'Bride';
 
-  // Format date to: 14 FEBRUARY 2027
   const formatDateForOverlay = (dateStr) => {
     if (!dateStr) return '';
-
-    // Check if it's already a formatted string (e.g., "October 10, 2026")
     const date = new Date(dateStr);
-    if (isNaN(date.getTime())) {
-      return dateStr.toUpperCase();
-    }
-
+    if (isNaN(date.getTime())) return dateStr.toUpperCase();
     const months = [
       'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
       'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
     ];
-
-    const day = date.getDate();
-    const month = months[date.getMonth()];
-    const year = date.getFullYear();
-
-    return `${day} ${month} ${year}`;
+    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
   };
 
   const weddingDate = formatDateForOverlay(weddingData?.rawDate || weddingData?.date);
 
-  const handleEnterClick = () => {
+  // Close overlay and reveal website
+  const finishAndEnterWebsite = () => {
     setIsFadingOut(true);
-    if (onStartClose) onStartClose(); // Trigger mounting of main site immediately for animations
+    if (onStartClose) onStartClose();
     setTimeout(() => {
       onEnter();
-    }, 800); // Match transition duration (800ms)
+    }, 800);
+  };
+
+  // When user clicks "VIEW YOUR INVITE"
+  const handleViewInviteClick = () => {
+    if (hasCustomVideo) {
+      // For manually uploaded video: start playing the video once without controls
+      setIsPlayingCustomVideo(true);
+      setTimeout(() => {
+        if (customVideoRef.current) {
+          customVideoRef.current.currentTime = 0;
+          customVideoRef.current.muted = false;
+          customVideoRef.current.play().catch(err => {
+            console.warn('Video play with sound blocked, trying muted:', err);
+            if (customVideoRef.current) {
+              customVideoRef.current.muted = true;
+              customVideoRef.current.play().catch(() => {});
+            }
+          });
+        }
+      }, 50);
+    } else {
+      // Default template video: immediately open website
+      finishAndEnterWebsite();
+    }
+  };
+
+  // When custom video finishes playing, automatically open website
+  const handleCustomVideoEnded = () => {
+    finishAndEnterWebsite();
   };
 
   return (
@@ -64,79 +89,108 @@ const InvitationOverlay = ({ weddingData, onEnter, onStartClose }) => {
       className={`invitation-overlay-container ${isFadingOut ? 'fade-out' : ''}`}
       style={overlayContainerStyle}
     >
-      {/* Video Background */}
-      <video
-        ref={videoRef}
-        autoPlay
-        muted
-        defaultMuted
-        loop
-        playsInline
-        className="overlay-video-bg"
-        style={videoBgStyle}
-        onTimeUpdate={() => {
-          if (videoRef.current) {
-            // Smooth seamless loop: reset 0.2s before the very end to prevent the browser 'ended' flash
-            if (videoRef.current.duration - videoRef.current.currentTime <= 0.2) {
-              videoRef.current.currentTime = 0;
-              videoRef.current.play().catch(() => { });
-            }
-          }
-        }}
-      >
-        <source src={heroVideo} type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
-
-      {/* Dim/Dark filter overlay */}
-      <div className="overlay-darkener" style={darkenerStyle} />
-
-      {/* Content wrapper */}
-      <div
-        className={`overlay-content-wrap ${mounted ? 'active' : ''}`}
-        style={contentWrapStyle}
-      >
-        {/* Spacer for top */}
-        <div style={{ flex: 1 }} />
-
-        {/* Center: Interactive enter button */}
-        <div className="overlay-center-section" style={centerSectionStyle}>
-          <button
-            onClick={handleEnterClick}
-            className="overlay-enter-btn"
-            style={enterBtnStyle}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'white';
-              e.currentTarget.style.color = 'black';
-              e.currentTarget.style.transform = 'scale(1.05)';
-              // e.currentTarget.style.boxShadow = '0 8px 25px rgba(255, 255, 255, 0.2)';
-            }}
-            onMouseLeave={(e) => {
-              // e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-              e.currentTarget.style.color = 'white';
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = 'none';
+      {/* ── Background Video / Still ── */}
+      {!isPlayingCustomVideo && (
+        <>
+          <video
+            key={hasCustomVideo ? customVideoUrl : 'default-hero'}
+            ref={videoRef}
+            autoPlay
+            muted
+            defaultMuted
+            loop
+            playsInline
+            preload="auto"
+            poster={weddingData?.coverImage || ''}
+            className="overlay-video-bg"
+            style={videoBgStyle}
+            onTimeUpdate={() => {
+              if (videoRef.current) {
+                if (videoRef.current.duration - videoRef.current.currentTime <= 0.2) {
+                  videoRef.current.currentTime = 0;
+                  videoRef.current.play().catch(() => {});
+                }
+              }
             }}
           >
-            VIEW YOUR INVITE
+            <source src={hasCustomVideo ? `${customVideoUrl}#t=0.001` : heroVideo} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+          <div className="overlay-darkener" style={darkenerStyle} />
+        </>
+      )}
+
+      {/* ── Fullscreen Custom Video Player (Plays once, no controls) ── */}
+      {hasCustomVideo && isPlayingCustomVideo && (
+        <div style={customVideoContainerStyle}>
+          <video
+            ref={customVideoRef}
+            autoPlay
+            playsInline
+            preload="auto"
+            style={customVideoPlayerStyle}
+            onEnded={handleCustomVideoEnded}
+          >
+            <source src={customVideoUrl} type="video/mp4" />
+          </video>
+
+          {/* Discreet Skip Button in corner */}
+          <button
+            type="button"
+            onClick={finishAndEnterWebsite}
+            style={skipBtnStyle}
+            title="Skip video"
+          >
+            SKIP <i className="fas fa-chevron-right" style={{ marginLeft: '4px' }}></i>
           </button>
         </div>
+      )}
 
-        {/* Spacer */}
-        <div style={{ flex: 1.2 }} />
+      {/* ── Overlay Text & "VIEW YOUR INVITE" Button ── */}
+      {!isPlayingCustomVideo && (
+        <div
+          className={`overlay-content-wrap ${mounted ? 'active' : ''}`}
+          style={contentWrapStyle}
+        >
+          <div style={{ flex: 1 }} />
 
-        {/* Bottom: Couple names & Wedding date */}
-        <div className="overlay-bottom-section" style={bottomSectionStyle}>
-          <h1 className="overlay-couple-names" style={coupleNamesStyle}>
-             {brideName} & {groomName}
-          </h1>
-          <p className="overlay-wedding-date" style={weddingDateStyle}>
-            {weddingDate}
-          </p>
+          {/* Center: "VIEW YOUR INVITE" Button */}
+          <div className="overlay-center-section" style={centerSectionStyle}>
+            <button
+              onClick={handleViewInviteClick}
+              className="overlay-enter-btn"
+              style={enterBtnStyle}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'white';
+                e.currentTarget.style.color = 'black';
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'white';
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              VIEW YOUR INVITE
+            </button>
+          </div>
+
+          <div style={{ flex: 1.2 }} />
+
+          {/* Bottom: Couple names & Wedding date */}
+          <div className="overlay-bottom-section" style={bottomSectionStyle}>
+            <h1 className="overlay-couple-names" style={coupleNamesStyle}>
+              {brideName} &amp; {groomName}
+            </h1>
+            <p className="overlay-wedding-date" style={weddingDateStyle}>
+              {weddingDate}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Inject custom CSS keyframes and animations directly */}
+      {/* Inject custom CSS keyframes and animations */}
       <style>{`
         .invitation-overlay-container {
           position: fixed;
@@ -149,7 +203,7 @@ const InvitationOverlay = ({ weddingData, onEnter, onStartClose }) => {
           height: 100dvh;
           z-index: 999999;
           overflow: hidden;
-          background: #fff;
+          background: #000;
           transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1), transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
         }
         .invitation-overlay-container.fade-out {
@@ -219,7 +273,8 @@ const InvitationOverlay = ({ weddingData, onEnter, onStartClose }) => {
   );
 };
 
-// Styles
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const overlayContainerStyle = {
   fontFamily: '"Montserrat", sans-serif',
 };
@@ -232,8 +287,6 @@ const videoBgStyle = {
   height: '100%',
   objectFit: 'cover',
   zIndex: 1,
-  // transform: 'scale(1.25)', // More aggressive crop
-  // transformOrigin: 'top left', // Forces the bottom right to be pushed off-screen
 };
 
 const darkenerStyle = {
@@ -242,7 +295,7 @@ const darkenerStyle = {
   left: 0,
   width: '100%',
   height: '100%',
-  background: 'rgba(0, 0, 0, 0.35)',
+  background: 'rgba(0, 0, 0, 0.4)',
   zIndex: 2,
 };
 
@@ -282,8 +335,43 @@ const weddingDateStyle = {
   textShadow: '0 2px 8px rgba(0, 0, 0, 0.5)',
 };
 
-const enterBtnStyle = {
-  // Styles are handled mostly in the inline hover definitions and CSS injection block
+const enterBtnStyle = {};
+
+const customVideoContainerStyle = {
+  position: 'absolute',
+  inset: 0,
+  width: '100%',
+  height: '100%',
+  background: '#000',
+  zIndex: 20,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
+
+const customVideoPlayerStyle = {
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
+  outline: 'none',
+};
+
+const skipBtnStyle = {
+  position: 'absolute',
+  top: 'calc(20px + env(safe-area-inset-top, 0px))',
+  right: '20px',
+  background: 'rgba(0, 0, 0, 0.5)',
+  color: 'rgba(255, 255, 255, 0.85)',
+  border: '1px solid rgba(255, 255, 255, 0.3)',
+  borderRadius: '20px',
+  padding: '6px 14px',
+  fontSize: '0.72rem',
+  letterSpacing: '0.15em',
+  fontFamily: '"Montserrat", sans-serif',
+  cursor: 'pointer',
+  zIndex: 30,
+  backdropFilter: 'blur(4px)',
+  transition: 'all 0.2s ease',
 };
 
 export default InvitationOverlay;

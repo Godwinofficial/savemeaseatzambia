@@ -419,6 +419,36 @@ const AdminDashboard = () => {
         }
     };
 
+    const archivePastEvents = async () => {
+        if (!confirm('Archive all past birthday events? This will set an archived flag on past events.')) return;
+        try {
+            // Mark birthdays, weddings, and bridal_showers with date before today as archived
+            const today = new Date().toISOString().slice(0,10);
+            const { error: err1 } = await supabase
+                .from('birthday_events')
+                .update({ archived: true })
+                .lt('date', today);
+            const { error: err2 } = await supabase
+                .from('weddings')
+                .update({ archived: true })
+                .lt('date', today);
+            const { error: err3 } = await supabase
+                .from('bridal_showers')
+                .update({ archived: true })
+                .lt('date', today);
+            const error = err1 || err2 || err3;
+            if (error) throw error;
+            // Refresh lists
+            await fetchBirthdays();
+            await fetchWeddings();
+            await fetchBridalShowers();
+            alert('Archived past events.');
+        } catch (err) {
+            console.error(err);
+            alert('Error archiving events: ' + err.message);
+        }
+    };
+
     const fetchBridalShowers = async (userSession) => {
         setBridalShowerLoading(true);
         try {
@@ -1065,8 +1095,8 @@ const AdminDashboard = () => {
         w.venue_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         w.slug?.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    const activeWeddings = filteredWeddingsList;
-    const archivedWeddings = filteredWeddingsList.filter(w => getWeddingStatus(w.date) === 'past');
+    const activeWeddings = filteredWeddingsList.filter(w => !(w.archived === true || getWeddingStatus(w.date) === 'past'));
+    const archivedWeddings = filteredWeddingsList.filter(w => (w.archived === true || getWeddingStatus(w.date) === 'past'));
 
     const filteredBirthdaysList = birthdays.filter(b => {
         const name = b.celebrant_name || b.child_name || '';
@@ -1076,16 +1106,16 @@ const AdminDashboard = () => {
             b.slug?.toLowerCase().includes(searchTerm.toLowerCase())
         );
     });
-    const activeBirthdays = filteredBirthdaysList;
-    const archivedBirthdays = filteredBirthdaysList.filter(b => getWeddingStatus(b.date) === 'past');
+    const activeBirthdays = filteredBirthdaysList.filter(b => !(b.archived === true || getWeddingStatus(b.date) === 'past'));
+    const archivedBirthdays = filteredBirthdaysList.filter(b => (b.archived === true || getWeddingStatus(b.date) === 'past'));
 
     const filteredBridalShowersList = bridalShowers.filter(bs =>
         bs.bride_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         bs.venue_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         bs.slug?.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    const activeBridalShowers = filteredBridalShowersList;
-    const archivedBridalShowers = filteredBridalShowersList.filter(bs => getWeddingStatus(bs.date) === 'past');
+    const activeBridalShowers = filteredBridalShowersList.filter(bs => !(bs.archived === true || getWeddingStatus(bs.date) === 'past'));
+    const archivedBridalShowers = filteredBridalShowersList.filter(bs => (bs.archived === true || getWeddingStatus(bs.date) === 'past'));
 
     const filteredVendorsList = vendors.filter(v =>
         v.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1105,7 +1135,7 @@ const AdminDashboard = () => {
                         <div className="hero-ring r2"></div>
 
                         <div className="hero-eyebrow">SAVE ME A SEAT</div>
-                        <div className="hero-big-num">{weddings.length + birthdays.length + bridalShowers.length}</div>
+                        <div className="hero-big-num">{activeWeddings.length + activeBirthdays.length + activeBridalShowers.length}</div>
                         <div className="hero-couple">Total Events</div>
                         <div className="hero-meta">Managing all your celebrations</div>
 
@@ -1120,6 +1150,10 @@ const AdminDashboard = () => {
                                         <div className="hbtn-icon"><i className="fas fa-gift"></i></div>
                                         <span className="hbtn-lbl">SHOWER</span>
                                     </Link>
+                                    <button className="hbtn hbtn-archive" onClick={archivePastEvents} style={{ textDecoration: 'none', marginLeft: 8 }}>
+                                        <div className="hbtn-icon"><i className="fas fa-archive"></i></div>
+                                        <span className="hbtn-lbl">Archive Past</span>
+                                    </button>
                                 </>
                             )}
                             <button className="hbtn" onClick={() => setShowMobileMenu(true)}>
@@ -1219,14 +1253,15 @@ const AdminDashboard = () => {
                             )}
                             {activeTab === 'birthdays' && activeBirthdays.map(bday => {
                                 const isPositive = (bday.rsvp_count || 0) > 0;
-                                const bName = bday.celebrant_name || bday.child_name || 'Birthday';
+                                const rawName = bday.celebrant_name || bday.child_name || 'Birthday';
+                                const bName = (rawName && (rawName.endsWith("'s") || rawName.endsWith("’s") || rawName.endsWith("'") || rawName.endsWith("’"))) ? rawName : `${rawName}'s`;
                                 return (
                                     <div key={bday.id} className="g-row" onClick={() => navigate(`/b/${bday.slug}`)} style={{ cursor: 'pointer' }}>
                                         <div className="g-avatar" style={{ background: '#c44569' }}>
                                             {bName.substring(0, 1)}
                                         </div>
                                         <div className="g-info">
-                                            <span className="g-name">{bName}'s Birthday</span>
+                                            <span className="g-name">{bName} Birthday</span>
                                             <span className="g-sub">Birthday • {bday.date ? new Date(bday.date).toLocaleDateString() : 'N/A'}</span>
                                         </div>
                                         <div className="g-right">
@@ -1240,7 +1275,7 @@ const AdminDashboard = () => {
                                                 e.stopPropagation();
                                                 setActiveActionSheet({
                                                     type: 'birthday',
-                                                    title: `${bName}'s Birthday`,
+                                                    title: `${bName} Birthday`,
                                                     subtitle: `Date: ${bday.date ? new Date(bday.date).toLocaleDateString() : 'N/A'}`,
                                                     url: `/b/${bday.slug}`,
                                                     slug: bday.slug,
@@ -1249,7 +1284,7 @@ const AdminDashboard = () => {
                                                     rawEvent: bday,
                                                     reportUrl: `/b-report/${bday.slug}`,
                                                     onDownload: () => downloadBirthdayRSVPs(bday.id, bName),
-                                                    onDelete: () => handleDeleteBirthday(bday.id, `${bName}'s Birthday`)
+                                                    onDelete: () => handleDeleteBirthday(bday.id, `${bName} Birthday`)
                                                 });
                                             }}
                                             style={{ background: 'none', border: 'none', color: '#9ca3af', padding: '0.5rem', cursor: 'pointer' }}
@@ -1437,14 +1472,15 @@ const AdminDashboard = () => {
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                                                 {archivedBirthdays.map(bday => {
                                                     const isPositive = (bday.rsvp_count || 0) > 0;
-                                                    const bName = bday.celebrant_name || bday.child_name || 'Birthday';
+                                                    const rawName = bday.celebrant_name || bday.child_name || 'Birthday';
+                                                    const bName = (rawName && (rawName.endsWith("'s") || rawName.endsWith("’s") || rawName.endsWith("'") || rawName.endsWith("’"))) ? rawName : `${rawName}'s`;
                                                     return (
                                                         <div key={bday.id} className="g-row" onClick={() => navigate(`/b/${bday.slug}`)} style={{ cursor: 'pointer', opacity: 0.7 }}>
                                                             <div className="g-avatar" style={{ background: '#c44569' }}>
                                                                 {bName.substring(0, 1)}
                                                             </div>
                                                             <div className="g-info">
-                                                                <span className="g-name">{bName}'s Birthday</span>
+                                                                <span className="g-name">{bName} Birthday</span>
                                                                 <span className="g-sub">Birthday • {bday.date ? new Date(bday.date).toLocaleDateString() : 'N/A'}</span>
                                                             </div>
                                                             <div className="g-right">
@@ -2051,6 +2087,7 @@ const AdminDashboard = () => {
                     background:#a3e635; color:#12121c; border-color:transparent;
                     box-shadow:0 6px 20px rgba(163,230,53,.4);
                 }
+                .hbtn-archive .hbtn-icon { background:#6b7280; color:#fff; border-color:transparent; box-shadow:0 6px 12px rgba(0,0,0,.12); }
                 .hbtn-lime .hbtn-lbl { color:#a3e635; }
                 .hbtn:hover .hbtn-icon { transform:translateY(-3px); }
 

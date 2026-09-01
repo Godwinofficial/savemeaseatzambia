@@ -711,6 +711,31 @@ const AddWedding = () => {
     const [isMapOpen, setIsMapOpen] = useState(false);
     const [showSidebar, setShowSidebar] = useState(false);
 
+    const PROPOSAL_STORIES = [
+        "Under a canopy of stars on a quiet evening by the lake, with soft waves lapping at the shore, a whispered question changed our lives forever. With happy tears and racing hearts, saying yes was the easiest decision ever made.",
+        "During a weekend getaway surrounded by scenic mountain views, what seemed like a casual sunset walk turned into the most breathtaking surprise. Dropping to one knee with the ring shining in the golden hour light, our forever began right there.",
+        "On the exact anniversary of our very first date at our favorite quiet cafe, a scrapbook of our fondest memories was handed over. On the last page was written: 'Will you marry me?' An unforgettable, heartfelt yes followed instantly.",
+        "Surrounded by close family and dear friends during an intimate gathering, the music faded and a heartfelt speech turned into the most romantic proposal. Joyful cheers filled the room as we celebrated the start of our next chapter.",
+        "Walking along the sandy shores at dusk as the tide gently rolled in, a message written in the sand caught our eyes. Turning around to find the love of a lifetime down on one knee with a ring was sheer magic.",
+        "On a cozy rainy Sunday morning over homemade coffee and breakfast, with laughter filling the kitchen, a velvet box was placed on the table with words spoken straight from the heart. Pure, simple, and perfectly us.",
+        "Underneath the dazzling city lights at a rooftop garden overlooking the skyline, a surprise serenade played in the background as the question was popped. It felt as if time stood completely still."
+    ];
+
+    const SPECIAL_QUOTES = [
+        "“In your eyes, I found my home. In your heart, I found my love. In your soul, I found my mate.”",
+        "“You are my today and all of my tomorrows.” — Leo Christopher",
+        "“Whatever our souls are made of, his and mine are the same.” — Emily Brontë",
+        "“I have found the one whom my soul loves.” — Song of Solomon 3:4",
+        "“To love and be loved is to feel the sun from both sides.” — David Viscott",
+        "“Every love story is beautiful, but ours is my favorite.”"
+    ];
+
+    const HOW_WE_MET_STORIES = [
+        "Our story began with an unexpected encounter and a simple smile across a crowded room. What started as casual conversation quickly turned into hours of talking, realizing we had found someone truly extraordinary.",
+        "A mutual friend's gathering brought us together on a warm summer evening. A shared laugh over a silly joke sparked a connection that neither of us saw coming, but both of us knew was special.",
+        "We crossed paths unexpectedly on a rainy afternoon, sharing an umbrella and endless conversation. From that spontaneous moment onward, we knew our lives were destined to intertwine."
+    ];
+
     const initialFormState = {
         extra_card_text: "",
         cover_image: "",
@@ -718,7 +743,7 @@ const AddWedding = () => {
         groom_name: "", groom_image: "", groom_description: "",
         date: "", location: "",
         venue_name: "", venue_address: "", venue_description: "",
-        story_part1: "", story_highlight: "", story_part2: "",
+        story_part1: "", story_highlight: "", story_part2: PROPOSAL_STORIES[0],
         ceremony_date: "", ceremony_time: "", ceremony_venue: "",
         reception_date: "", reception_time: "", reception_venue: "", reception_address: "",
         rsvp_deadline: "",
@@ -730,7 +755,8 @@ const AddWedding = () => {
         allowed_guests: ["1"],
         theme_colors: ['#A68A64', '#FAFAF9', '#E7E5E4', '#292524'],
         dress_code_colors: [],
-        music_url: ""
+        music_url: "",
+        hero_video_url: ""
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -749,6 +775,27 @@ const AddWedding = () => {
     const [editingDressIdx, setEditingDressIdx] = useState(null);
     const [previewingUrl, setPreviewingUrl] = useState(null);
     const previewAudioRef = useRef(null);
+
+    const getRandomProposalStory = () => {
+        const current = formData.story_part2;
+        const available = PROPOSAL_STORIES.filter(s => s !== current);
+        const randomStory = available[Math.floor(Math.random() * available.length)] || PROPOSAL_STORIES[0];
+        setFormData(prev => ({ ...prev, story_part2: randomStory }));
+    };
+
+    const getRandomHighlight = () => {
+        const current = formData.story_highlight;
+        const available = SPECIAL_QUOTES.filter(s => s !== current);
+        const randomQuote = available[Math.floor(Math.random() * available.length)] || SPECIAL_QUOTES[0];
+        setFormData(prev => ({ ...prev, story_highlight: randomQuote }));
+    };
+
+    const getRandomStoryPart1 = () => {
+        const current = formData.story_part1;
+        const available = HOW_WE_MET_STORIES.filter(s => s !== current);
+        const randomStory = available[Math.floor(Math.random() * available.length)] || HOW_WE_MET_STORIES[0];
+        setFormData(prev => ({ ...prev, story_part1: randomStory }));
+    };
 
     const MUSIC_TRACKS = [
         { url: defaultMusic, label: "SaveMeASeat Wedding Soundtrack", artist: "Default", mood: "Soft & Romantic (Recommended Default)" },
@@ -859,6 +906,7 @@ const AddWedding = () => {
                         } catch (e) { }
                         return "";
                     })(),
+                    hero_video_url: data.hero_video_url || "",
                     template_id: data.template_id || 1
                 });
             }
@@ -1180,8 +1228,9 @@ const AddWedding = () => {
                 const missingExtraCardText = error.message && error.message.includes("extra_card_text");
                 const missingDressCodeColors = error.message && error.message.includes("dress_code_colors");
                 const missingMusicUrl = error.message && error.message.includes("music_url");
+                const missingHeroVideoUrl = error.message && error.message.includes("hero_video_url");
 
-                if (missingExtraCardText || missingDressCodeColors || missingMusicUrl) {
+                if (missingExtraCardText || missingDressCodeColors || missingMusicUrl || missingHeroVideoUrl) {
                     console.warn("Missing database columns, applying fallbacks...");
                     const retryPayload = { ...payload };
                     let msg = "";
@@ -1216,6 +1265,11 @@ const AddWedding = () => {
                         if (missingMusicUrl) {
                             msg += '\n- "music_url" saved inside theme_colors';
                         }
+                    }
+
+                    if (missingHeroVideoUrl) {
+                        delete retryPayload.hero_video_url;
+                        msg += '\n- "hero_video_url" column not yet in DB (add it via Supabase SQL editor)';
                     }
 
                     let retryError;
@@ -1564,6 +1618,88 @@ const AddWedding = () => {
                         </div>
                     </details>
                 </div>
+            </div>
+
+            {/* ── Hero / Intro Video ── */}
+            <div className="section-header" style={{ marginTop: '30px' }}>
+                <h3 className="section-subtitle">
+                    <i className="fas fa-film"></i>
+                    Intro Video
+                </h3>
+            </div>
+            <div className="form-group">
+                <p style={{ color: 'var(--gray)', fontSize: '0.85rem', margin: '0 0 14px 0' }}>
+                    Upload a short video (MP4, max 100 MB) to display as the animated background on your invitation intro screen.
+                    If none is uploaded, the default SaveMeASeat intro video will be used.
+                </p>
+
+                {/* Show current video preview if one exists */}
+                {formData.hero_video_url && (
+                    <div style={{ marginBottom: '14px', borderRadius: '10px', overflow: 'hidden', background: '#000', maxHeight: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                        <video
+                            src={formData.hero_video_url}
+                            style={{ maxHeight: '180px', maxWidth: '100%', objectFit: 'contain' }}
+                            muted
+                            playsInline
+                            controls
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, hero_video_url: '' }))}
+                            style={{
+                                position: 'absolute', top: '8px', right: '8px',
+                                background: 'rgba(220,38,38,0.85)', color: '#fff',
+                                border: 'none', borderRadius: '6px', padding: '4px 10px',
+                                cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600
+                            }}
+                        >
+                            <i className="fas fa-trash" style={{ marginRight: '5px' }}></i>Remove
+                        </button>
+                    </div>
+                )}
+
+                {/* File upload area */}
+                {!formData.hero_video_url && (
+                    <div
+                        className="image-upload-wrapper"
+                        onClick={() => document.getElementById('hero-video-upload').click()}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        <input
+                            type="file"
+                            id="hero-video-upload"
+                            accept="video/mp4,video/webm,video/quicktime"
+                            style={{ display: 'none' }}
+                            onChange={async (e) => {
+                                const file = e.target.files[0];
+                                if (!file) return;
+                                if (file.size > 100 * 1024 * 1024) {
+                                    alert('Video must be under 100 MB');
+                                    return;
+                                }
+                                const url = await uploadImage(file, 'hero-videos', 'hero-video-upload');
+                                if (url) setFormData(prev => ({ ...prev, hero_video_url: url }));
+                            }}
+                        />
+                        <div className="upload-placeholder">
+                            <div className="upload-icon-box">
+                                {uploadProgress['hero-video-upload'] > 0 ? (
+                                    <div className="upload-progress">
+                                        <div className="progress-circle">
+                                            <span>{uploadProgress['hero-video-upload'] || '...'}%</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <i className="fas fa-video"></i>
+                                )}
+                            </div>
+                            <div className="upload-text">
+                                <span className="upload-title">Drop your intro video here or browse</span>
+                                <span className="upload-subtitle">MP4 / WebM · Max 100 MB</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -2390,11 +2526,34 @@ const AddWedding = () => {
 
             <div className="story-grid">
                 <div className="story-card">
-                    <div className="story-card-header">
-                        <div className="story-icon">
-                            <i className="fas fa-heart-circle-check"></i>
+                    <div className="story-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div className="story-icon">
+                                <i className="fas fa-heart-circle-check"></i>
+                            </div>
+                            <h3>How We Met</h3>
                         </div>
-                        <h3>How We Met</h3>
+                        <button
+                            type="button"
+                            onClick={getRandomStoryPart1}
+                            title="Pick a random 'How We Met' story"
+                            style={{
+                                background: 'rgba(79, 70, 229, 0.08)',
+                                border: '1px solid rgba(79, 70, 229, 0.25)',
+                                color: '#4f46e5',
+                                borderRadius: '8px',
+                                padding: '5px 12px',
+                                fontSize: '0.78rem',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                transition: 'all 0.2s ease'
+                            }}
+                        >
+                            <i className="fas fa-sync-alt"></i> Random
+                        </button>
                     </div>
                     <div className="form-group">
                         <label className="form-label">Share your first meeting story</label>
@@ -2410,9 +2569,32 @@ const AddWedding = () => {
                 </div>
 
                 <div className="highlight-card">
-                    <div className="highlight-card-header">
-                        <i className="fas fa-quote-right"></i>
-                        <h3>Special Quote</h3>
+                    <div className="highlight-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <i className="fas fa-quote-right"></i>
+                            <h3>Special Quote</h3>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={getRandomHighlight}
+                            title="Pick a random love quote"
+                            style={{
+                                background: 'rgba(217, 119, 6, 0.08)',
+                                border: '1px solid rgba(217, 119, 6, 0.25)',
+                                color: '#d97706',
+                                borderRadius: '8px',
+                                padding: '5px 12px',
+                                fontSize: '0.78rem',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                transition: 'all 0.2s ease'
+                            }}
+                        >
+                            <i className="fas fa-sync-alt"></i> Random
+                        </button>
                     </div>
                     <div className="form-group">
                         <label className="form-label">A quote that represents your love</label>
@@ -2427,11 +2609,35 @@ const AddWedding = () => {
                 </div>
 
                 <div className="story-card">
-                    <div className="story-card-header">
-                        <div className="story-icon">
-                            <i className="fas fa-ring"></i>
+                    <div className="story-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div className="story-icon">
+                                <i className="fas fa-ring"></i>
+                            </div>
+                            <h3>The Proposal</h3>
                         </div>
-                        <h3>The Proposal</h3>
+                        <button
+                            type="button"
+                            onClick={getRandomProposalStory}
+                            title="Pick another random proposal story"
+                            style={{
+                                background: 'linear-gradient(135deg, rgba(225, 29, 72, 0.1) 0%, rgba(244, 63, 94, 0.15) 100%)',
+                                border: '1px solid rgba(225, 29, 72, 0.3)',
+                                color: '#e11d48',
+                                borderRadius: '8px',
+                                padding: '6px 14px',
+                                fontSize: '0.8rem',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                boxShadow: '0 2px 6px rgba(225, 29, 72, 0.1)',
+                                transition: 'all 0.2s ease'
+                            }}
+                        >
+                            <i className="fas fa-sync-alt"></i> Pick Random Story
+                        </button>
                     </div>
                     <div className="form-group">
                         <label className="form-label">Share your proposal story</label>

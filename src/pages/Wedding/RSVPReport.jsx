@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import * as XLSX from 'xlsx';
@@ -137,6 +137,8 @@ const RSVPReport = () => {
     const [editingId, setEditingId] = useState(null);
     const [editForm, setEditForm] = useState({});
     const [successMessage, setSuccessMessage] = useState(null);
+    const [scanNextPrompt, setScanNextPrompt] = useState(null);
+    const recentScannedCodesRef = useRef(new Set());
     const [processingAction, setProcessingAction] = useState(null);
     const [sendingReminders, setSendingReminders] = useState(false);
     const [vendors, setVendors] = useState([]);
@@ -549,6 +551,34 @@ const RSVPReport = () => {
                 </div>
             )}
 
+                {scanNextPrompt && (
+                    <div className="vm-overlay" style={{ zIndex: 3100 }} onClick={() => { window.isProcessingScan = false; setScanNextPrompt(null); }}>
+                        <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '2rem', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
+                            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
+                                <i className="fas fa-check" style={{ fontSize: '32px', color: '#fff' }}></i>
+                            </div>
+                            <h4 className="vm-name" style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{scanNextPrompt.name}</h4>
+                            <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+                                {scanNextPrompt.email}
+                            </p>
+                            <div style={{ background: '#ecfdf5', color: '#166534', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600' }}>
+                                Checked in successfully. Ready for the next guest.
+                            </div>
+                            <button
+                                onClick={() => {
+                                    window.isProcessingScan = false;
+                                    setScanNextPrompt(null);
+                                    setShowQrScanner(true);
+                                }}
+                                className="ga-approve"
+                                style={{ background: '#10b981', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '1rem', width: '100%' }}
+                            >
+                                <i className="fas fa-qrcode"></i> Scan Next
+                            </button>
+                        </div>
+                    </div>
+                )}
+
 
 
             {/* QR Scanner Modal - Full Screen */}
@@ -571,6 +601,14 @@ const RSVPReport = () => {
                             onScan={async (detectedCodes) => {
                                 const rawCode = detectedCodes[0]?.rawValue;
                                 if (rawCode && !window.isProcessingScan) {
+                                    const rawScanKey = String(rawCode).trim().toLowerCase();
+                                    if (recentScannedCodesRef.current.has(rawScanKey)) {
+                                        playWarningSound();
+                                        setScanMessage('⚠️ Already Checked In');
+                                        setScannedGuest({ name: 'This pass', checked_in: true });
+                                        window.isProcessingScan = false;
+                                        return;
+                                    }
                                     window.isProcessingScan = true;
                                     setScanMessage(`Scanning code...`);
                                     try {
@@ -587,15 +625,23 @@ const RSVPReport = () => {
                                             }
                                         }
 
-                                        const isNumericId = /^\d+$/.test(String(code));
+                                        // Prefer token lookup if present in embedded data, otherwise fall back to numeric id
+                                        const tokenLookup = embeddedData?.token || embeddedData?.qr_token || null;
                                         let data = null;
                                         let error = null;
-                                        if (isNumericId) {
-                                            const result = await supabase.from('rsvps').select('*').eq('id', code).eq('wedding_id', wedding.id).single();
-                                            data = result.data;
-                                            error = result.error;
+                                        if (tokenLookup) {
+                                            const res = await supabase.from('rsvps').select('*').eq('qr_token', tokenLookup).eq('wedding_id', wedding.id).single();
+                                            data = res.data;
+                                            error = res.error;
                                         } else {
-                                            error = new Error('Skipping DB lookup for non-numeric pass ID');
+                                            const isNumericId = /^\d+$/.test(String(code));
+                                            if (isNumericId) {
+                                                const result = await supabase.from('rsvps').select('*').eq('id', code).eq('wedding_id', wedding.id).single();
+                                                data = result.data;
+                                                error = result.error;
+                                            } else {
+                                                error = new Error('Skipping DB lookup for non-numeric pass ID');
+                                            }
                                         }
 
                                         let guestRecord = data;
@@ -627,6 +673,8 @@ const RSVPReport = () => {
 
                                         playBeepSound();
                                         setScanMessage("✅ Guest Found!");
+                                        // Close scanner and show the guest confirmation modal
+                                        setShowQrScanner(false);
                                         setScannedGuest(guestRecord);
                                     } catch (err) {
                                         console.error("Scanning Error:", err);
@@ -679,7 +727,7 @@ const RSVPReport = () => {
                                         // Try updating both checked_in and checked_in_at
                                         let { error: updateError } = await supabase
                                             .from('rsvps')
-                                            .update({ checked_in: true, checked_in_at: new Date().toISOString() })
+                                            .update({ checked_in: true, checked_in_at: new Date().toISOString(), qr_token: null })
                                             .eq('id', scannedGuest.id);
 
                                         // Safe fallback if column doesn't exist yet
@@ -696,7 +744,10 @@ const RSVPReport = () => {
                                         setTimeout(() => setSuccessMessage(null), 3000);
                                         fetchReportData(true);
                                         window.isProcessingScan = false;
+                                        // Track recently scanned and show the Scan Next prompt
+                                        try { recentScannedCodesRef.current.add(String(scannedGuest.id).trim().toLowerCase()); } catch (e) { /* ignore */ }
                                         setScannedGuest(null);
+                                        setScanNextPrompt({ name: scannedGuest.name, email: scannedGuest.email });
                                     } catch (err) {
                                         alert("Error updating status: " + err.message);
                                     }

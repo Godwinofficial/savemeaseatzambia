@@ -71,6 +71,13 @@ const ReminderModal = ({ wedding, onClose, onSave }) => {
         }
     };
 
+    const toPossessive = (name) => {
+        if (!name) return '';
+        const n = String(name).trim();
+        if (n.endsWith("'s") || n.endsWith("’s") || n.endsWith("'") || n.endsWith("’")) return n;
+        return `${n}'s`;
+    };
+
     const sendTestEmail = async () => {
         if (!testEmail) {
             alert('Please enter an email address for testing.');
@@ -81,7 +88,7 @@ const ReminderModal = ({ wedding, onClose, onSave }) => {
         try {
             const isBirthday = !!wedding.child_name;
             const weddingName = isBirthday
-                ? `${wedding.child_name}'s Birthday`
+                ? `${toPossessive(wedding.child_name)} Birthday`
                 : `${wedding.groom_name} & ${wedding.bride_name}`;
 
             const templateParams = {
