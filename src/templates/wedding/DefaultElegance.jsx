@@ -2915,11 +2915,11 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
       {loading && (
         <div className="page-loader" id="pageLoader">
           <div className="loader-bg-text">
-            {weddingData.couple.bride.name?.split(' ')[0] || "Wedding"} & {weddingData.couple.groom.name?.split(' ')[0] || "Loading"}
+            {weddingData.couple.groom.name?.split(' ')[0] || "Loading"} & {weddingData.couple.bride.name?.split(' ')[0] || "Wedding"}
           </div>
           <div className="loader-content">
             <div className="loader-names">
-              {weddingData.couple.bride.name?.split(' ')[0] || ""} <span> & </span> {weddingData.couple.groom.name?.split(' ')[0] || ""}
+              {weddingData.couple.groom.name?.split(' ')[0] || ""} <span> & </span> {weddingData.couple.bride.name?.split(' ')[0] || ""}
             </div>
             <div className="spinner-minimal"></div>
           </div>
@@ -2971,7 +2971,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
 
           <div className="hero-names-container">
             <h1 className="hero-name-title">
-              {weddingData.couple.bride.name?.split(' ')[0]}
+              {weddingData.couple.groom.name?.split(' ')[0]}
             </h1>
             <div className="hero-ampersand-divider">
               <span className="hero-ampersand-line"></span>
@@ -2979,7 +2979,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
               <span className="hero-ampersand-line"></span>
             </div>
             <h1 className="hero-name-title">
-              {weddingData.couple.groom.name?.split(' ')[0]}
+              {weddingData.couple.bride.name?.split(' ')[0]}
             </h1>
           </div>
 
