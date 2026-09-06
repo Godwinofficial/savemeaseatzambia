@@ -5,6 +5,7 @@ const InvitationOverlay = ({ weddingData, onEnter, onStartClose }) => {
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isPlayingCustomVideo, setIsPlayingCustomVideo] = useState(false);
+  const [isCustomVideoMuted, setIsCustomVideoMuted] = useState(false);
   const videoRef = useRef(null);
   const customVideoRef = useRef(null);
 
@@ -13,8 +14,9 @@ const InvitationOverlay = ({ weddingData, onEnter, onStartClose }) => {
   const hasCustomVideo = !!customVideoUrl;
 
   useEffect(() => {
-    // Play background video muted so mobile renders immediately (no black screen)
-    if (videoRef.current) {
+    // Only autoplay background video for DEFAULT intro video!
+    // Custom video must NOT autoplay on link open.
+    if (!hasCustomVideo && videoRef.current) {
       videoRef.current.defaultMuted = true;
       videoRef.current.muted = true;
       videoRef.current.play().catch(e => console.log('Autoplay blocked:', e));
@@ -55,19 +57,22 @@ const InvitationOverlay = ({ weddingData, onEnter, onStartClose }) => {
     }, 800);
   };
 
-  // When user clicks "VIEW YOUR INVITE"
+  // When user clicks "VIEW INVITATION"
   const handleViewInviteClick = () => {
     if (hasCustomVideo) {
-      // For manually uploaded video: start playing the video once without controls
+      // Start playing the custom video fullscreen once user presses View Invitation
       setIsPlayingCustomVideo(true);
       setTimeout(() => {
         if (customVideoRef.current) {
           customVideoRef.current.currentTime = 0;
           customVideoRef.current.muted = false;
-          customVideoRef.current.play().catch(err => {
-            console.warn('Video play with sound blocked, trying muted:', err);
+          customVideoRef.current.play().then(() => {
+            setIsCustomVideoMuted(false);
+          }).catch(err => {
+            console.warn('Video play with sound blocked by browser, trying muted:', err);
             if (customVideoRef.current) {
               customVideoRef.current.muted = true;
+              setIsCustomVideoMuted(true);
               customVideoRef.current.play().catch(() => {});
             }
           });
@@ -77,6 +82,15 @@ const InvitationOverlay = ({ weddingData, onEnter, onStartClose }) => {
       // Default template video: immediately open website
       finishAndEnterWebsite();
     }
+  };
+
+  // Toggle mute on custom video if needed
+  const toggleCustomVideoMute = (e) => {
+    e.stopPropagation();
+    if (!customVideoRef.current) return;
+    const newMuted = !customVideoRef.current.muted;
+    customVideoRef.current.muted = newMuted;
+    setIsCustomVideoMuted(newMuted);
   };
 
   // When custom video finishes playing, automatically open website
@@ -92,35 +106,61 @@ const InvitationOverlay = ({ weddingData, onEnter, onStartClose }) => {
       {/* ── Background Video / Still ── */}
       {!isPlayingCustomVideo && (
         <>
-          <video
-            key={hasCustomVideo ? customVideoUrl : 'default-hero'}
-            ref={videoRef}
-            autoPlay
-            muted
-            defaultMuted
-            loop
-            playsInline
-            preload="auto"
-            poster={weddingData?.coverImage || ''}
-            className="overlay-video-bg"
-            style={videoBgStyle}
-            onTimeUpdate={() => {
-              if (videoRef.current) {
-                if (videoRef.current.duration - videoRef.current.currentTime <= 0.2) {
-                  videoRef.current.currentTime = 0;
-                  videoRef.current.play().catch(() => {});
+          {hasCustomVideo ? (
+            // Custom video: static poster / preview (paused, no autoplay until user presses View Invitation)
+            weddingData?.coverImage ? (
+              <img
+                src={weddingData.coverImage}
+                alt="Wedding Invitation Cover"
+                className="overlay-video-bg"
+                style={videoBgStyle}
+              />
+            ) : (
+              <video
+                key={customVideoUrl}
+                ref={videoRef}
+                muted
+                playsInline
+                preload="metadata"
+                poster={weddingData?.coverImage || ''}
+                className="overlay-video-bg"
+                style={videoBgStyle}
+              >
+                <source src={`${customVideoUrl}#t=0.001`} type="video/mp4" />
+              </video>
+            )
+          ) : (
+            // Default intro video: auto plays in background loop
+            <video
+              key="default-hero"
+              ref={videoRef}
+              autoPlay
+              muted
+              defaultMuted
+              loop
+              playsInline
+              preload="auto"
+              poster={weddingData?.coverImage || ''}
+              className="overlay-video-bg"
+              style={videoBgStyle}
+              onTimeUpdate={() => {
+                if (videoRef.current) {
+                  if (videoRef.current.duration - videoRef.current.currentTime <= 0.2) {
+                    videoRef.current.currentTime = 0;
+                    videoRef.current.play().catch(() => {});
+                  }
                 }
-              }
-            }}
-          >
-            <source src={hasCustomVideo ? `${customVideoUrl}#t=0.001` : heroVideo} type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
+              }}
+            >
+              <source src={heroVideo} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          )}
           <div className="overlay-darkener" style={darkenerStyle} />
         </>
       )}
 
-      {/* ── Fullscreen Custom Video Player (Plays once, no controls) ── */}
+      {/* ── Fullscreen Custom Video Player (Plays on View Invitation click) ── */}
       {hasCustomVideo && isPlayingCustomVideo && (
         <div style={customVideoContainerStyle}>
           <video
@@ -134,6 +174,18 @@ const InvitationOverlay = ({ weddingData, onEnter, onStartClose }) => {
             <source src={customVideoUrl} type="video/mp4" />
           </video>
 
+          {/* Unmute button if browser auto-muted */}
+          {isCustomVideoMuted && (
+            <button
+              type="button"
+              onClick={toggleCustomVideoMute}
+              style={unmuteBtnStyle}
+              title="Unmute video"
+            >
+              <i className="fas fa-volume-xmark" style={{ marginRight: '6px' }}></i> TAP FOR SOUND
+            </button>
+          )}
+
           {/* Discreet Skip Button in corner */}
           <button
             type="button"
@@ -146,7 +198,7 @@ const InvitationOverlay = ({ weddingData, onEnter, onStartClose }) => {
         </div>
       )}
 
-      {/* ── Overlay Text & "VIEW YOUR INVITE" Button ── */}
+      {/* ── Overlay Text & "VIEW INVITATION" Button ── */}
       {!isPlayingCustomVideo && (
         <div
           className={`overlay-content-wrap ${mounted ? 'active' : ''}`}
@@ -154,7 +206,7 @@ const InvitationOverlay = ({ weddingData, onEnter, onStartClose }) => {
         >
           <div style={{ flex: 1 }} />
 
-          {/* Center: "VIEW YOUR INVITE" Button */}
+          {/* Center: "VIEW INVITATION" Button */}
           <div className="overlay-center-section" style={centerSectionStyle}>
             <button
               onClick={handleViewInviteClick}
@@ -172,7 +224,10 @@ const InvitationOverlay = ({ weddingData, onEnter, onStartClose }) => {
                 e.currentTarget.style.boxShadow = 'none';
               }}
             >
-              VIEW YOUR INVITE
+              {hasCustomVideo && (
+                <i className="fas fa-play" style={{ marginRight: '8px', fontSize: '0.72rem' }}></i>
+              )}
+              VIEW INVITATION
             </button>
           </div>
 
@@ -354,6 +409,26 @@ const customVideoPlayerStyle = {
   height: '100%',
   objectFit: 'cover',
   outline: 'none',
+};
+
+const unmuteBtnStyle = {
+  position: 'absolute',
+  top: 'calc(20px + env(safe-area-inset-top, 0px))',
+  left: '20px',
+  background: 'rgba(0, 0, 0, 0.65)',
+  color: '#ffffff',
+  border: '1px solid rgba(255, 255, 255, 0.4)',
+  borderRadius: '20px',
+  padding: '6px 14px',
+  fontSize: '0.72rem',
+  letterSpacing: '0.12em',
+  fontFamily: '"Montserrat", sans-serif',
+  cursor: 'pointer',
+  zIndex: 30,
+  backdropFilter: 'blur(4px)',
+  transition: 'all 0.2s ease',
+  display: 'flex',
+  alignItems: 'center',
 };
 
 const skipBtnStyle = {

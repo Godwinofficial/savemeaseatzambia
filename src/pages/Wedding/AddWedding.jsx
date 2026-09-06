@@ -775,6 +775,54 @@ const AddWedding = () => {
     const [editingDressIdx, setEditingDressIdx] = useState(null);
     const [previewingUrl, setPreviewingUrl] = useState(null);
     const previewAudioRef = useRef(null);
+    const [musicSearchQuery, setMusicSearchQuery] = useState("");
+    const [musicSearchResults, setMusicSearchResults] = useState([]);
+    const [isSearchingMusic, setIsSearchingMusic] = useState(false);
+    const [musicSearchError, setMusicSearchError] = useState(null);
+    const [musicTab, setMusicTab] = useState("search"); // 'search' | 'curated' | 'upload' | 'url'
+    const [selectedSongMetadata, setSelectedSongMetadata] = useState(null);
+
+    const searchOnlineMusic = async (term) => {
+        const queryTerm = (term !== undefined ? term : musicSearchQuery).trim();
+        if (!queryTerm || queryTerm.length < 2) return;
+        setIsSearchingMusic(true);
+        setMusicSearchError(null);
+        try {
+            const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(queryTerm)}&entity=song&limit=25`);
+            if (!res.ok) throw new Error("Search request failed");
+            const data = await res.json();
+            if (data && data.results) {
+                const valid = data.results.filter(item => item.previewUrl);
+                setMusicSearchResults(valid);
+                if (valid.length === 0) {
+                    setMusicSearchError(`No previewable songs found for "${queryTerm}". Try another search term.`);
+                }
+            } else {
+                setMusicSearchResults([]);
+                setMusicSearchError("No songs found.");
+            }
+        } catch (err) {
+            console.error("Music search error:", err);
+            setMusicSearchError("Could not search online music. Please check your network connection.");
+        } finally {
+            setIsSearchingMusic(false);
+        }
+    };
+
+    const toggleTrackPreview = (url) => {
+        const audioEl = previewAudioRef.current;
+        if (!audioEl) return;
+        if (previewingUrl === url) {
+            audioEl.pause();
+            audioEl.currentTime = 0;
+            setPreviewingUrl(null);
+        } else {
+            audioEl.src = url;
+            audioEl.play().catch(() => {});
+            setPreviewingUrl(url);
+            audioEl.onended = () => setPreviewingUrl(null);
+        }
+    };
 
     const getRandomProposalStory = () => {
         const current = formData.story_part2;
@@ -1617,103 +1665,398 @@ const AddWedding = () => {
 
             <div className="form-group">
                 <p style={{ color: 'var(--gray)', fontSize: '0.85rem', margin: '0 0 14px 0' }}>
-                    Click <i className="fas fa-play" style={{ color: 'var(--aw-primary)' }}></i> to preview a track before selecting it. The selected track will play on your guests' invitation.
+                    Choose the song that will play when guests open your wedding invitation. Search any song in the world, upload your own MP3, or choose from our romantic wedding classics.
                 </p>
 
                 {/* Hidden shared preview audio element */}
                 <audio ref={previewAudioRef} style={{ display: 'none' }} />
 
-                <div className="music-track-list">
-                    {MUSIC_TRACKS.map((track) => {
-                        const isSelected = formData.music_url === track.url;
-                        const isPreviewing = previewingUrl === track.url;
-                        return (
-                            <div
-                                key={track.url}
-                                className={`music-track-row ${isSelected ? 'selected' : ''}`}
-                                onClick={() => setFormData(prev => ({ ...prev, music_url: track.url }))}
-                            >
+                {/* ── Currently Selected Song Banner ── */}
+                {formData.music_url && formData.music_url !== 'none' && (() => {
+                    const curatedMatch = MUSIC_TRACKS.find(t => t.url === formData.music_url);
+                    const title = selectedSongMetadata?.title || curatedMatch?.label || "Custom Background Music";
+                    const artist = selectedSongMetadata?.artist || curatedMatch?.artist || "Selected Track";
+                    const artwork = selectedSongMetadata?.artwork || null;
+                    const isPreviewing = previewingUrl === formData.music_url;
+
+                    return (
+                        <div className="music-selected-card">
+                            <div className="music-selected-left">
+                                {artwork ? (
+                                    <img src={artwork} alt="Album Cover" className="music-selected-thumb" />
+                                ) : (
+                                    <div className="music-selected-thumb-placeholder">
+                                        <i className="fas fa-music"></i>
+                                    </div>
+                                )}
+                                <div className="music-selected-info">
+                                    <div className="music-selected-badge">
+                                        <i className="fas fa-check-circle"></i> Active Invitation Song
+                                    </div>
+                                    <div className="music-selected-title">{title}</div>
+                                    <div className="music-selected-artist">{artist}</div>
+                                </div>
+                            </div>
+                            <div className="music-selected-actions">
                                 <button
                                     type="button"
                                     className={`music-preview-btn ${isPreviewing ? 'playing' : ''}`}
-                                    title={isPreviewing ? 'Stop preview' : 'Preview this track'}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        const audioEl = previewAudioRef.current;
-                                        if (!audioEl) return;
-                                        if (isPreviewing) {
-                                            audioEl.pause();
-                                            audioEl.currentTime = 0;
-                                            setPreviewingUrl(null);
-                                        } else {
-                                            audioEl.src = track.url;
-                                            audioEl.play().catch(() => {});
-                                            setPreviewingUrl(track.url);
-                                            audioEl.onended = () => setPreviewingUrl(null);
-                                        }
-                                    }}
+                                    title={isPreviewing ? "Pause Preview" : "Preview Song"}
+                                    onClick={() => toggleTrackPreview(formData.music_url)}
                                 >
                                     <i className={`fas ${isPreviewing ? 'fa-stop' : 'fa-play'}`}></i>
                                 </button>
-
-                                <div className="music-track-info">
-                                    <span className="music-track-label">{track.label}</span>
-                                    <span className="music-track-meta">{track.artist} &bull; {track.mood}</span>
-                                </div>
-
-                                <div className="music-track-select-indicator">
-                                    {isSelected
-                                        ? <i className="fas fa-check-circle" style={{ color: 'var(--aw-primary)' }}></i>
-                                        : <i className="far fa-circle" style={{ color: '#cbd5e1' }}></i>
-                                    }
-                                </div>
+                                <button
+                                    type="button"
+                                    className="music-remove-btn"
+                                    onClick={() => {
+                                        if (previewAudioRef.current) previewAudioRef.current.pause();
+                                        setPreviewingUrl(null);
+                                        setFormData(prev => ({ ...prev, music_url: 'none' }));
+                                        setSelectedSongMetadata(null);
+                                    }}
+                                >
+                                    <i className="fas fa-times" style={{ marginRight: '4px' }}></i> Remove
+                                </button>
                             </div>
-                        );
-                    })}
+                        </div>
+                    );
+                })()}
 
-                    {/* No Music option */}
-                    <div
-                        className={`music-track-row ${formData.music_url === 'none' ? 'selected' : ''}`}
-                        onClick={() => {
-                            if (previewAudioRef.current) { previewAudioRef.current.pause(); }
-                            setPreviewingUrl(null);
-                            setFormData(prev => ({ ...prev, music_url: 'none' }));
-                        }}
-                    >
-                        <div className="music-preview-btn" style={{ background: '#f1f5f9', color: '#94a3b8', cursor: 'default' }}>
-                            <i className="fas fa-volume-xmark"></i>
+                {formData.music_url === 'none' && (
+                    <div style={{
+                        padding: '12px 16px',
+                        background: '#f8fafc',
+                        border: '1.5px dashed #cbd5e1',
+                        borderRadius: '10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: '16px'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#64748b', fontSize: '0.85rem' }}>
+                            <i className="fas fa-volume-xmark" style={{ fontSize: '1.1rem' }}></i>
+                            <span>No background music is currently selected (Silent invitation).</span>
                         </div>
-                        <div className="music-track-info">
-                            <span className="music-track-label">No Background Music</span>
-                            <span className="music-track-meta">Leave it out entirely</span>
-                        </div>
-                        <div className="music-track-select-indicator">
-                            {formData.music_url === 'none'
-                                ? <i className="fas fa-check-circle" style={{ color: 'var(--aw-primary)' }}></i>
-                                : <i className="far fa-circle" style={{ color: '#cbd5e1' }}></i>
-                            }
-                        </div>
+                        <button
+                            type="button"
+                            className="music-select-btn"
+                            onClick={() => {
+                                setFormData(prev => ({ ...prev, music_url: defaultMusic }));
+                                setSelectedSongMetadata({
+                                    title: "SaveMeASeat Wedding Soundtrack",
+                                    artist: "Default",
+                                    artwork: null
+                                });
+                            }}
+                        >
+                            Enable Default Music
+                        </button>
                     </div>
+                )}
+
+                {/* ── Mode Tabs ── */}
+                <div className="music-mode-tabs">
+                    <button
+                        type="button"
+                        className={`music-mode-tab-btn ${musicTab === 'search' ? 'active' : ''}`}
+                        onClick={() => setMusicTab('search')}
+                    >
+                        <i className="fas fa-search"></i> Search Online Songs
+                    </button>
+                    <button
+                        type="button"
+                        className={`music-mode-tab-btn ${musicTab === 'upload' ? 'active' : ''}`}
+                        onClick={() => setMusicTab('upload')}
+                    >
+                        <i className="fas fa-cloud-upload-alt"></i> Upload Audio File (MP3)
+                    </button>
+                    <button
+                        type="button"
+                        className={`music-mode-tab-btn ${musicTab === 'curated' ? 'active' : ''}`}
+                        onClick={() => setMusicTab('curated')}
+                    >
+                        <i className="fas fa-heart"></i> Wedding Classics ({MUSIC_TRACKS.length})
+                    </button>
+                    <button
+                        type="button"
+                        className={`music-mode-tab-btn ${musicTab === 'url' ? 'active' : ''}`}
+                        onClick={() => setMusicTab('url')}
+                    >
+                        <i className="fas fa-link"></i> Direct Audio Link
+                    </button>
                 </div>
 
-                {/* Custom URL fallback */}
-                <div style={{ marginTop: '12px' }}>
-                    <details>
-                        <summary style={{ cursor: 'pointer', fontSize: '0.82rem', color: 'var(--gray)', userSelect: 'none' }}>
-                            Use a custom audio URL instead...
-                        </summary>
-                        <div className="form-group" style={{ marginTop: '10px' }}>
+                {/* ── TAB 1: Search Online Songs ── */}
+                {musicTab === 'search' && (
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid var(--aw-border)' }}>
+                        <div className="music-search-box">
+                            <div className="music-search-input-wrap">
+                                <i className="fas fa-search search-icon"></i>
+                                <input
+                                    type="text"
+                                    className="music-search-input"
+                                    placeholder="Search any song, artist, or album (e.g. Ed Sheeran, Yo Maps, A Thousand Years...)"
+                                    value={musicSearchQuery}
+                                    onChange={(e) => setMusicSearchQuery(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            searchOnlineMusic();
+                                        }
+                                    }}
+                                />
+                                {musicSearchQuery && (
+                                    <button
+                                        type="button"
+                                        className="music-clear-search-btn"
+                                        onClick={() => {
+                                            setMusicSearchQuery('');
+                                            setMusicSearchResults([]);
+                                            setMusicSearchError(null);
+                                        }}
+                                    >
+                                        <i className="fas fa-times"></i>
+                                    </button>
+                                )}
+                            </div>
+                            <button
+                                type="button"
+                                className="music-search-submit-btn"
+                                onClick={() => searchOnlineMusic()}
+                                disabled={isSearchingMusic || !musicSearchQuery.trim()}
+                            >
+                                {isSearchingMusic ? (
+                                    <><i className="fas fa-spinner fa-spin"></i> Searching...</>
+                                ) : (
+                                    <><i className="fas fa-search"></i> Search</>
+                                )}
+                            </button>
+                        </div>
+
+                        {/* Quick Suggestion Chips */}
+                        <div className="music-chips-row">
+                            <span className="music-chip-label">Popular:</span>
+                            {[
+                                "Ed Sheeran Perfect",
+                                "A Thousand Years",
+                                "John Legend All of Me",
+                                "Yo Maps",
+                                "Until I Found You",
+                                "Stand By Me",
+                                "Wedding Acoustic"
+                            ].map((suggestTerm) => (
+                                <button
+                                    key={suggestTerm}
+                                    type="button"
+                                    className="music-chip"
+                                    onClick={() => {
+                                        setMusicSearchQuery(suggestTerm);
+                                        searchOnlineMusic(suggestTerm);
+                                    }}
+                                >
+                                    {suggestTerm}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Error Notice */}
+                        {musicSearchError && (
+                            <div style={{ padding: '12px', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', fontSize: '0.82rem', marginBottom: '12px' }}>
+                                <i className="fas fa-info-circle" style={{ marginRight: '6px' }}></i>
+                                {musicSearchError}
+                            </div>
+                        )}
+
+                        {/* Results List */}
+                        {musicSearchResults.length > 0 && (
+                            <div className="music-results-container">
+                                <div style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '4px', fontWeight: 600 }}>
+                                    Found {musicSearchResults.length} online songs (click play to preview):
+                                </div>
+                                {musicSearchResults.map((track) => {
+                                    const isSelected = formData.music_url === track.previewUrl;
+                                    const isPreviewing = previewingUrl === track.previewUrl;
+
+                                    return (
+                                        <div
+                                            key={track.trackId || track.previewUrl}
+                                            className={`music-result-item ${isSelected ? 'selected' : ''}`}
+                                        >
+                                            <img
+                                                src={track.artworkUrl60 || track.artworkUrl100}
+                                                alt={track.trackName}
+                                                className="music-result-art"
+                                            />
+                                            <div className="music-result-details">
+                                                <div className="music-result-name">{track.trackName}</div>
+                                                <div className="music-result-sub">
+                                                    {track.artistName} {track.collectionName ? `• ${track.collectionName}` : ''}
+                                                </div>
+                                            </div>
+                                            <div className="music-result-actions">
+                                                <button
+                                                    type="button"
+                                                    className={`music-preview-btn ${isPreviewing ? 'playing' : ''}`}
+                                                    title={isPreviewing ? "Stop preview" : "Preview song"}
+                                                    onClick={() => toggleTrackPreview(track.previewUrl)}
+                                                >
+                                                    <i className={`fas ${isPreviewing ? 'fa-stop' : 'fa-play'}`}></i>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={`music-select-btn ${isSelected ? 'selected' : ''}`}
+                                                    onClick={() => {
+                                                        setFormData(prev => ({ ...prev, music_url: track.previewUrl }));
+                                                        setSelectedSongMetadata({
+                                                            title: track.trackName,
+                                                            artist: track.artistName,
+                                                            artwork: track.artworkUrl100 || track.artworkUrl60,
+                                                            album: track.collectionName
+                                                        });
+                                                    }}
+                                                >
+                                                    {isSelected ? (
+                                                        <><i className="fas fa-check"></i> Selected</>
+                                                    ) : (
+                                                        "Select Track"
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* ── TAB 2: Upload Audio File ── */}
+                {musicTab === 'upload' && (
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid var(--aw-border)' }}>
+                        <div
+                            className="image-upload-wrapper"
+                            onClick={() => document.getElementById('audio-file-upload').click()}
+                            style={{ cursor: 'pointer', minHeight: '140px' }}
+                        >
+                            <input
+                                type="file"
+                                id="audio-file-upload"
+                                accept="audio/mp3,audio/mpeg,audio/m4a,audio/wav,audio/aac,audio/*"
+                                style={{ display: 'none' }}
+                                onChange={async (e) => {
+                                    const file = e.target.files[0];
+                                    if (!file) return;
+                                    if (file.size > 50 * 1024 * 1024) {
+                                        alert('Audio file must be under 50 MB');
+                                        return;
+                                    }
+                                    const url = await uploadImage(file, 'wedding-music', 'wedding-music-upload');
+                                    if (url) {
+                                        setFormData(prev => ({ ...prev, music_url: url }));
+                                        setSelectedSongMetadata({
+                                            title: file.name.replace(/\.[^/.]+$/, ""),
+                                            artist: "Custom Uploaded Song",
+                                            artwork: null
+                                        });
+                                    }
+                                }}
+                            />
+                            <div className="upload-placeholder">
+                                <div className="upload-icon-box">
+                                    {uploadProgress['wedding-music-upload'] > 0 ? (
+                                        <div className="upload-progress">
+                                            <div className="progress-circle">
+                                                <span>{uploadProgress['wedding-music-upload'] || '...'}%</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <i className="fas fa-music"></i>
+                                    )}
+                                </div>
+                                <div className="upload-text">
+                                    <span className="upload-title">Click to upload your custom wedding song</span>
+                                    <span className="upload-subtitle">MP3, M4A, WAV · Max 50 MB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── TAB 3: Curated Wedding Classics ── */}
+                {musicTab === 'curated' && (
+                    <div className="music-track-list">
+                        {MUSIC_TRACKS.map((track) => {
+                            const isSelected = formData.music_url === track.url;
+                            const isPreviewing = previewingUrl === track.url;
+                            return (
+                                <div
+                                    key={track.url}
+                                    className={`music-track-row ${isSelected ? 'selected' : ''}`}
+                                    onClick={() => {
+                                        setFormData(prev => ({ ...prev, music_url: track.url }));
+                                        setSelectedSongMetadata({
+                                            title: track.label,
+                                            artist: track.artist,
+                                            artwork: null
+                                        });
+                                    }}
+                                >
+                                    <button
+                                        type="button"
+                                        className={`music-preview-btn ${isPreviewing ? 'playing' : ''}`}
+                                        title={isPreviewing ? 'Stop preview' : 'Preview this track'}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleTrackPreview(track.url);
+                                        }}
+                                    >
+                                        <i className={`fas ${isPreviewing ? 'fa-stop' : 'fa-play'}`}></i>
+                                    </button>
+
+                                    <div className="music-track-info">
+                                        <span className="music-track-label">{track.label}</span>
+                                        <span className="music-track-meta">{track.artist} &bull; {track.mood}</span>
+                                    </div>
+
+                                    <div className="music-track-select-indicator">
+                                        {isSelected
+                                            ? <i className="fas fa-check-circle" style={{ color: 'var(--aw-primary)' }}></i>
+                                            : <i className="far fa-circle" style={{ color: '#cbd5e1' }}></i>
+                                        }
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* ── TAB 4: Direct Audio Link ── */}
+                {musicTab === 'url' && (
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid var(--aw-border)' }}>
+                        <div className="form-group">
+                            <label className="form-label" style={{ marginBottom: '6px' }}>Direct Audio Stream URL</label>
                             <input
                                 type="url"
                                 className="form-input"
-                                placeholder="https://example.com/song.mp3"
+                                placeholder="https://example.com/wedding-song.mp3"
                                 value={MUSIC_TRACKS.some(t => t.url === formData.music_url) || formData.music_url === 'none' ? '' : formData.music_url}
-                                onChange={(e) => setFormData(prev => ({ ...prev, music_url: e.target.value }))}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setFormData(prev => ({ ...prev, music_url: val }));
+                                    setSelectedSongMetadata({
+                                        title: "Direct URL Track",
+                                        artist: val,
+                                        artwork: null
+                                    });
+                                }}
                             />
-                            <small style={{ color: 'var(--gray)', fontSize: '0.8rem' }}>Paste a direct link to any .mp3 file.</small>
+                            <small style={{ color: 'var(--gray)', fontSize: '0.8rem', display: 'block', marginTop: '6px' }}>
+                                Paste any direct audio link (.mp3, .m4a, or cloud stream).
+                            </small>
                         </div>
-                    </details>
-                </div>
+                    </div>
+                )}
             </div>
 
             {/* ── Hero / Intro Video ── */}

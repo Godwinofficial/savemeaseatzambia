@@ -3,6 +3,7 @@ import { supabase } from '../../supabaseClient';
 import { QRCodeCanvas } from 'qrcode.react';
 import html2canvas from 'html2canvas';
 import logoImg from '../../assets/images/logo1.png';
+import defaultMusic from '../../assets/music/music.mp3';
 
 const GoldenRomance = ({ weddingData }) => {
   const defaultData = {
@@ -57,6 +58,56 @@ const GoldenRomance = ({ weddingData }) => {
   const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
   const [rsvpId, setRsvpId] = useState(null);
   const [tabAnimating, setTabAnimating] = useState(false);
+
+  // Background Music State & Logic
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audio] = useState(() => {
+    const musicUrl = d?.music_url;
+    if (musicUrl === "none") return null;
+    const a = new Audio(musicUrl || defaultMusic);
+    a.loop = true;
+    return a;
+  });
+
+  const togglePlay = () => {
+    if (!audio) return;
+    if (isPlaying) {
+      audio.pause();
+      setIsPlaying(false);
+    } else {
+      audio.play().then(() => {
+        setIsPlaying(true);
+      }).catch(err => {
+        console.error("Audio playback failed:", err);
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (!audio) return;
+    const handleInteraction = () => {
+      audio.play().then(() => {
+        setIsPlaying(true);
+      }).catch(err => {
+        console.error("Auto-play blocked:", err);
+      });
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('touchstart', handleInteraction);
+    };
+
+    audio.play().then(() => {
+      setIsPlaying(true);
+    }).catch(() => {
+      window.addEventListener('click', handleInteraction);
+      window.addEventListener('touchstart', handleInteraction);
+    });
+
+    return () => {
+      audio.pause();
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('touchstart', handleInteraction);
+    };
+  }, [audio]);
 
   // Background Slider
   useEffect(() => {
@@ -829,6 +880,36 @@ const GoldenRomance = ({ weddingData }) => {
 
         </div>
       </div>
+
+      {/* Floating Background Music Button */}
+      {audio && (
+        <button 
+          onClick={togglePlay}
+          className={`inv-music-btn ${isPlaying ? 'playing' : ''}`}
+          aria-label="Toggle Background Music"
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            width: '44px',
+            height: '44px',
+            borderRadius: '50%',
+            background: 'rgba(255, 255, 255, 0.88)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(212, 175, 55, 0.3)',
+            color: '#D4AF37',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 1000,
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+            transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}
+        >
+          <i className={`fa-solid ${isPlaying ? 'fa-music' : 'fa-volume-xmark'}`}></i>
+        </button>
+      )}
     </>
   );
 };
