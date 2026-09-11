@@ -86,6 +86,29 @@ const AVATAR_COLORS = ['#4f46e5', '#0891b2', '#7c3aed', '#be185d', '#065f46', '#
 const getAvatarColor = (name = '') => AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
 const getInitials = (name = '') => name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || '?';
 
+// Helper to reliably parse and display primary and partner details for couple RSVPs
+const getGuestDetails = (guest) => {
+    if (!guest) return { isCouple: false, primaryName: '', partnerName: '', displayName: '' };
+    let primaryName = guest.name || 'Guest';
+    let partnerName = guest.partner_name || '';
+
+    if (!partnerName && primaryName.includes(' & ')) {
+        const parts = primaryName.split(' & ');
+        primaryName = parts[0].trim();
+        partnerName = parts.slice(1).join(' & ').trim();
+    }
+
+    const isCouple = (parseInt(guest.guests_count, 10) === 2) || !!partnerName;
+    const displayName = partnerName ? `${primaryName} & ${partnerName}` : primaryName;
+
+    return {
+        isCouple,
+        primaryName,
+        partnerName,
+        displayName
+    };
+};
+
 const TEMPLATE_THEMES = [
     {
         id: 1,
@@ -236,8 +259,9 @@ const RSVPReport = () => {
     const sendEmail = async (guest, type) => {
         try {
             const isRemoval = type === 'removal';
+            const { displayName } = getGuestDetails(guest);
             const templateParams = {
-                to_name: guest.name,
+                to_name: displayName,
                 email: guest.email,
                 message: isRemoval
                     ? "This change is final. It helps us maintain accurate numbers and comply with venue capacity."
@@ -405,15 +429,54 @@ const RSVPReport = () => {
     };
 
     const startEdit = (guest) => {
+        const { primaryName, partnerName } = getGuestDetails(guest);
         setEditingId(guest.id);
-        setEditForm({ name: guest.name, email: guest.email, phone: guest.phone, attending: guest.attending, guests_count: guest.guests_count });
+        setEditForm({
+            name: primaryName,
+            partner_name: guest.partner_name || partnerName || '',
+            email: guest.email || '',
+            phone: guest.phone || '',
+            partner_email: guest.partner_email || '',
+            partner_phone: guest.partner_phone || '',
+            attending: guest.attending || 'Yes',
+            guests_count: guest.guests_count || 1
+        });
     };
     const cancelEdit = () => { setEditingId(null); setEditForm({}); };
     const saveEdit = async (id) => {
         try {
-            const { error } = await supabase.from('rsvps').update(editForm).eq('id', id);
+            const isCouple = parseInt(editForm.guests_count, 10) === 2 || !!editForm.partner_name;
+            const updatePayload = {
+                name: editForm.name,
+                partner_name: isCouple ? (editForm.partner_name || null) : null,
+                email: editForm.email,
+                phone: editForm.phone,
+                partner_email: isCouple ? (editForm.partner_email || null) : null,
+                partner_phone: isCouple ? (editForm.partner_phone || null) : null,
+                attending: editForm.attending,
+                guests_count: parseInt(editForm.guests_count, 10) || (isCouple ? 2 : 1)
+            };
+
+            let { error } = await supabase.from('rsvps').update(updatePayload).eq('id', id);
+
+            // Resilient fallback if partner_ columns do not exist in DB schema yet
+            if (error && (error.message?.includes('partner_') || error.code === 'PGRST204')) {
+                const fallbackPayload = {
+                    name: isCouple && editForm.partner_name ? `${editForm.name} & ${editForm.partner_name}` : editForm.name,
+                    email: editForm.email,
+                    phone: editForm.phone,
+                    attending: editForm.attending,
+                    guests_count: parseInt(editForm.guests_count, 10) || (isCouple ? 2 : 1)
+                };
+                const res = await supabase.from('rsvps').update(fallbackPayload).eq('id', id);
+                error = res.error;
+            }
+
             if (error) throw error;
-            setGuests(guests.map(g => g.id === id ? { ...g, ...editForm } : g));
+
+            setGuests(guests.map(g => g.id === id ? { ...g, ...updatePayload } : g));
+            setCheckedInGuests(checkedInGuests.map(g => g.id === id ? { ...g, ...updatePayload } : g));
+            setPendingGuests(pendingGuests.map(g => g.id === id ? { ...g, ...updatePayload } : g));
             setEditingId(null);
             setEditForm({});
             setSuccessMessage('✏️ Guest updated successfully!');
@@ -423,13 +486,29 @@ const RSVPReport = () => {
 
     const downloadExcel = () => {
         if (!guests?.length) { alert("No RSVPs to download."); return; }
-        const excelData = guests.map(row => ({
-            "Name": row.name, "Email": row.email, "Phone": row.phone,
-            "Attending": row.attending, "Number of Guests": row.guests_count,
-            "RSVP Date": new Date(row.created_at).toLocaleDateString()
-        }));
+        const excelData = guests.map(row => {
+            const { isCouple, primaryName, partnerName } = getGuestDetails(row);
+            return {
+                "Type": isCouple ? "Couple" : "Single",
+                "Primary Guest": primaryName,
+                "Primary Email": row.email || "N/A",
+                "Primary Phone": row.phone || "N/A",
+                "Partner / Second Guest": partnerName || "N/A",
+                "Partner Email": row.partner_email || "N/A",
+                "Partner Phone": row.partner_phone || "N/A",
+                "Attending": row.attending,
+                "Number of Guests": row.guests_count,
+                "Status": row.status || 'approved',
+                "Checked In": row.checked_in ? "Yes" : "No",
+                "RSVP Date": new Date(row.created_at).toLocaleDateString()
+            };
+        });
         const ws = XLSX.utils.json_to_sheet(excelData);
-        ws['!cols'] = [{ wch: 30 }, { wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 15 }, { wch: 15 }];
+        ws['!cols'] = [
+            { wch: 10 }, { wch: 25 }, { wch: 25 }, { wch: 18 },
+            { wch: 25 }, { wch: 25 }, { wch: 18 }, { wch: 12 },
+            { wch: 16 }, { wch: 12 }, { wch: 12 }, { wch: 15 }
+        ];
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "RSVPs");
         XLSX.writeFile(wb, `RSVPs_${wedding.groom_name}_${wedding.bride_name}.xlsx`.replace(/\s+/g, '_'));
@@ -454,8 +533,9 @@ const RSVPReport = () => {
         let sentCount = 0, failCount = 0;
         try {
             for (const guest of approvedGuests) {
+                const { displayName } = getGuestDetails(guest);
                 const templateParams = {
-                    to_name: guest.name, email: guest.email,
+                    to_name: displayName, email: guest.email,
                     wedding_name: `${wedding.groom_name} & ${wedding.bride_name}`,
                     event_date: wedding.date ? new Date(wedding.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'TBA',
                     venue: wedding.venue_name || 'TBA', location: wedding.location || '',
@@ -497,16 +577,24 @@ const RSVPReport = () => {
     const formatDate = (ds) => new Date(ds).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
     // ── FILTERED LISTS ──
-    const q = searchQuery.toLowerCase();
-    const filteredGuests = guests.filter(g =>
-        !q || g.name?.toLowerCase().includes(q) || g.email?.toLowerCase().includes(q) || g.phone?.toLowerCase().includes(q)
-    );
-    const filteredCheckedIn = checkedInGuests.filter(g =>
-        !q || g.name?.toLowerCase().includes(q) || g.email?.toLowerCase().includes(q) || g.phone?.toLowerCase().includes(q)
-    );
-    const filteredPending = pendingGuests.filter(g =>
-        !q || g.name?.toLowerCase().includes(q) || g.email?.toLowerCase().includes(q)
-    );
+    const q = searchQuery.toLowerCase().trim();
+    const guestMatchesQuery = (g) => {
+        if (!q) return true;
+        const { primaryName, partnerName } = getGuestDetails(g);
+        return (
+            primaryName.toLowerCase().includes(q) ||
+            partnerName.toLowerCase().includes(q) ||
+            (g.name && g.name.toLowerCase().includes(q)) ||
+            (g.partner_name && g.partner_name.toLowerCase().includes(q)) ||
+            (g.email && g.email.toLowerCase().includes(q)) ||
+            (g.partner_email && g.partner_email.toLowerCase().includes(q)) ||
+            (g.phone && g.phone.toLowerCase().includes(q)) ||
+            (g.partner_phone && g.partner_phone.toLowerCase().includes(q))
+        );
+    };
+    const filteredGuests = guests.filter(guestMatchesQuery);
+    const filteredCheckedIn = checkedInGuests.filter(guestMatchesQuery);
+    const filteredPending = pendingGuests.filter(guestMatchesQuery);
     const approvedAttending = guests.filter(g => g.attending?.toLowerCase() === 'yes' || g.attending?.toLowerCase() === 'attending').length;
     const checkedInAttending = checkedInGuests.filter(g => g.attending?.toLowerCase() === 'yes' || g.attending?.toLowerCase() === 'attending').length;
     const attendingCount = approvedAttending + checkedInAttending;
@@ -619,13 +707,14 @@ const RSVPReport = () => {
                                                 const parsed = JSON.parse(rawCode);
                                                 code = parsed.id;
                                                 embeddedData = parsed;
-                                                setScanMessage(`✅ Decoded pass for ${parsed.name}`);
+                                                const dispName = parsed.partner_name ? `${parsed.name} & ${parsed.partner_name}` : (parsed.display_name || parsed.name);
+                                                setScanMessage(`✅ Decoded pass for ${dispName}`);
                                             } catch (e) {
                                                 // Not valid JSON, fallback to raw string
                                             }
                                         }
 
-                                        // Prefer token lookup if present in embedded data, otherwise fall back to numeric id
+                                        // Prefer token lookup if present in embedded data, otherwise fall back to id lookup
                                         const tokenLookup = embeddedData?.token || embeddedData?.qr_token || null;
                                         let data = null;
                                         let error = null;
@@ -634,13 +723,13 @@ const RSVPReport = () => {
                                             data = res.data;
                                             error = res.error;
                                         } else {
-                                            const isNumericId = /^\d+$/.test(String(code));
-                                            if (isNumericId) {
+                                            const isValidId = /^[0-9a-fA-F-]+$/.test(String(code));
+                                            if (isValidId) {
                                                 const result = await supabase.from('rsvps').select('*').eq('id', code).eq('wedding_id', wedding.id).single();
                                                 data = result.data;
                                                 error = result.error;
                                             } else {
-                                                error = new Error('Skipping DB lookup for non-numeric pass ID');
+                                                error = new Error('Skipping DB lookup for invalid pass ID format');
                                             }
                                         }
 
@@ -649,7 +738,18 @@ const RSVPReport = () => {
                                         if (error || !data) {
                                             console.error("DB lookup fail or skipped, checking embedded data:", error);
                                             if (embeddedData && embeddedData.wedding_id === wedding.id) {
-                                                guestRecord = { id: embeddedData.id, name: embeddedData.name, email: embeddedData.email, phone: embeddedData.phone, guests_count: embeddedData.guests_count || 1, wedding_id: embeddedData.wedding_id, checked_in: false };
+                                                guestRecord = {
+                                                    id: embeddedData.id,
+                                                    name: embeddedData.name,
+                                                    partner_name: embeddedData.partner_name || null,
+                                                    email: embeddedData.email,
+                                                    phone: embeddedData.phone,
+                                                    partner_email: embeddedData.partner_email || null,
+                                                    partner_phone: embeddedData.partner_phone || null,
+                                                    guests_count: embeddedData.guests_count || 1,
+                                                    wedding_id: embeddedData.wedding_id,
+                                                    checked_in: false
+                                                };
                                                 isFallback = true;
                                             }
                                         }
@@ -701,68 +801,93 @@ const RSVPReport = () => {
             )}
 
             {/* Scanned Guest Confirmation Modal */}
-            {scannedGuest && (
-                <div className="vm-overlay" style={{ zIndex: 3100 }} onClick={() => { window.isProcessingScan = false; setScannedGuest(null); }}>
-                    <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '2rem', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
-                        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: scannedGuest.checked_in ? '#f59e0b' : '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
-                            <i className={`fas fa-${scannedGuest.checked_in ? 'exclamation' : 'check'}`} style={{ fontSize: '32px', color: '#fff' }}></i>
-                        </div>
-                        <h4 className="vm-name" style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{scannedGuest.name}</h4>
-                        <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
-                            {scannedGuest.email}<br />
-                            {scannedGuest.phone}<br />
-                            {scannedGuest.guests_count > 0 && <span style={{ display: 'inline-block', marginTop: '0.5rem', background: '#e0e7ff', color: '#4f46e5', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '600' }}>{scannedGuest.guests_count} {scannedGuest.guests_count === 1 ? 'Guest' : 'Guests'}</span>}
-                        </p>
-
-                        {scannedGuest.checked_in ? (
-                            <div style={{ background: '#fef3c7', color: '#b45309', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', fontWeight: '500' }}>
-                                This guest has ALREADY checked in.
+            {scannedGuest && (() => {
+                const { isCouple, primaryName, partnerName, displayName } = getGuestDetails(scannedGuest);
+                return (
+                    <div className="vm-overlay" style={{ zIndex: 3100 }} onClick={() => { window.isProcessingScan = false; setScannedGuest(null); }}>
+                        <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '2rem', maxWidth: '420px', width: '90%', textAlign: 'center' }}>
+                            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: scannedGuest.checked_in ? '#f59e0b' : '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
+                                <i className={`fas fa-${scannedGuest.checked_in ? 'exclamation' : 'check'}`} style={{ fontSize: '32px', color: '#fff' }}></i>
                             </div>
-                        ) : (
-                            <button
-                                className="ga-approve"
-                                style={{ width: '100%', padding: '1rem', background: '#10b981', color: '#fff', fontSize: '1rem', justifyContent: 'center', marginBottom: '1rem' }}
-                                onClick={async () => {
-                                    try {
-                                        // Try updating both checked_in and checked_in_at
-                                        let { error: updateError } = await supabase
-                                            .from('rsvps')
-                                            .update({ checked_in: true, checked_in_at: new Date().toISOString(), qr_token: null })
-                                            .eq('id', scannedGuest.id);
+                            <h4 className="vm-name" style={{ fontSize: '1.45rem', marginBottom: '0.35rem', fontWeight: '700' }}>{displayName}</h4>
+                            
+                            {isCouple && (
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#fef3c7', color: '#92400e', padding: '3px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '700' }}>
+                                        <i className="fas fa-heart" style={{ fontSize: '0.7rem' }}></i> Couple Pass &bull; Admit 2 Guests
+                                    </span>
+                                </div>
+                            )}
 
-                                        // Safe fallback if column doesn't exist yet
-                                        if (updateError && (updateError.message.includes('column') || updateError.code === '42703')) {
-                                            const { error: fallbackError } = await supabase
+                            {/* Details for both guests in modal */}
+                            <div style={{ textAlign: 'left', background: '#f8fafc', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '1.2rem', fontSize: '0.88rem' }}>
+                                <div style={{ marginBottom: partnerName ? '8px' : '0' }}>
+                                    <div style={{ fontWeight: '700', color: '#1f2937', marginBottom: '2px' }}>👤 {primaryName}</div>
+                                    <div style={{ color: '#4b5563', paddingLeft: '14px', fontSize: '0.82rem' }}>
+                                        {scannedGuest.phone && <div>📞 {scannedGuest.phone}</div>}
+                                        {scannedGuest.email && <div>✉️ {scannedGuest.email}</div>}
+                                    </div>
+                                </div>
+                                {partnerName && (
+                                    <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '8px' }}>
+                                        <div style={{ fontWeight: '700', color: '#1f2937', marginBottom: '2px' }}>👥 {partnerName}</div>
+                                        <div style={{ color: '#4b5563', paddingLeft: '14px', fontSize: '0.82rem' }}>
+                                            {scannedGuest.partner_phone ? <div>📞 {scannedGuest.partner_phone}</div> : <div style={{ color: '#9ca3af' }}>No separate phone</div>}
+                                            {scannedGuest.partner_email ? <div>✉️ {scannedGuest.partner_email}</div> : null}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {scannedGuest.checked_in ? (
+                                <div style={{ background: '#fef3c7', color: '#b45309', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', fontWeight: '500' }}>
+                                    This pass has ALREADY checked in.
+                                </div>
+                            ) : (
+                                <button
+                                    className="ga-approve"
+                                    style={{ width: '100%', padding: '1rem', background: '#10b981', color: '#fff', fontSize: '1rem', justifyContent: 'center', marginBottom: '1rem' }}
+                                    onClick={async () => {
+                                        try {
+                                            // Try updating both checked_in and checked_in_at
+                                            let { error: updateError } = await supabase
+                                                .from('rsvps')
+                                                .update({ checked_in: true, checked_in_at: new Date().toISOString(), qr_token: null })
+                                                .eq('id', scannedGuest.id);
+
+                                            // Safe fallback if column doesn't exist yet
+                                            if (updateError && (updateError.message.includes('column') || updateError.code === '42703')) {
+                                                const { error: fallbackError } = await supabase
                                                 .from('rsvps')
                                                 .update({ checked_in: true })
                                                 .eq('id', scannedGuest.id);
-                                            updateError = fallbackError;
+                                                updateError = fallbackError;
+                                            }
+
+                                            if (updateError) throw updateError;
+                                            setSuccessMessage(`Checked in ${displayName} successfully!`);
+                                            setTimeout(() => setSuccessMessage(null), 3000);
+                                            fetchReportData(true);
+                                            window.isProcessingScan = false;
+                                            try { recentScannedCodesRef.current.add(String(scannedGuest.id).trim().toLowerCase()); } catch (e) { /* ignore */ }
+                                            setScannedGuest(null);
+                                            setScanNextPrompt({ name: displayName, email: scannedGuest.email });
+                                        } catch (err) {
+                                            alert("Error updating status: " + err.message);
                                         }
+                                    }}
+                                >
+                                    Confirm Check-In
+                                </button>
+                            )}
 
-                                        if (updateError) throw updateError;
-                                        setSuccessMessage(`Checked in ${scannedGuest.name} successfully!`);
-                                        setTimeout(() => setSuccessMessage(null), 3000);
-                                        fetchReportData(true);
-                                        window.isProcessingScan = false;
-                                        // Track recently scanned and show the Scan Next prompt
-                                        try { recentScannedCodesRef.current.add(String(scannedGuest.id).trim().toLowerCase()); } catch (e) { /* ignore */ }
-                                        setScannedGuest(null);
-                                        setScanNextPrompt({ name: scannedGuest.name, email: scannedGuest.email });
-                                    } catch (err) {
-                                        alert("Error updating status: " + err.message);
-                                    }
-                                }}
-                            >
-                                Confirm Check-In
+                            <button onClick={() => { window.isProcessingScan = false; setScannedGuest(null); }} className="ga-reject" style={{ width: '100%', padding: '1rem', background: '#f1f5f9', color: '#475569', fontSize: '1rem', justifyContent: 'center' }}>
+                                {scannedGuest.checked_in ? 'Scan Next' : 'Cancel & Scan Next'}
                             </button>
-                        )}
-
-                        <button onClick={() => { window.isProcessingScan = false; setScannedGuest(null); }} className="ga-reject" style={{ width: '100%', padding: '1rem', background: '#f1f5f9', color: '#475569', fontSize: '1rem', justifyContent: 'center' }}>
-                            {scannedGuest.checked_in ? 'Scan Next' : 'Cancel & Scan Next'}
-                        </button>
+                        </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
 
             {/* Vendor Detail Modal */}
             {activeVendor && (
@@ -1184,78 +1309,138 @@ const RSVPReport = () => {
                                                 <i className="fas fa-check-circle"></i>
                                                 <p>{searchQuery ? 'No matches found' : 'No pending requests'}</p>
                                             </div>
-                                        ) : filteredPending.map(guest => (
-                                            <div key={guest.id} className="g-row">
-                                                <div className="g-avatar" style={{ background: getAvatarColor(guest.name) }}>
-                                                    {getInitials(guest.name)}
-                                                </div>
-                                                <div className="g-info">
-                                                    <span className="g-name">{guest.name}</span>
-                                                    <span className="g-sub">{guest.email}</span>
-                                                </div>
-                                                <div className="g-right">
-                                                    <span className={`g-status ${guest.attending?.toLowerCase() === 'yes' ? 'gs-yes' : 'gs-no'}`}>
-                                                        {guest.attending}
-                                                    </span>
-                                                    <div className="g-acts">
-                                                        <button className="ga-approve" onClick={() => handleApprove(guest)} disabled={!!processingAction}>
-                                                            {processingAction === `${guest.id}-approve`
-                                                                ? <i className="fas fa-spinner fa-spin"></i>
-                                                                : <><i className="fas fa-check"></i> Approve</>}
-                                                        </button>
-                                                        <button className="ga-del" onClick={() => handleDelete(guest.id, guest.name, true)} disabled={!!processingAction}>
-                                                            {processingAction === `${guest.id}-delete`
-                                                                ? <i className="fas fa-spinner fa-spin"></i>
-                                                                : <i className="fas fa-times"></i>}
-                                                        </button>
+                                        ) : filteredPending.map(guest => {
+                                            const { isCouple, primaryName, partnerName, displayName } = getGuestDetails(guest);
+                                            return (
+                                                <div key={guest.id} className="g-row">
+                                                    <div className="g-avatar" style={{ background: getAvatarColor(primaryName), position: 'relative' }}>
+                                                        {getInitials(primaryName)}
+                                                        {isCouple && (
+                                                            <span style={{ position: 'absolute', bottom: '-2px', right: '-2px', background: '#f59e0b', color: '#fff', borderRadius: '50%', width: '15px', height: '15px', fontSize: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                <i className="fas fa-heart"></i>
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="g-info" style={{ minWidth: 0, flex: 1 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '2px' }}>
+                                                            <span className="g-name" style={{ fontWeight: '600' }}>
+                                                                {isCouple && partnerName ? (
+                                                                    <>{primaryName} <span style={{ color: '#d97706', fontWeight: 'bold' }}>&</span> {partnerName}</>
+                                                                ) : displayName}
+                                                            </span>
+                                                            {isCouple && (
+                                                                <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '1px 6px', borderRadius: '8px', background: '#fef3c7', color: '#92400e', textTransform: 'uppercase' }}>
+                                                                    Couple
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {isCouple && partnerName ? (
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.75rem', color: '#4b5563' }}>
+                                                                <div>
+                                                                    <strong>👤 {primaryName}:</strong> {guest.phone || 'No phone'} {guest.email ? `• ${guest.email}` : ''}
+                                                                </div>
+                                                                <div>
+                                                                    <strong>👥 {partnerName}:</strong> {guest.partner_phone || 'No phone'} {guest.partner_email ? `• ${guest.partner_email}` : ''}
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="g-sub">{guest.email || guest.phone || 'No contact provided'}</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="g-right">
+                                                        <span className={`g-status ${guest.attending?.toLowerCase() === 'yes' ? 'gs-yes' : 'gs-no'}`}>
+                                                            {guest.attending}
+                                                        </span>
+                                                        <div className="g-acts">
+                                                            <button className="ga-approve" onClick={() => handleApprove(guest)} disabled={!!processingAction}>
+                                                                {processingAction === `${guest.id}-approve`
+                                                                    ? <i className="fas fa-spinner fa-spin"></i>
+                                                                    : <><i className="fas fa-check"></i> Approve</>}
+                                                            </button>
+                                                            <button className="ga-del" onClick={() => handleDelete(guest.id, displayName, true)} disabled={!!processingAction}>
+                                                                {processingAction === `${guest.id}-delete`
+                                                                    ? <i className="fas fa-spinner fa-spin"></i>
+                                                                    : <i className="fas fa-times"></i>}
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))
+                                            );
+                                        })
                                     ) : activeTab === 'checked_in' ? (
                                         filteredCheckedIn.length === 0 ? (
                                             <div className="list-empty">
                                                 <i className="fas fa-qrcode"></i>
                                                 <p>{searchQuery ? 'No matches found' : 'No checked-in guests yet'}</p>
                                             </div>
-                                        ) : filteredCheckedIn.map(guest => (
-                                            <div key={guest.id} className="g-row">
-                                                <div className="g-avatar" style={{ background: getAvatarColor(guest.name) }}>
-                                                    {getInitials(guest.name)}
-                                                </div>
-                                                <div className="g-info">
-                                                    <span className="g-name">{guest.name}</span>
-                                                    <span className="g-sub">{guest.email || guest.phone}</span>
-                                                </div>
-                                                <div className="g-right">
-                                                    <span className="g-count gc-green">
-                                                        +{guest.guests_count || 0}
-                                                    </span>
-                                                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                                                        <span className="g-pct gp-green" style={{ margin: 0 }}>
-                                                            <i className="fas fa-check-circle"></i> Checked In
-                                                        </span>
-                                                        {guest.checked_in_at && (
-                                                            <span style={{ fontSize: '0.62rem', color: '#6b7280' }}>
-                                                                {new Date(guest.checked_in_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                        ) : filteredCheckedIn.map(guest => {
+                                            const { isCouple, primaryName, partnerName, displayName } = getGuestDetails(guest);
+                                            return (
+                                                <div key={guest.id} className="g-row">
+                                                    <div className="g-avatar" style={{ background: getAvatarColor(primaryName), position: 'relative' }}>
+                                                        {getInitials(primaryName)}
+                                                        {isCouple && (
+                                                            <span style={{ position: 'absolute', bottom: '-2px', right: '-2px', background: '#10b981', color: '#fff', borderRadius: '50%', width: '15px', height: '15px', fontSize: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                <i className="fas fa-heart"></i>
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <div className="g-acts">
-                                                        <button className="ga-ico ga-amber" onClick={() => handleUndoCheckIn(guest)} disabled={!!processingAction} title="Undo Check-In">
-                                                            {processingAction === `${guest.id}-undocheckin`
-                                                                ? <i className="fas fa-spinner fa-spin"></i>
-                                                                : <i className="fas fa-undo"></i>}
-                                                        </button>
-                                                        <button className="ga-ico ga-red" onClick={() => handleDelete(guest.id, guest.name, false)} disabled={!!processingAction} title="Delete">
-                                                            {processingAction === `${guest.id}-delete`
-                                                                ? <i className="fas fa-spinner fa-spin"></i>
-                                                                : <i className="fas fa-trash"></i>}
-                                                        </button>
+                                                    <div className="g-info" style={{ minWidth: 0, flex: 1 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '2px' }}>
+                                                            <span className="g-name" style={{ fontWeight: '600' }}>
+                                                                {isCouple && partnerName ? (
+                                                                    <>{primaryName} <span style={{ color: '#059669', fontWeight: 'bold' }}>&</span> {partnerName}</>
+                                                                ) : displayName}
+                                                            </span>
+                                                            {isCouple && (
+                                                                <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '1px 6px', borderRadius: '8px', background: '#dcfce7', color: '#166534', textTransform: 'uppercase' }}>
+                                                                    Couple
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {isCouple && partnerName ? (
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.75rem', color: '#4b5563' }}>
+                                                                <div>
+                                                                    <strong>👤 {primaryName}:</strong> {guest.phone || 'No phone'} {guest.email ? `• ${guest.email}` : ''}
+                                                                </div>
+                                                                <div>
+                                                                    <strong>👥 {partnerName}:</strong> {guest.partner_phone || 'No phone'} {guest.partner_email ? `• ${guest.partner_email}` : ''}
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="g-sub">{guest.email || guest.phone || 'No contact provided'}</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="g-right">
+                                                        <span className="g-count gc-green">
+                                                            +{guest.guests_count || (isCouple ? 2 : 1)}
+                                                        </span>
+                                                        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                                            <span className="g-pct gp-green" style={{ margin: 0 }}>
+                                                                <i className="fas fa-check-circle"></i> Checked In
+                                                            </span>
+                                                            {guest.checked_in_at && (
+                                                                <span style={{ fontSize: '0.62rem', color: '#6b7280' }}>
+                                                                    {new Date(guest.checked_in_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="g-acts">
+                                                            <button className="ga-ico ga-amber" onClick={() => handleUndoCheckIn(guest)} disabled={!!processingAction} title="Undo Check-In">
+                                                                {processingAction === `${guest.id}-undocheckin`
+                                                                    ? <i className="fas fa-spinner fa-spin"></i>
+                                                                    : <i className="fas fa-undo"></i>}
+                                                            </button>
+                                                            <button className="ga-ico ga-red" onClick={() => handleDelete(guest.id, displayName, false)} disabled={!!processingAction} title="Delete">
+                                                                {processingAction === `${guest.id}-delete`
+                                                                    ? <i className="fas fa-spinner fa-spin"></i>
+                                                                    : <i className="fas fa-trash"></i>}
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))
+                                            );
+                                        })
                                     ) : (
                                         filteredGuests.length === 0 ? (
                                             <div className="list-empty">
@@ -1263,36 +1448,83 @@ const RSVPReport = () => {
                                                 <p>{searchQuery ? 'No matches found' : 'No approved guests yet'}</p>
                                             </div>
                                         ) : filteredGuests.map(guest => {
+                                            const { isCouple, primaryName, partnerName, displayName } = getGuestDetails(guest);
                                             const isAttending = guest.attending?.toLowerCase() === 'yes' || guest.attending?.toLowerCase() === 'attending';
                                             return (
                                                 <div key={guest.id} className={`g-row ${editingId === guest.id ? 'g-row-edit' : ''}`}>
                                                     {editingId === guest.id ? (
                                                         <div className="edit-form">
-                                                            <input className="ef-inp" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="Name" />
-                                                            <input className="ef-inp" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} placeholder="Email" type="email" />
-                                                            <input className="ef-inp" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} placeholder="Phone" />
-                                                            <select className="ef-inp" value={editForm.attending} onChange={e => setEditForm({ ...editForm, attending: e.target.value })}>
-                                                                <option value="Yes">Yes — Attending</option>
-                                                                <option value="No">No — Declined</option>
-                                                            </select>
-                                                            <input className="ef-inp" value={editForm.guests_count} onChange={e => setEditForm({ ...editForm, guests_count: e.target.value })} placeholder="# Guests" type="number" min="1" />
-                                                            <div className="ef-btns">
+                                                            <div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Primary Guest</div>
+                                                            <input className="ef-inp" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="Primary Full Name" required />
+                                                            <input className="ef-inp" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} placeholder="Primary Email" type="email" />
+                                                            <input className="ef-inp" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} placeholder="Primary Phone" />
+                                                            
+                                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                                <select className="ef-inp" style={{ flex: 1 }} value={editForm.attending} onChange={e => setEditForm({ ...editForm, attending: e.target.value })}>
+                                                                    <option value="Yes">Yes — Attending</option>
+                                                                    <option value="No">No — Declined</option>
+                                                                </select>
+                                                                <select className="ef-inp" style={{ flex: 1 }} value={editForm.guests_count} onChange={e => setEditForm({ ...editForm, guests_count: e.target.value })}>
+                                                                    <option value="1">1 Guest</option>
+                                                                    <option value="2">2 (Couple)</option>
+                                                                </select>
+                                                            </div>
+
+                                                            {(parseInt(editForm.guests_count, 10) === 2 || editForm.partner_name) && (
+                                                                <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '2px' }}>
+                                                                    <div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#92400e', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                        <i className="fas fa-heart"></i> Partner / Second Guest Details
+                                                                    </div>
+                                                                    <input className="ef-inp" style={{ marginBottom: '4px' }} value={editForm.partner_name} onChange={e => setEditForm({ ...editForm, partner_name: e.target.value })} placeholder="Partner's Full Name" />
+                                                                    <input className="ef-inp" style={{ marginBottom: '4px' }} value={editForm.partner_phone} onChange={e => setEditForm({ ...editForm, partner_phone: e.target.value })} placeholder="Partner's Phone" />
+                                                                    <input className="ef-inp" value={editForm.partner_email} onChange={e => setEditForm({ ...editForm, partner_email: e.target.value })} placeholder="Partner's Email" type="email" />
+                                                                </div>
+                                                            )}
+
+                                                            <div className="ef-btns" style={{ marginTop: '4px' }}>
                                                                 <button className="ga-approve" onClick={() => saveEdit(guest.id)}><i className="fas fa-check"></i> Save</button>
-                                                                <button className="ga-del" onClick={cancelEdit}><i className="fas fa-times"></i></button>
+                                                                <button className="ga-del" onClick={cancelEdit}><i className="fas fa-times"></i> Cancel</button>
                                                             </div>
                                                         </div>
                                                     ) : (
                                                         <>
-                                                            <div className="g-avatar" style={{ background: getAvatarColor(guest.name) }}>
-                                                                {getInitials(guest.name)}
+                                                            <div className="g-avatar" style={{ background: getAvatarColor(primaryName), position: 'relative' }}>
+                                                                {getInitials(primaryName)}
+                                                                {isCouple && (
+                                                                    <span style={{ position: 'absolute', bottom: '-2px', right: '-2px', background: '#f59e0b', color: '#fff', borderRadius: '50%', width: '15px', height: '15px', fontSize: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                        <i className="fas fa-heart"></i>
+                                                                    </span>
+                                                                )}
                                                             </div>
-                                                            <div className="g-info">
-                                                                <span className="g-name">{guest.name}</span>
-                                                                <span className="g-sub">{guest.email || guest.phone}</span>
+                                                            <div className="g-info" style={{ minWidth: 0, flex: 1 }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '2px' }}>
+                                                                    <span className="g-name" style={{ fontWeight: '600' }}>
+                                                                        {isCouple && partnerName ? (
+                                                                            <>{primaryName} <span style={{ color: '#d97706', fontWeight: 'bold' }}>&</span> {partnerName}</>
+                                                                        ) : displayName}
+                                                                    </span>
+                                                                    {isCouple && (
+                                                                        <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '1px 6px', borderRadius: '8px', background: '#fef3c7', color: '#92400e', textTransform: 'uppercase' }}>
+                                                                            Couple
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                {isCouple && partnerName ? (
+                                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.75rem', color: '#4b5563' }}>
+                                                                        <div>
+                                                                            <strong>👤 {primaryName}:</strong> {guest.phone || 'No phone'} {guest.email ? `• ${guest.email}` : ''}
+                                                                        </div>
+                                                                        <div>
+                                                                            <strong>👥 {partnerName}:</strong> {guest.partner_phone || 'No phone'} {guest.partner_email ? `• ${guest.partner_email}` : ''}
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="g-sub">{guest.email || guest.phone || 'No contact provided'}</span>
+                                                                )}
                                                             </div>
                                                             <div className="g-right">
                                                                 <span className={`g-count ${isAttending ? 'gc-green' : 'gc-red'}`}>
-                                                                    +{guest.guests_count || 0}
+                                                                    +{guest.guests_count || (isCouple ? 2 : 1)}
                                                                 </span>
                                                                 <span className={`g-pct ${isAttending ? 'gp-green' : 'gp-red'}`}>
                                                                     <i className={`fas fa-${isAttending ? 'check' : 'times'}`}></i>
@@ -1307,7 +1539,7 @@ const RSVPReport = () => {
                                                                             ? <i className="fas fa-spinner fa-spin"></i>
                                                                             : <i className="fas fa-undo"></i>}
                                                                     </button>
-                                                                    <button className="ga-ico ga-red" onClick={() => handleDelete(guest.id, guest.name, false)} disabled={!!processingAction} title="Delete">
+                                                                    <button className="ga-ico ga-red" onClick={() => handleDelete(guest.id, displayName, false)} disabled={!!processingAction} title="Delete">
                                                                         {processingAction === `${guest.id}-delete`
                                                                             ? <i className="fas fa-spinner fa-spin"></i>
                                                                             : <i className="fas fa-trash"></i>}

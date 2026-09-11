@@ -137,18 +137,26 @@ export default function AdmissionCard({ rsvp, wedding }) {
                     </div>
 
                     {/* Guest Section */}
-                    <div className="guest-section-elegant">
-                        <div className="invitation-ornament">
-                            <span className="line"></span>
-                            <i className="fas fa-heart ornament-icon"></i>
-                            <span className="line"></span>
-                        </div>
-                        <div className="guest-title">To Our Dearest Guest</div>
-                        <div className="guest-name-luxe">{rsvp.name}</div>
-                        <div className="admission-pill">
-                            Admit {rsvp.guests_count} {rsvp.guests_count === 1 ? 'Guest' : 'Guests'}
-                        </div>
-                    </div>
+                    {(() => {
+                        const isCouple = rsvp.guests_count === 2 || !!rsvp.partner_name || rsvp.name?.includes(' & ');
+                        const partnerName = rsvp.partner_name || (rsvp.name?.includes(' & ') ? rsvp.name.split(' & ')[1].trim() : '');
+                        const primaryName = rsvp.name?.includes(' & ') ? rsvp.name.split(' & ')[0].trim() : rsvp.name;
+                        const displayName = partnerName ? `${primaryName} & ${partnerName}` : rsvp.name;
+                        return (
+                            <div className="guest-section-elegant">
+                                <div className="invitation-ornament">
+                                    <span className="line"></span>
+                                    <i className="fas fa-heart ornament-icon"></i>
+                                    <span className="line"></span>
+                                </div>
+                                <div className="guest-title">To Our Dearest {isCouple ? 'Guests' : 'Guest'}</div>
+                                <div className="guest-name-luxe">{displayName}</div>
+                                <div className="admission-pill">
+                                    {isCouple ? 'Admit 2 Guests (Couple)' : `Admit ${rsvp.guests_count || 1} ${rsvp.guests_count === 1 ? 'Guest' : 'Guests'}`}
+                                </div>
+                            </div>
+                        );
+                    })()}
 
                     {/* Details Section */}
                     <div className="details-stack">

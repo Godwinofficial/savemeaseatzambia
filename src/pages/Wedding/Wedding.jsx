@@ -56,8 +56,11 @@ const WeddingTemplate = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
+    partner_name: '',
     phone: '',
+    partner_phone: '',
     email: '',
+    partner_email: '',
     guests: '1',
     attendance: '',
     message: ''
@@ -114,45 +117,82 @@ const WeddingTemplate = () => {
     const dataToSubmit = childFormData || formData;
     setIsSubmitting(true);
     try {
-      const { data, error } = await supabase.from('rsvps').insert([{
+      const isCouple = dataToSubmit.guests === '2' || dataToSubmit.guests?.includes('2') || !!dataToSubmit.partner_name;
+      const basePayload = {
         wedding_id: weddingData.id,
         name: dataToSubmit.name,
         email: dataToSubmit.email,
         phone: dataToSubmit.phone,
         attending: dataToSubmit.attendance,
-        guests_count: parseInt(dataToSubmit.guests) || 1,
+        guests_count: parseInt(dataToSubmit.guests) || (isCouple ? 2 : 1),
         status: 'pending'
-      }]).select();
+      };
+
+      let insertPayload = {
+        ...basePayload,
+        partner_name: isCouple ? (dataToSubmit.partner_name || null) : null,
+        partner_phone: isCouple ? (dataToSubmit.partner_phone || null) : null,
+        partner_email: isCouple ? (dataToSubmit.partner_email || null) : null
+      };
+
+      let { data, error } = await supabase.from('rsvps').insert([insertPayload]).select();
+
+      // Graceful fallback if database column does not yet exist
+      if (error && (error.message?.includes('partner_') || error.code === 'PGRST204')) {
+        const fallbackPayload = {
+          ...basePayload,
+          name: isCouple && dataToSubmit.partner_name ? `${dataToSubmit.name} & ${dataToSubmit.partner_name}` : dataToSubmit.name
+        };
+        const fallbackRes = await supabase.from('rsvps').insert([fallbackPayload]).select();
+        error = fallbackRes.error;
+        data = fallbackRes.data;
+      }
 
       if (error) throw error;
 
-      if (data && data.length > 0) {
-        setSubmittedRSVP(data[0]);
-        setShowAdmissionCard(true);
-      } else {
-        // Fallback for RLS/select constraints
-        setSubmittedRSVP({
-          id: `local-${Date.now()}`,
-          name: dataToSubmit.name,
-          email: dataToSubmit.email,
-          phone: dataToSubmit.phone,
-          attending: dataToSubmit.attendance,
-          guests_count: parseInt(dataToSubmit.guests) || 1
-        });
-        setShowAdmissionCard(true);
-      }
+      const record = (data && data.length > 0) ? data[0] : {
+        id: `local-${Date.now()}`,
+        ...insertPayload
+      };
 
-      setFormData({ name: '', email: '', phone: '', guests: '1', attendance: '', message: '' });
+      setSubmittedRSVP({
+        ...record,
+        name: dataToSubmit.name,
+        partner_name: isCouple ? (dataToSubmit.partner_name || record.partner_name || '') : '',
+        partner_phone: isCouple ? (dataToSubmit.partner_phone || record.partner_phone || '') : '',
+        partner_email: isCouple ? (dataToSubmit.partner_email || record.partner_email || '') : '',
+        email: dataToSubmit.email,
+        phone: dataToSubmit.phone,
+        attending: dataToSubmit.attendance,
+        guests_count: parseInt(dataToSubmit.guests) || (isCouple ? 2 : 1)
+      });
+      setShowAdmissionCard(true);
+
+      setFormData({
+        name: '',
+        partner_name: '',
+        phone: '',
+        partner_phone: '',
+        email: '',
+        partner_email: '',
+        guests: '1',
+        attendance: '',
+        message: ''
+      });
     } catch (err) {
       console.error("Full RSVP Error:", err);
+      const isCouple = dataToSubmit.guests === '2' || dataToSubmit.guests?.includes('2') || !!dataToSubmit.partner_name;
       // Fallback
       setSubmittedRSVP({
         id: `local-${Date.now()}`,
         name: dataToSubmit.name,
+        partner_name: isCouple ? dataToSubmit.partner_name : '',
+        partner_phone: isCouple ? dataToSubmit.partner_phone : '',
+        partner_email: isCouple ? dataToSubmit.partner_email : '',
         email: dataToSubmit.email,
         phone: dataToSubmit.phone,
         attending: dataToSubmit.attendance,
-        guests_count: parseInt(dataToSubmit.guests) || 1
+        guests_count: parseInt(dataToSubmit.guests) || (isCouple ? 2 : 1)
       });
       setShowAdmissionCard(true);
     } finally {
