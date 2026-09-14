@@ -9,11 +9,58 @@ import { weddingMockData } from './weddingMockData';
 const TropicalElegance = ({ weddingData }) => {
   const d = weddingData || weddingMockData['tropical-elegance'];
 
-  const sliderImages = d.sliderImages?.length > 2 ? d.sliderImages : [
+  const defaultSampleImages = [
     'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&q=80&w=800',
     'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&q=80&w=800',
     'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800'
   ];
+
+  // Extract all available pictures attached in the gallery / slider in admin
+  const availableGalleryImages = (() => {
+    const rawList = [];
+    const extract = (val) => {
+      if (!val) return;
+      if (Array.isArray(val)) {
+        val.forEach(item => {
+          if (typeof item === 'string' && item.trim()) rawList.push(item.trim());
+        });
+      } else if (typeof val === 'string' && val.trim()) {
+        try {
+          const parsed = JSON.parse(val);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(item => {
+              if (typeof item === 'string' && item.trim()) rawList.push(item.trim());
+            });
+          } else if (typeof parsed === 'string' && parsed.trim()) {
+            rawList.push(parsed.trim());
+          }
+        } catch (e) {
+          if (val.startsWith('http') || val.startsWith('/') || val.startsWith('data:')) {
+            rawList.push(val.trim());
+          }
+        }
+      }
+    };
+
+    extract(d.sliderImages);
+    extract(d.slider_images);
+    extract(d.galleryImages);
+    extract(d.gallery_images);
+
+    if (rawList.length === 0) {
+      if (d.coverImage && typeof d.coverImage === 'string' && d.coverImage.trim()) rawList.push(d.coverImage.trim());
+      else if (d.cover_image && typeof d.cover_image === 'string' && d.cover_image.trim()) rawList.push(d.cover_image.trim());
+    }
+
+    return Array.from(new Set(rawList.filter(Boolean)));
+  })();
+
+  const heroImages = availableGalleryImages.length > 0 ? availableGalleryImages : defaultSampleImages;
+  const footerImages = availableGalleryImages.length > 1
+    ? [...availableGalleryImages.slice(1), availableGalleryImages[0]]
+    : (availableGalleryImages.length === 1 ? availableGalleryImages : [defaultSampleImages[1] || defaultSampleImages[0]]);
+  const galleryImages = availableGalleryImages.length > 0 ? availableGalleryImages : defaultSampleImages;
+  const sliderImages = heroImages;
 
   const bgCream = '#FDFBF9'; // Extremely light, almost white cream from image
   const textBrown = '#5C3522'; // Dark brown text
@@ -22,10 +69,6 @@ const TropicalElegance = ({ weddingData }) => {
 
   const brideFirst = d.couple?.bride?.name?.split(' ')[0] || 'Bride';
   const groomFirst = d.couple?.groom?.name?.split(' ')[0] || 'Groom';
-
-  const galleryImages = d.galleryImages && d.galleryImages.length > 0
-    ? d.galleryImages
-    : (d.sliderImages && d.sliderImages.length > 0 ? d.sliderImages : sliderImages);
 
   const safeGifts = Array.isArray(d.gifts)
     ? d.gifts
@@ -86,15 +129,25 @@ const TropicalElegance = ({ weddingData }) => {
   // Countdown State
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
-  // Hero Carousel State
+  // Hero & Footer Carousel States
   const [currentBgIndex, setCurrentBgIndex] = useState(0);
+  const [currentFooterBgIndex, setCurrentFooterBgIndex] = useState(0);
 
   useEffect(() => {
+    if (heroImages.length <= 1) return;
     const interval = setInterval(() => {
-      setCurrentBgIndex(prev => (prev + 1) % sliderImages.length);
+      setCurrentBgIndex(prev => (prev + 1) % heroImages.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, [sliderImages]);
+  }, [heroImages.length]);
+
+  useEffect(() => {
+    if (footerImages.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentFooterBgIndex(prev => (prev + 1) % footerImages.length);
+    }, 5500);
+    return () => clearInterval(interval);
+  }, [footerImages.length]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -162,16 +215,16 @@ const TropicalElegance = ({ weddingData }) => {
     setSubmitting(true);
     try {
       if (d.id) {
-        const { data, error } = await supabase.from('rsvps').insert([{ 
-          wedding_id: d.id, 
-          name: form.name, 
-          email: form.email, 
-          phone: form.phone, 
-          attending: form.attendance, 
-          guests_count: parseInt(form.guests) || 1, 
-          status: 'pending' 
+        const { data, error } = await supabase.from('rsvps').insert([{
+          wedding_id: d.id,
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          attending: form.attendance,
+          guests_count: parseInt(form.guests) || 1,
+          status: 'pending'
         }]).select();
-        
+
         if (error) throw error;
         setRsvpId((data && data[0]?.id) || `local-${Date.now()}`);
       }
@@ -349,7 +402,20 @@ const TropicalElegance = ({ weddingData }) => {
         .inv-submit:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
         .inv-submit:disabled { opacity: 0.7; cursor: not-allowed; }
         
-        .inv-footer-img { width: 100%; height: 350px; object-fit: cover; border-radius: 0 0 200px 200px; -webkit-mask-image: linear-gradient(to top, black 60%, transparent 100%); mask-image: linear-gradient(to top, black 60%, transparent 100%); margin-top: 50px; }
+        .inv-footer-img-wrap {
+          width: 100%; height: 350px; overflow: hidden; position: relative; z-index: 2;
+          border-radius: 0 0 200px 200px;
+          -webkit-mask-image: linear-gradient(to top, black 60%, transparent 100%);
+          mask-image: linear-gradient(to top, black 60%, transparent 100%);
+          margin-top: 50px;
+        }
+        .inv-footer-img {
+          position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;
+          opacity: 0; transition: opacity 2s ease-in-out, transform 8s linear; transform: scale(1);
+        }
+        .inv-footer-img.active {
+          opacity: 1; transform: scale(1.08);
+        }
 
         /* iPhone / iOS Photos Mosaic Gallery Grid */
         .ios-gallery-grid {
@@ -444,7 +510,7 @@ const TropicalElegance = ({ weddingData }) => {
           <FloralCluster bottom="100px" right="-30px" rotate={-45} />
 
           <div className="inv-main-img-wrap animate-on-scroll">
-            {sliderImages.map((img, idx) => (
+            {heroImages.map((img, idx) => (
               <img
                 key={idx}
                 src={img}
@@ -455,13 +521,12 @@ const TropicalElegance = ({ weddingData }) => {
           </div>
 
           <div className="inv-intro animate-on-scroll">
-            With the blessing of God and our parents
+            And over all these virtues put on love, which binds them all together in perfect unity. - Colossians 3:14
           </div>
 
           <div className="inv-names animate-on-scroll">
-            {brideFirst} & {groomFirst}
+            {groomFirst} & {brideFirst}
           </div>
-
           {(d.couple?.bride?.image || d.couple?.groom?.image) && (
             <div className="animate-on-scroll" style={{ display: 'flex', gap: '30px', margin: '10px 20px 30px', zIndex: 2, justifyContent: 'center' }}>
               {d.couple?.bride?.image && (
@@ -515,7 +580,7 @@ const TropicalElegance = ({ weddingData }) => {
 
             {/* Reception - Icon Right */}
             <div className="inv-section-item animate-on-scroll">
-              <SectionPill icon="fa-glass-cheers" topText="RECEPTION" bottomText="Party" iconLeft={false} />
+              <SectionPill icon="fa-glass-cheers" topText={d.reception_title || d.receptionTitle || "RECEPTION"} bottomText={d.reception_subtitle || d.receptionSubtitle || "Party"} iconLeft={false} />
               <div className="inv-section-content">
                 <p>
                   <strong>{typeof d.reception?.venue === 'string' ? d.reception.venue : (d.reception?.venue?.name || 'Espaço Klaine')}</strong><br />
@@ -672,13 +737,18 @@ const TropicalElegance = ({ weddingData }) => {
               const maxVisible = 6;
               const visibleImages = galleryImages.slice(0, maxVisible);
               const remainingCount = galleryImages.length - maxVisible;
+              const showGalleryTitles = d.show_gallery_titles !== false && d.showGalleryTitles !== false;
 
               return (
                 <>
                   <div className="inv-section-item animate-on-scroll">
-                    <SectionPill icon="fa-camera-retro" topText="OUR CHERISHED" bottomText="Memories" iconLeft={false} />
+                    {showGalleryTitles && (
+                      <SectionPill icon="fa-camera-retro" topText="OUR CHERISHED" bottomText="Memories" iconLeft={false} />
+                    )}
                     <div className="inv-section-content" style={{ width: '100%' }}>
-                      <p style={{ marginBottom: '15px' }}>A glimpse into our beautiful journey together:</p>
+                      {showGalleryTitles && (
+                        <p style={{ marginBottom: '15px' }}>A glimpse into our beautiful journey together:</p>
+                      )}
                       <div className="ios-gallery-grid">
                         {visibleImages.map((imgUrl, idx) => {
                           let layoutClass = "";
@@ -831,7 +901,16 @@ const TropicalElegance = ({ weddingData }) => {
 
           </div>
 
-          <img src={sliderImages[1] || sliderImages[0]} alt="Couple" className="inv-footer-img animate-on-scroll" />
+          <div className="inv-footer-img-wrap animate-on-scroll">
+            {footerImages.map((img, idx) => (
+              <img
+                key={idx}
+                src={img}
+                alt="Couple Footer"
+                className={`inv-footer-img ${idx === currentFooterBgIndex ? 'active' : ''}`}
+              />
+            ))}
+          </div>
 
         </div>
       </div>

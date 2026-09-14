@@ -182,18 +182,32 @@
 }
 
 .editor-header {
-    padding: 2.5rem 3rem 1.5rem;
-    background: var(--aw-bg);
+    padding: 1.25rem 2rem;
+    background: rgba(248, 250, 252, 0.97);
     position: sticky;
     top: 0;
-    z-index: 5;
-    backdrop-filter: blur(10px);
+    z-index: 20;
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--aw-border);
 }
-.header-meta {
+.editor-header-main {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+    max-width: 960px;
+    margin: 0 auto;
+    gap: 1rem;
+}
+.editor-header-left {
+    flex: 1;
+    min-width: 0;
+}
+.header-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.4rem;
 }
 .step-badge {
     font-size: 0.75rem;
@@ -202,37 +216,69 @@
     letter-spacing: 0.5px;
     color: var(--aw-primary);
     background: rgba(79, 70, 229, 0.1);
-    padding: 0.35rem 0.85rem;
+    padding: 0.3rem 0.75rem;
     border-radius: 99px;
 }
-.live-preview-link {
-    font-size: 0.85rem;
+.header-step-name {
+    font-size: 0.8rem;
     font-weight: 600;
-    color: var(--aw-primary);
-    text-decoration: none;
+    color: var(--aw-text-muted);
+}
+.editor-header-actions {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border-radius: 8px;
-    transition: all 0.2s;
+    gap: 0.75rem;
+    flex-shrink: 0;
 }
-.live-preview-link:hover {
-    background: rgba(79, 70, 229, 0.05);
+.header-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.15rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    font-family: 'Outfit', sans-serif;
+}
+.header-action-btn.primary {
+    background: var(--aw-primary);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+}
+.header-action-btn.primary:hover {
+    background: var(--aw-primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+}
+.header-action-btn.secondary {
+    background: #ffffff;
+    color: var(--aw-text);
+    border-color: var(--aw-border);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.header-action-btn.secondary:hover {
+    background: #f1f5f9;
+    color: var(--aw-primary);
+    border-color: #cbd5e1;
 }
 
 .editor-header h1 {
-    font-size: 2.2rem;
+    font-size: 1.5rem;
     font-weight: 800;
-    margin: 0;
+    margin: 0.25rem 0 0;
     color: var(--aw-text);
     font-family: 'Outfit', sans-serif;
     letter-spacing: -0.5px;
+    line-height: 1.2;
 }
 .editor-subtitle {
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: var(--aw-text-muted);
-    margin: 0.5rem 0 0 0;
+    margin: 0.25rem 0 0 0;
     font-weight: 500;
 }
 
@@ -245,7 +291,7 @@
 }
 
 .clean-form-container {
-    max-width: 720px;
+    max-width: 960px;
     margin: 0 auto;
 }
 
@@ -679,17 +725,9 @@
     box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4);
 }
 
-/* Preview Area */
+/* Preview Area - Disabled to prevent wasting space */
 .builder-preview-area {
-    width: 360px;
-    background: #e2e8f0;
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-    border-left: 1px solid rgba(255,255,255,0.5);
-}
-@media (max-width: 900px) {
-    .builder-preview-area { display: none; }
+    display: none !important;
 }
 @media (min-width: 901px) and (max-width: 1199px) {
     .builder-preview-area { width: 280px; }
@@ -952,89 +990,80 @@
     }
 }
 
-/* ======================================
-   INLINE HEADER PHONE PREVIEW (mobile only)
-   Always visible — no toggle needed
-   ====================================== */
-
-/* Hidden by default (large screens have the full preview panel) */
-.editor-header-phone { display: none; }
-.editor-header-text  { flex: 1; }
+/* Mobile steps tracker pills */
+.mobile-steps-tracker {
+    display: none;
+}
 
 @media (max-width: 900px) {
-    /* Make the header a side-by-side row */
     .editor-header {
-        display: flex !important;
-        flex-direction: row !important;
+        padding: 1.25rem 1rem !important;
+    }
+
+    .editor-header-main {
+        flex-direction: column !important;
         align-items: flex-start !important;
         gap: 1rem !important;
-        padding: 1.5rem !important;
     }
 
-    .editor-header-text {
-        flex: 1;
-        min-width: 0;
+    .editor-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
     }
 
-    /* Show the phone column */
-    .editor-header-phone {
+    .mobile-steps-tracker {
         display: flex;
-        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        width: 100%;
+    }
+
+    .mobile-step-dot-btn {
+        display: inline-flex;
         align-items: center;
         gap: 6px;
-        flex-shrink: 0;
-    }
-
-    /* Phone frame */
-    .header-phone-frame {
-        position: relative;
-        width: 110px;
-        height: 200px;
-        background: #0f172a;
+        padding: 6px 12px;
         border-radius: 20px;
-        padding: 8px;
-        box-shadow:
-            0 16px 32px -8px rgba(0, 0, 0, 0.4),
-            0 0 0 1px rgba(255,255,255,0.08) inset;
-    }
-
-    .header-phone-speaker {
-        position: absolute;
-        top: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 28px;
-        height: 3px;
-        background: #1e293b;
-        border-radius: 2px;
-        z-index: 5;
-    }
-
-    .header-phone-screen {
-        width: 100%;
-        height: 100%;
-        background: #fff;
-        border-radius: 14px;
-        overflow: hidden;
-    }
-
-    /* Scale the full wedding page down to fit the tiny screen */
-    .header-phone-iframe {
-        width: 375px;
-        height: 750px;
-        border: none;
+        border: 1px solid #e2e8f0;
         background: #ffffff;
-        transform: scale(0.247); /* 94px / 375px ≈ 0.25 */
-        transform-origin: top left;
+        cursor: pointer;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--aw-text-muted);
+        white-space: nowrap;
+        transition: all 0.2s;
     }
 
-    .header-phone-label {
-        font-size: 0.65rem;
-        font-weight: 700;
-        color: var(--aw-text-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        font-family: 'Outfit', sans-serif;
+    .mobile-step-dot-btn.active {
+        background: var(--aw-primary);
+        color: #ffffff;
+        border-color: var(--aw-primary);
+        box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+    }
+
+    .mobile-step-dot-btn.completed {
+        background: rgba(79, 70, 229, 0.08);
+        color: var(--aw-primary);
+        border-color: rgba(79, 70, 229, 0.2);
+    }
+
+    .dot-num {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        background: rgba(0,0,0,0.06);
+    }
+
+    .mobile-step-dot-btn.active .dot-num {
+        background: rgba(255,255,255,0.25);
     }
 }
 

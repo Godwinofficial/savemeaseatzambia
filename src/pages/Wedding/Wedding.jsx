@@ -257,6 +257,18 @@ const WeddingTemplate = () => {
                 venue: dbData.reception_venue,
                 address: dbData.reception_address
               },
+              reception_title: dbData.reception_title || (() => {
+                const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("RECEPTION_TITLE:"));
+                return found ? found.substring("RECEPTION_TITLE:".length) : "RECEPTION";
+              })(),
+              reception_subtitle: dbData.reception_subtitle || (() => {
+                const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("RECEPTION_SUBTITLE:"));
+                return found ? found.substring("RECEPTION_SUBTITLE:".length) : "Party";
+              })(),
+              show_gallery_titles: dbData.show_gallery_titles !== undefined ? dbData.show_gallery_titles : (() => {
+                const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("SHOW_GALLERY_TITLES:"));
+                return found ? found.substring("SHOW_GALLERY_TITLES:".length) !== 'false' : true;
+              })(),
               dressCode: dbData.dress_code,
               dressCodeDescription: dbData.dress_code_desc,
               theme_colors: parseArray(dbData.theme_colors).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:") && !c.startsWith("MUSIC_URL:")),
@@ -366,6 +378,18 @@ const WeddingTemplate = () => {
               venue: dbData.reception_venue,
               address: dbData.reception_address
             },
+            reception_title: dbData.reception_title || (() => {
+              const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("RECEPTION_TITLE:"));
+              return found ? found.substring("RECEPTION_TITLE:".length) : "RECEPTION";
+            })(),
+            reception_subtitle: dbData.reception_subtitle || (() => {
+              const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("RECEPTION_SUBTITLE:"));
+              return found ? found.substring("RECEPTION_SUBTITLE:".length) : "Party";
+            })(),
+            show_gallery_titles: dbData.show_gallery_titles !== undefined ? dbData.show_gallery_titles : (() => {
+              const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("SHOW_GALLERY_TITLES:"));
+              return found ? found.substring("SHOW_GALLERY_TITLES:".length) !== 'false' : true;
+            })(),
             dressCode: dbData.dress_code,
             dressCodeDescription: dbData.dress_code_desc,
             theme_colors: parseArray(dbData.theme_colors).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:") && !c.startsWith("MUSIC_URL:")),
@@ -479,6 +503,18 @@ const WeddingTemplate = () => {
                 venue: dbData.reception_venue,
                 address: dbData.reception_address
               },
+              reception_title: dbData.reception_title || (() => {
+                const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("RECEPTION_TITLE:"));
+                return found ? found.substring("RECEPTION_TITLE:".length) : "RECEPTION";
+              })(),
+              reception_subtitle: dbData.reception_subtitle || (() => {
+                const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("RECEPTION_SUBTITLE:"));
+                return found ? found.substring("RECEPTION_SUBTITLE:".length) : "Party";
+              })(),
+              show_gallery_titles: dbData.show_gallery_titles !== undefined ? dbData.show_gallery_titles : (() => {
+                const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("SHOW_GALLERY_TITLES:"));
+                return found ? found.substring("SHOW_GALLERY_TITLES:".length) !== 'false' : true;
+              })(),
               dressCode: dbData.dress_code,
               dressCodeDescription: dbData.dress_code_desc,
               theme_colors: parseArray(dbData.theme_colors).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:") && !c.startsWith("MUSIC_URL:")),

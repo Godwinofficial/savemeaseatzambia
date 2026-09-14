@@ -740,6 +740,9 @@ const AddWedding = () => {
         story_part1: "", story_highlight: "", story_part2: PROPOSAL_STORIES[0],
         ceremony_date: "", ceremony_time: "", ceremony_venue: "",
         reception_date: "", reception_time: "", reception_venue: "", reception_address: "",
+        reception_title: "RECEPTION",
+        reception_subtitle: "Party",
+        show_gallery_titles: true,
         rsvp_deadline: "",
         dress_code: "", dress_code_desc: "",
         map_location: "",
@@ -806,7 +809,10 @@ const AddWedding = () => {
                     gifts: typeof data.gifts === 'string' ? JSON.parse(data.gifts) : data.gifts || [],
                     gallery_images: typeof data.gallery_images === 'string' ? JSON.parse(data.gallery_images) : data.gallery_images || [],
                     other_events: typeof data.other_events === 'string' ? JSON.parse(data.other_events) : data.other_events || [],
-                    allowed_guests: typeof data.allowed_guests === 'string' ? JSON.parse(data.allowed_guests) : data.allowed_guests || ["1", "2"]
+                    allowed_guests: typeof data.allowed_guests === 'string' ? JSON.parse(data.allowed_guests) : data.allowed_guests || ["1", "2"],
+                    reception_title: data.reception_title || "RECEPTION",
+                    reception_subtitle: data.reception_subtitle || "Party",
+                    show_gallery_titles: data.show_gallery_titles !== undefined ? data.show_gallery_titles : true
                 });
             }
         } catch (error) {
@@ -1419,6 +1425,14 @@ const AddWedding = () => {
                     </div>
                     <div className="grid-2">
                         <div className="form-group">
+                            <label className="form-label">Section Title</label>
+                            <input className="form-input" name="reception_title" value={formData.reception_title !== undefined ? formData.reception_title : 'RECEPTION'} onChange={handleChange} placeholder="e.g., RECEPTION" />
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">Section Subheading</label>
+                            <input className="form-input" name="reception_subtitle" value={formData.reception_subtitle !== undefined ? formData.reception_subtitle : 'Party'} onChange={handleChange} placeholder="e.g., Party" />
+                        </div>
+                        <div className="form-group">
                             <label className="form-label">Venue Name</label>
                             <input className="form-input" name="reception_venue" value={formData.reception_venue} onChange={handleChange} placeholder="e.g., Grand Ballroom" />
                         </div>
@@ -1921,12 +1935,23 @@ const AddWedding = () => {
             </div>
 
             <div className="gallery-section">
-                <div className="gallery-header">
-                    <h3>
-                        <i className="fas fa-camera"></i>
-                        Photo Gallery
-                    </h3>
-                    <p className="gallery-description">Add photos for your wedding website gallery.</p>
+                <div className="gallery-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                    <div>
+                        <h3>
+                            <i className="fas fa-camera"></i>
+                            Photo Gallery
+                        </h3>
+                        <p className="gallery-description">Add photos for your wedding website gallery.</p>
+                    </div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: '#f3f4f6', padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600 }}>
+                        <input
+                            type="checkbox"
+                            checked={formData.show_gallery_titles !== false}
+                            onChange={(e) => setFormData(p => ({ ...p, show_gallery_titles: e.target.checked }))}
+                            style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                        />
+                        <span>Show Gallery Title & Subheading</span>
+                    </label>
                 </div>
 
                 <div className="gallery-grid">

@@ -746,6 +746,9 @@ const AddWedding = () => {
         story_part1: "", story_highlight: "", story_part2: PROPOSAL_STORIES[0],
         ceremony_date: "", ceremony_time: "", ceremony_venue: "",
         reception_date: "", reception_time: "", reception_venue: "", reception_address: "",
+        reception_title: "RECEPTION",
+        reception_subtitle: "Party",
+        show_gallery_titles: true,
         rsvp_deadline: "",
         dress_code: "", dress_code_desc: "",
         map_location: "",
@@ -955,6 +958,42 @@ const AddWedding = () => {
                         return "";
                     })(),
                     hero_video_url: data.hero_video_url || "",
+                    reception_title: data.reception_title || (() => {
+                        const rawTheme = data.theme_colors;
+                        if (!rawTheme) return "RECEPTION";
+                        try {
+                            const parsed = typeof rawTheme === 'string' ? JSON.parse(rawTheme) : rawTheme;
+                            if (Array.isArray(parsed)) {
+                                const found = parsed.find(c => typeof c === 'string' && c.startsWith("RECEPTION_TITLE:"));
+                                return found ? found.substring("RECEPTION_TITLE:".length) : "RECEPTION";
+                            }
+                        } catch (e) { }
+                        return "RECEPTION";
+                    })(),
+                    reception_subtitle: data.reception_subtitle || (() => {
+                        const rawTheme = data.theme_colors;
+                        if (!rawTheme) return "Party";
+                        try {
+                            const parsed = typeof rawTheme === 'string' ? JSON.parse(rawTheme) : rawTheme;
+                            if (Array.isArray(parsed)) {
+                                const found = parsed.find(c => typeof c === 'string' && c.startsWith("RECEPTION_SUBTITLE:"));
+                                return found ? found.substring("RECEPTION_SUBTITLE:".length) : "Party";
+                            }
+                        } catch (e) { }
+                        return "Party";
+                    })(),
+                    show_gallery_titles: data.show_gallery_titles !== undefined ? data.show_gallery_titles : (() => {
+                        const rawTheme = data.theme_colors;
+                        if (!rawTheme) return true;
+                        try {
+                            const parsed = typeof rawTheme === 'string' ? JSON.parse(rawTheme) : rawTheme;
+                            if (Array.isArray(parsed)) {
+                                const found = parsed.find(c => typeof c === 'string' && c.startsWith("SHOW_GALLERY_TITLES:"));
+                                return found ? found.substring("SHOW_GALLERY_TITLES:".length) !== 'false' : true;
+                            }
+                        } catch (e) { }
+                        return true;
+                    })(),
                     template_id: data.template_id || 1
                 });
             }
@@ -1321,9 +1360,11 @@ const AddWedding = () => {
             });
 
             // Clean theme_colors of any prefix tags if saving normally
-            payload.theme_colors = (payload.theme_colors || []).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:") && !c.startsWith("MUSIC_URL:"));
-
-            // Removed hack that deletes template_id when it's 1, as the database column type will be fixed.
+            payload.theme_colors = (payload.theme_colors || []).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:") && !c.startsWith("MUSIC_URL:") && !c.startsWith("RECEPTION_TITLE:") && !c.startsWith("RECEPTION_SUBTITLE:") && !c.startsWith("SHOW_GALLERY_TITLES:"));
+            // Always pack custom fields into theme_colors so they persist even if table columns don't exist
+            if (payload.reception_title) payload.theme_colors.push(`RECEPTION_TITLE:${payload.reception_title}`);
+            if (payload.reception_subtitle) payload.theme_colors.push(`RECEPTION_SUBTITLE:${payload.reception_subtitle}`);
+            payload.theme_colors.push(`SHOW_GALLERY_TITLES:${payload.show_gallery_titles !== false}`);
 
             let error;
             if (isEditMode) {
@@ -1339,11 +1380,18 @@ const AddWedding = () => {
                 const missingDressCodeColors = error.message && error.message.includes("dress_code_colors");
                 const missingMusicUrl = error.message && error.message.includes("music_url");
                 const missingHeroVideoUrl = error.message && error.message.includes("hero_video_url");
+                const missingReceptionTitle = error.message && error.message.includes("reception_title");
+                const missingReceptionSubtitle = error.message && error.message.includes("reception_subtitle");
+                const missingShowGalleryTitles = error.message && error.message.includes("show_gallery_titles");
 
-                if (missingExtraCardText || missingDressCodeColors || missingMusicUrl || missingHeroVideoUrl) {
+                if (missingExtraCardText || missingDressCodeColors || missingMusicUrl || missingHeroVideoUrl || missingReceptionTitle || missingReceptionSubtitle || missingShowGalleryTitles) {
                     console.warn("Missing database columns, applying fallbacks...");
                     const retryPayload = { ...payload };
                     let msg = "";
+
+                    if (missingReceptionTitle) delete retryPayload.reception_title;
+                    if (missingReceptionSubtitle) delete retryPayload.reception_subtitle;
+                    if (missingShowGalleryTitles) delete retryPayload.show_gallery_titles;
 
                     if (missingExtraCardText) {
                         delete retryPayload.extra_card_text;
@@ -2823,6 +2871,30 @@ const AddWedding = () => {
                     </div>
                     <div className="grid-2">
                         <div className="form-group">
+                            <label className="form-label">
+                                <i className="fas fa-heading"></i> Section Title
+                            </label>
+                            <input
+                                className="form-input"
+                                name="reception_title"
+                                value={formData.reception_title !== undefined ? formData.reception_title : 'RECEPTION'}
+                                onChange={handleChange}
+                                placeholder="e.g. RECEPTION"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">
+                                <i className="fas fa-quote-right"></i> Section Subheading
+                            </label>
+                            <input
+                                className="form-input"
+                                name="reception_subtitle"
+                                value={formData.reception_subtitle !== undefined ? formData.reception_subtitle : 'Party'}
+                                onChange={handleChange}
+                                placeholder="e.g. Party"
+                            />
+                        </div>
+                        <div className="form-group">
                             <label className="form-label">Venue Name</label>
                             <input className="form-input" name="reception_venue" value={formData.reception_venue} onChange={handleChange} placeholder="e.g., Grand Ballroom" />
                         </div>
@@ -3271,14 +3343,25 @@ const AddWedding = () => {
 
             {/* Photo Gallery */}
             <div className="person-card" style={{ marginTop: '2rem' }}>
-                <div className="person-header">
-                    <div className="person-icon">
-                        <i className="fas fa-camera"></i>
+                <div className="person-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div className="person-icon">
+                            <i className="fas fa-camera"></i>
+                        </div>
+                        <div>
+                            <h3>Photo Gallery</h3>
+                            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'var(--aw-text-muted)', fontWeight: 400 }}>Add photos for your wedding website gallery.</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3>Photo Gallery</h3>
-                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'var(--aw-text-muted)', fontWeight: 400 }}>Add photos for your wedding website gallery.</p>
-                    </div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px 16px', borderRadius: '24px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--aw-text)', transition: 'all 0.2s' }}>
+                        <input
+                            type="checkbox"
+                            checked={formData.show_gallery_titles !== false}
+                            onChange={(e) => setFormData(p => ({ ...p, show_gallery_titles: e.target.checked }))}
+                            style={{ width: '16px', height: '16px', accentColor: 'var(--aw-primary)', cursor: 'pointer' }}
+                        />
+                        <span>Show Gallery Title & Subheading</span>
+                    </label>
                 </div>
 
                 <div className="gallery-grid">
@@ -3361,50 +3444,65 @@ const AddWedding = () => {
             {/* Central Form Editor Area */}
             <div className="builder-editor-area">
                 <div className="editor-header">
-                    {/* Left: text content */}
-                    <div className="editor-header-text">
-                        <div className="header-meta">
-                            <span className="step-badge">Step {currentStep + 1} of {steps.length}</span>
-                            {formData.slug && (
-                                <a href={`/w/${formData.slug}`} target="_blank" rel="noopener noreferrer" className="live-preview-link">
-                                    <i className="fas fa-external-link-alt"></i> Live
+                    <div className="editor-header-main">
+                        <div className="editor-header-left">
+                            <div className="header-meta">
+                                <span className="step-badge">Step {currentStep + 1} of {steps.length}</span>
+                            </div>
+                            <h1>{steps[currentStep].label}</h1>
+                            <p className="editor-subtitle">{steps[currentStep].description}</p>
+                        </div>
+
+                        <div className="editor-header-actions">
+                            {formData.slug ? (
+                                <a
+                                    href={`/w/${formData.slug}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="header-action-btn primary"
+                                    title="View live website"
+                                >
+                                    <i className="fas fa-external-link-alt"></i>
+                                    <span>Live Website</span>
+                                </a>
+                            ) : (
+                                <a
+                                    href={`/wedding?preview=true&template=${formData.template_id || 1}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="header-action-btn primary"
+                                    title="Preview in new tab"
+                                >
+                                    <i className="fas fa-eye"></i>
+                                    <span>Preview Site</span>
                                 </a>
                             )}
-                        </div>
-                        <h1>{steps[currentStep].label}</h1>
-                        <p className="editor-subtitle">{steps[currentStep].description}</p>
-
-                        {/* Mobile Horizontal Progress Tracker */}
-                        <div className="mobile-steps-tracker">
                             <button
-                                className="mobile-admin-link-btn"
+                                type="button"
+                                className="header-action-btn secondary"
                                 onClick={() => navigate('/admin')}
-                                title="Back to Admin"
+                                title="Back to Dashboard"
                             >
-                                <i className="fas fa-arrow-left"></i> Admin
+                                <i className="fas fa-th-large"></i>
+                                <span>Dashboard</span>
                             </button>
-                            {steps.map((_, idx) => (
-                                <div
-                                    key={idx}
-                                    className={`mobile-step-dot ${currentStep === idx ? 'active' : ''} ${currentStep > idx ? 'completed' : ''}`}
-                                />
-                            ))}
                         </div>
                     </div>
 
-                    {/* Right: inline mini phone preview (mobile only) */}
-                    <div className="editor-header-phone">
-                        <div className="header-phone-frame">
-                            <div className="header-phone-speaker"></div>
-                            <div className="header-phone-screen">
-                                <iframe
-                                    src={`/wedding?preview=true&template=${formData.template_id}`}
-                                    className="header-phone-iframe"
-                                    title="Live Preview"
-                                />
-                            </div>
-                        </div>
-                        <span className="header-phone-label">Live Preview</span>
+                    {/* Horizontal Step Tracker for mobile & tablet */}
+                    <div className="mobile-steps-tracker">
+                        {steps.map((step, idx) => (
+                            <button
+                                key={idx}
+                                type="button"
+                                className={`mobile-step-dot-btn ${currentStep === idx ? 'active' : ''} ${currentStep > idx ? 'completed' : ''}`}
+                                onClick={() => setCurrentStep(idx)}
+                                title={step.label}
+                            >
+                                <span className="dot-num">{currentStep > idx ? <i className="fas fa-check"></i> : idx + 1}</span>
+                                <span className="dot-label">{step.label}</span>
+                            </button>
+                        ))}
                     </div>
                 </div>
 
@@ -3455,36 +3553,6 @@ const AddWedding = () => {
                             {loading ? <><i className="fas fa-circle-notch fa-spin"></i> Launching...</> : "Launch Website"}
                         </button>
                     )}
-                </div>
-            </div>
-
-            {/* Right Live Preview Panel */}
-            <div className="builder-preview-area">
-                <div className="preview-toolbar">
-                    <div className="toolbar-info">
-                        <span className="live-pulse"></span>
-                        <span className="live-text">Live Preview</span>
-                    </div>
-                    <div className="device-select">
-                        <button className="device-btn active" title="Mobile view">
-                            <i className="fas fa-mobile-alt"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div className="preview-frame-container">
-                    <div className="iphone-mockup">
-                        <div className="iphone-speaker"></div>
-                        <div className="iphone-screen">
-                            <iframe
-                                ref={iframeRef}
-                                src={`/wedding?preview=true&template=${formData.template_id}`}
-                                className="preview-iframe"
-                                title="Invitation Live Preview"
-                            />
-                        </div>
-                        <div className="iphone-home-button"></div>
-                    </div>
                 </div>
             </div>
 
