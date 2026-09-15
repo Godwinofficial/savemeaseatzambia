@@ -55,12 +55,10 @@ const TropicalElegance = ({ weddingData }) => {
     return Array.from(new Set(rawList.filter(Boolean)));
   })();
 
-  const heroImages = availableGalleryImages.length > 0 ? availableGalleryImages : defaultSampleImages;
-  const footerImages = availableGalleryImages.length > 1
-    ? [...availableGalleryImages.slice(1), availableGalleryImages[0]]
-    : (availableGalleryImages.length === 1 ? availableGalleryImages : [defaultSampleImages[1] || defaultSampleImages[0]]);
   const galleryImages = availableGalleryImages.length > 0 ? availableGalleryImages : defaultSampleImages;
+  const heroImages = galleryImages;
   const sliderImages = heroImages;
+  const footerImage = galleryImages[galleryImages.length - 1];
 
   const bgCream = '#FDFBF9'; // Extremely light, almost white cream from image
   const textBrown = '#5C3522'; // Dark brown text
@@ -129,9 +127,8 @@ const TropicalElegance = ({ weddingData }) => {
   // Countdown State
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
-  // Hero & Footer Carousel States
+  // Hero Carousel State
   const [currentBgIndex, setCurrentBgIndex] = useState(0);
-  const [currentFooterBgIndex, setCurrentFooterBgIndex] = useState(0);
 
   useEffect(() => {
     if (heroImages.length <= 1) return;
@@ -140,14 +137,6 @@ const TropicalElegance = ({ weddingData }) => {
     }, 5000);
     return () => clearInterval(interval);
   }, [heroImages.length]);
-
-  useEffect(() => {
-    if (footerImages.length <= 1) return;
-    const interval = setInterval(() => {
-      setCurrentFooterBgIndex(prev => (prev + 1) % footerImages.length);
-    }, 5500);
-    return () => clearInterval(interval);
-  }, [footerImages.length]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -402,20 +391,7 @@ const TropicalElegance = ({ weddingData }) => {
         .inv-submit:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
         .inv-submit:disabled { opacity: 0.7; cursor: not-allowed; }
         
-        .inv-footer-img-wrap {
-          width: 100%; height: 350px; overflow: hidden; position: relative; z-index: 2;
-          border-radius: 0 0 200px 200px;
-          -webkit-mask-image: linear-gradient(to top, black 60%, transparent 100%);
-          mask-image: linear-gradient(to top, black 60%, transparent 100%);
-          margin-top: 50px;
-        }
-        .inv-footer-img {
-          position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;
-          opacity: 0; transition: opacity 2s ease-in-out, transform 8s linear; transform: scale(1);
-        }
-        .inv-footer-img.active {
-          opacity: 1; transform: scale(1.08);
-        }
+        .inv-footer-img { width: 100%; height: 350px; object-fit: cover; border-radius: 0 0 200px 200px; -webkit-mask-image: linear-gradient(to top, black 60%, transparent 100%); mask-image: linear-gradient(to top, black 60%, transparent 100%); margin-top: 50px; }
 
         /* iPhone / iOS Photos Mosaic Gallery Grid */
         .ios-gallery-grid {
@@ -638,99 +614,97 @@ const TropicalElegance = ({ weddingData }) => {
 
             <SquigglyDivider />
 
-            {/* Gifts - Icon Right (DYNAMIC) */}
-            {safeGifts && safeGifts.length > 0 && (
-              <>
-                <div className="inv-section-item animate-on-scroll">
-                  <SectionPill icon="fa-gift" topText="GIFT" bottomText="Registry" iconLeft={true} />
-                  <div className="inv-section-content">
-                    <p>As we prepare to celebrate our special day, we warmly welcome your contribution towards making our wedding celebration a memorable one. Your support is sincerely appreciated.</p>
-                    {safeGifts.map((gift, idx) => (
-                      <div key={idx} style={{
-                        background: '#FFF',
-                        padding: '20px',
-                        borderRadius: '16px',
-                        border: `1px solid rgba(92, 53, 34, 0.12)`,
-                        boxShadow: '0 6px 15px rgba(92, 53, 34, 0.04)',
-                        textAlign: 'center',
-                        fontFamily: 'Montserrat, sans-serif',
-                        marginBottom: '15px'
+            {/* Gifts - Icon Right */}
+            <div className="inv-section-item animate-on-scroll">
+              <SectionPill icon="fa-gift" topText="GIFT" bottomText="Registry" iconLeft={true} />
+              <div className="inv-section-content">
+                <p style={{ marginBottom: safeGifts && safeGifts.length > 0 ? '15px' : '0' }}>
+                  Your presence is our greatest gift. For those who wish to bless us further, monetary gifts will warmly be appreciated Kindly reach out to either the Bride or Groom for gifting details.
+                </p>
+                {safeGifts && safeGifts.length > 0 && safeGifts.map((gift, idx) => (
+                  <div key={idx} style={{
+                    background: '#FFF',
+                    padding: '20px',
+                    borderRadius: '16px',
+                    border: `1px solid rgba(92, 53, 34, 0.12)`,
+                    boxShadow: '0 6px 15px rgba(92, 53, 34, 0.04)',
+                    textAlign: 'center',
+                    fontFamily: 'Montserrat, sans-serif',
+                    marginBottom: '15px'
+                  }}>
+                    <div style={{
+                      fontFamily: 'Montserrat',
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase',
+                      letterSpacing: '1.5px',
+                      color: accentBrown,
+                      marginBottom: '8px'
+                    }}>
+                      {gift.provider || gift.giftType || gift.bank || 'Registry'}
+                    </div>
+                    {(gift.accountNumber || gift.account_number) && (
+                      <div style={{
+                        fontSize: '1.1rem',
+                        fontWeight: '600',
+                        color: textBrown,
+                        letterSpacing: '0.5px',
+                        margin: '6px 0'
                       }}>
-                        <div style={{
-                          fontFamily: 'Montserrat',
-                          fontSize: '0.75rem',
-                          fontWeight: 'bold',
-                          textTransform: 'uppercase',
-                          letterSpacing: '1.5px',
-                          color: accentBrown,
-                          marginBottom: '8px'
-                        }}>
-                          {gift.provider || gift.giftType || gift.bank || 'Registry'}
-                        </div>
-                        {(gift.accountNumber || gift.account_number) && (
-                          <div style={{
-                            fontSize: '1.1rem',
-                            fontWeight: '600',
-                            color: textBrown,
-                            letterSpacing: '0.5px',
-                            margin: '6px 0'
-                          }}>
-                            {gift.accountNumber || gift.account_number}
-                          </div>
-                        )}
-                        {(gift.accountName || gift.account_name) && (
-                          <div style={{
-                            fontSize: '0.8rem',
-                            color: textBrown,
-                            opacity: 0.8,
-                            fontWeight: '500'
-                          }}>
-                            Name: {gift.accountName || gift.account_name}
-                          </div>
-                        )}
-                        {gift.instructions && (
-                          <div style={{
-                            fontSize: '0.75rem',
-                            color: '#7C6E65',
-                            fontStyle: 'italic',
-                            marginTop: '8px',
-                            lineHeight: '1.4'
-                          }}>
-                            {gift.instructions}
-                          </div>
-                        )}
-                        {gift.url && (
-                          <a
-                            href={gift.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              display: 'inline-block',
-                              marginTop: '12px',
-                              background: textBrown,
-                              color: '#FFF',
-                              fontSize: '0.7rem',
-                              fontWeight: '600',
-                              textTransform: 'uppercase',
-                              letterSpacing: '1px',
-                              padding: '8px 16px',
-                              borderRadius: '20px',
-                              textDecoration: 'none',
-                              transition: 'opacity 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.target.style.opacity = 0.9}
-                            onMouseLeave={(e) => e.target.style.opacity = 1}
-                          >
-                            Visit Link <i className="fas fa-external-link-alt" style={{ marginLeft: '4px', fontSize: '0.65rem' }}></i>
-                          </a>
-                        )}
+                        {gift.accountNumber || gift.account_number}
                       </div>
-                    ))}
+                    )}
+                    {(gift.accountName || gift.account_name) && (
+                      <div style={{
+                        fontSize: '0.8rem',
+                        color: textBrown,
+                        opacity: 0.8,
+                        fontWeight: '500'
+                      }}>
+                        Name: {gift.accountName || gift.account_name}
+                      </div>
+                    )}
+                    {gift.instructions && (
+                      <div style={{
+                        fontSize: '0.75rem',
+                        color: '#7C6E65',
+                        fontStyle: 'italic',
+                        marginTop: '8px',
+                        lineHeight: '1.4'
+                      }}>
+                        {gift.instructions}
+                      </div>
+                    )}
+                    {gift.url && (
+                      <a
+                        href={gift.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-block',
+                          marginTop: '12px',
+                          background: textBrown,
+                          color: '#FFF',
+                          fontSize: '0.7rem',
+                          fontWeight: '600',
+                          textTransform: 'uppercase',
+                          letterSpacing: '1px',
+                          padding: '8px 16px',
+                          borderRadius: '20px',
+                          textDecoration: 'none',
+                          transition: 'opacity 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.target.style.opacity = 0.9}
+                        onMouseLeave={(e) => e.target.style.opacity = 1}
+                      >
+                        Visit Link <i className="fas fa-external-link-alt" style={{ marginLeft: '4px', fontSize: '0.65rem' }}></i>
+                      </a>
+                    )}
                   </div>
-                </div>
-                <SquigglyDivider />
-              </>
-            )}
+                ))}
+              </div>
+            </div>
+            <SquigglyDivider />
 
             {/* Memories - Icon Left */}
             {galleryImages && galleryImages.length > 0 && (() => {
@@ -901,16 +875,13 @@ const TropicalElegance = ({ weddingData }) => {
 
           </div>
 
-          <div className="inv-footer-img-wrap animate-on-scroll">
-            {footerImages.map((img, idx) => (
-              <img
-                key={idx}
-                src={img}
-                alt="Couple Footer"
-                className={`inv-footer-img ${idx === currentFooterBgIndex ? 'active' : ''}`}
-              />
-            ))}
-          </div>
+          {footerImage && (
+            <img
+              src={footerImage}
+              alt="Couple Footer"
+              className="inv-footer-img animate-on-scroll"
+            />
+          )}
 
         </div>
       </div>
