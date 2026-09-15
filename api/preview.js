@@ -6,6 +6,17 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
 
+const formatPreviewDate = (dateValue) => {
+    if (!dateValue) return 'TBA';
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return String(dateValue);
+    return new Intl.DateTimeFormat('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    }).format(date);
+};
+
 export default async function handler(request, response) {
     // Check if credentials are present
     if (!supabaseUrl || !supabaseAnonKey) {
@@ -51,7 +62,7 @@ export default async function handler(request, response) {
                 console.error('Supabase birthday error:', error);
             } else if (bday) {
                 title = `${bday.child_name}'s Birthday Invitation`;
-                description = `Join us on ${new Date(bday.date).toLocaleDateString()} at ${bday.venue_name || 'the venue'}.`;
+                description = `Join us on ${formatPreviewDate(bday.date)} at ${bday.venue_name || 'the venue'}.`;
                 if (bday.hero_image) image = bday.hero_image;
             }
         } else if (type === 'bridal-shower') {
@@ -66,7 +77,7 @@ export default async function handler(request, response) {
                 console.error('Supabase bridal shower error:', error);
             } else if (bs) {
                 title = `${bs.bride_name}'s Bridal Shower Invitation`;
-                description = `Join us on ${new Date(bs.date).toLocaleDateString()} at ${bs.venue_name || 'the venue'}.`;
+                description = `Join us on ${formatPreviewDate(bs.date)} at ${bs.venue_name || 'the venue'}.`;
                 const images = typeof bs.gallery_images === 'string'
                     ? JSON.parse(bs.gallery_images)
                     : bs.gallery_images;
@@ -85,7 +96,7 @@ export default async function handler(request, response) {
                 console.error('Supabase wedding error:', error);
             } else if (wedding) {
                 title = `${wedding.bride_name} & ${wedding.groom_name} | Wedding Invitation`;
-                description = `Join us on ${new Date(wedding.date).toLocaleDateString()} at ${wedding.venue_name || wedding.location}.`;
+                description = `Join us on ${formatPreviewDate(wedding.date)} at ${wedding.venue_name || wedding.location}.`;
                 if (wedding.cover_image) image = wedding.cover_image;
             }
         }
