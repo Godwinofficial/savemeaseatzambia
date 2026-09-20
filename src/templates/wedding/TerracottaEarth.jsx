@@ -1,9 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../supabaseClient';
 import { QRCodeCanvas } from 'qrcode.react';
 import html2canvas from 'html2canvas';
 import logoImg from '../../assets/images/logo1.png';
 import defaultMusic from '../../assets/music/music.mp3';
+import TemplateFooter from '../../components/TemplateFooter';
+
+// Helper to format date safely
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  const options = { year: 'numeric', month: 'long', day: 'numeric' };
+  const date = new Date(dateString);
+  return isNaN(date.getTime()) ? dateString : date.toLocaleDateString(undefined, options);
+};
 
 // Helper to format time safely (HH:MM:SS -> 12h AM/PM)
 const formatTime = (timeString) => {
@@ -24,7 +33,13 @@ const formatTime = (timeString) => {
   return `${formattedH}:${minutes.substring(0, 2)} ${ampm}`;
 };
 
-const TerracottaEarth = ({ weddingData }) => {
+const TerracottaEarth = ({
+  weddingData,
+  handleRSVPSubmitFromParent,
+  parentIsSubmitting,
+  parentShowAdmissionCard,
+  parentSubmittedRSVP
+}) => {
   const defaultData = {
     couple: {
       bride: { name: 'Catherine' },
@@ -76,8 +91,20 @@ const TerracottaEarth = ({ weddingData }) => {
 
   // State
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-  const [rsvpForm, setRsvpForm] = useState({ name: '', phone: '', email: '', guests: '1', attending: 'yes', message: '' });
+  const [rsvpForm, setRsvpForm] = useState({ name: '', partner_name: '', phone: '', email: '', guests: '1', attending: 'yes', message: '' });
+  const [localIsSubmitting, setLocalIsSubmitting] = useState(false);
+  const isSubmitting = parentIsSubmitting !== undefined ? parentIsSubmitting : localIsSubmitting;
+  const setIsSubmitting = parentIsSubmitting !== undefined ? () => { } : setLocalIsSubmitting;
+  const [localShowAdmissionCard, setLocalShowAdmissionCard] = useState(false);
+  const showAdmissionCard = parentShowAdmissionCard !== undefined ? parentShowAdmissionCard : localShowAdmissionCard;
+  const setShowAdmissionCard = parentShowAdmissionCard !== undefined ? () => { } : setLocalShowAdmissionCard;
+  const [localSubmittedRSVP, setLocalSubmittedRSVP] = useState(null);
+  const submittedRSVP = parentSubmittedRSVP !== undefined ? parentSubmittedRSVP : localSubmittedRSVP;
+  const setSubmittedRSVP = parentSubmittedRSVP !== undefined ? () => { } : setLocalSubmittedRSVP;
   const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [cardRenderedUrl, setCardRenderedUrl] = useState(null);
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   const [galleryIndex, setGalleryIndex] = useState(0);
 
   // Countdown
@@ -197,55 +224,179 @@ const TerracottaEarth = ({ weddingData }) => {
 
   const handleRsvpSubmit = async (e) => {
     e.preventDefault();
-    setRsvpSubmitted(false);
-    if (d.id) {
-      try {
-        const { data, error } = await supabase.from('rsvps').insert([{
-          wedding_id: d.id,
-          name: rsvpForm.name,
-          email: rsvpForm.email,
-          phone: rsvpForm.phone,
-          attending: rsvpForm.attending,
-          guests_count: parseInt(rsvpForm.guests, 10) || 1
-        }]).select('id').single();
-        if (error) throw error;
-        setRsvpId(data.id);
-        setRsvpSubmitted(true);
-      } catch (err) {
-        console.error('RSVP save error:', err);
-        const fallbackId = `local-${Date.now()}`;
-        setRsvpId(fallbackId);
-        setRsvpSubmitted(true);
+    if (handleRSVPSubmitFromParent) {
+      await handleRSVPSubmitFromParent(e, rsvpForm);
+      setRsvpSubmitted(true);
+      return;
+    }
+
+    if (!rsvpForm.name.trim()) return;
+    setIsSubmitting(true);
+    try {
+      const isCouple = rsvpForm.guests === '2' || rsvpForm.guests?.includes('2') || !!rsvpForm.partner_name;
+      const basePayload = {
+        wedding_id: d.id,
+        name: rsvpForm.name,
+        email: rsvpForm.email,
+        phone: rsvpForm.phone,
+        attending: rsvpForm.attending,
+        guests_count: parseInt(rsvpForm.guests, 10) || (isCouple ? 2 : 1),
+        status: 'pending'
+      };
+
+      let insertData = {
+        ...basePayload,
+        partner_name: isCouple ? (rsvpForm.partner_name || null) : null,
+        partner_phone: isCouple ? (rsvpForm.partner_phone || null) : null,
+        partner_email: isCouple ? (rsvpForm.partner_email || null) : null
+      };
+
+      let { data, error } = await supabase.from('rsvps').insert([insertData]).select('id').single();
+
+      if (error && (error.message?.includes('partner_') || error.code === 'PGRST204')) {
+        const fallbackPayload = {
+          ...basePayload,
+          name: isCouple && rsvpForm.partner_name ? `${rsvpForm.name} & ${rsvpForm.partner_name}` : rsvpForm.name
+        };
+        const fallbackRes = await supabase.from('rsvps').insert([fallbackPayload]).select('id').single();
+        error = fallbackRes.error;
+        data = fallbackRes.data;
       }
-    } else {
+
+      if (error) throw error;
+      const genId = data?.id || `local-${Date.now()}`;
+      setRsvpId(genId);
+      setSubmittedRSVP({
+        id: genId,
+        name: rsvpForm.name,
+        partner_name: isCouple ? rsvpForm.partner_name : '',
+        email: rsvpForm.email,
+        phone: rsvpForm.phone,
+        partner_phone: isCouple ? rsvpForm.partner_phone : '',
+        partner_email: isCouple ? rsvpForm.partner_email : '',
+        guests_count: parseInt(rsvpForm.guests, 10) || (isCouple ? 2 : 1),
+        wedding_id: d.id
+      });
+      setShowAdmissionCard(true);
+      setRsvpSubmitted(true);
+    } catch (err) {
+      console.error('TerracottaEarth RSVP error:', err);
+      const isCouple = rsvpForm.guests === '2' || rsvpForm.guests?.includes('2') || !!rsvpForm.partner_name;
       const fallbackId = `local-${Date.now()}`;
       setRsvpId(fallbackId);
+      setSubmittedRSVP({
+        id: fallbackId,
+        name: rsvpForm.name,
+        partner_name: isCouple ? rsvpForm.partner_name : '',
+        email: rsvpForm.email,
+        phone: rsvpForm.phone,
+        guests_count: parseInt(rsvpForm.guests, 10) || (isCouple ? 2 : 1),
+        wedding_id: d.id
+      });
+      setShowAdmissionCard(true);
       setRsvpSubmitted(true);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const getQrValue = () => { try { return JSON.stringify({ id: rsvpId, name: rsvpForm.name, phone: rsvpForm.phone, guests: rsvpForm.guests, wedding_id: d.id }); } catch (e) { return rsvpId || rsvpForm.name || ''; } };
+  const getQrValue = () => {
+    const guestId = submittedRSVP?.id || rsvpId;
+    const guestName = submittedRSVP?.name || rsvpForm.name;
+    const partnerName = submittedRSVP?.partner_name || rsvpForm.partner_name || '';
+    const isCouple = (submittedRSVP?.guests_count === 2) || (parseInt(rsvpForm.guests, 10) === 2) || !!partnerName;
+    const guestEmail = submittedRSVP?.email || rsvpForm.email;
+    const guestPhone = submittedRSVP?.phone || rsvpForm.phone;
+    const guestCount = submittedRSVP?.guests_count || parseInt(rsvpForm.guests, 10) || (isCouple ? 2 : 1);
+
+    try {
+      return JSON.stringify({
+        id: guestId,
+        name: guestName,
+        partner_name: partnerName,
+        display_name: partnerName ? `${guestName} & ${partnerName}` : guestName,
+        email: guestEmail,
+        phone: guestPhone,
+        partner_email: submittedRSVP?.partner_email || rsvpForm.partner_email || '',
+        partner_phone: submittedRSVP?.partner_phone || rsvpForm.partner_phone || '',
+        guests_count: guestCount,
+        wedding_id: d?.id || submittedRSVP?.wedding_id || null
+      });
+    } catch (e) {
+      return guestId || (partnerName ? `${guestName} & ${partnerName}` : guestName) || '';
+    }
+  };
 
   const downloadPassCard = async () => {
-    const getCardElement = () => document.getElementById('pass-card-container');
-    let el = getCardElement();
-    let attempts = 0;
-    while (!el && attempts < 5) {
-      await new Promise(resolve => setTimeout(resolve, 120));
-      el = getCardElement();
-      attempts += 1;
+    if (isDownloading) return;
+
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    if (isIOSDevice && cardRenderedUrl) {
+      setCardRenderedUrl(null);
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     }
+
+    const el = document.getElementById('terracotta-earth-pass-card');
     if (!el) return;
+    setIsDownloading(true);
+
     try {
-      const canvas = await html2canvas(el, { useCORS: true, scale: 2, backgroundColor: '#ffffff' });
-      const url = canvas.toDataURL('image/png');
+      const canvas = await html2canvas(el, {
+        useCORS: true,
+        scale: 3,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+
+      const guestPart = (submittedRSVP?.name || rsvpForm.name || rsvpId || 'guest')
+        .toLowerCase().replace(/\s+/g, '-');
+      const filename = `ecard-${guestPart}.png`;
+
+      if (isIOSDevice) {
+        const dataUrl = canvas.toDataURL('image/png');
+        setCardRenderedUrl(dataUrl);
+        setIsDownloading(false);
+        return;
+      }
+
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) { setIsDownloading(false); return; }
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      const guestPart = (rsvpForm.name || rsvpId || 'guest').toLowerCase().replace(/\s+/g, '-');
-      a.href = url; a.download = `wedding-pass-${guestPart}.png`; a.click();
-    } catch (err) { console.error('Error creating pass image', err); }
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+    } catch (err) {
+      console.error('E Card download error:', err);
+      alert('Could not save the E Card.\nPlease take a screenshot instead.');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
-  useEffect(() => { if (rsvpId) { const t = setTimeout(() => downloadPassCard(), 800); return () => clearTimeout(t); } }, [rsvpId]);
+  const downloadPassCardRef = useRef(downloadPassCard);
+  useEffect(() => { downloadPassCardRef.current = downloadPassCard; });
+
+  useEffect(() => {
+    if (!submittedRSVP?.id && !rsvpId) return;
+    let cancelled = false;
+
+    const tryDownload = (attempt = 1) => {
+      const el = document.getElementById('terracotta-earth-pass-card');
+      if (!el && attempt < 6) {
+        setTimeout(() => { if (!cancelled) tryDownload(attempt + 1); }, 400);
+        return;
+      }
+      if (el && !cancelled) downloadPassCardRef.current();
+    };
+
+    const t = setTimeout(() => tryDownload(), 800);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [submittedRSVP?.id, rsvpId]);
 
   // Only show palette colors if admin has actually configured them (don't fall back to hardcoded defaults when real data is present)
   const paletteColors = weddingData
@@ -1130,59 +1281,166 @@ const TerracottaEarth = ({ weddingData }) => {
                 <button type="submit" className="te-submit">Send Reply</button>
               </form>
             ) : (
-              <div className="te-success" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-                <button className="te-submit" style={{ padding: '10px 18px', borderRadius: 8, margin: '0 0 10px 0' }} onClick={downloadPassCard}>
-                  <i className="fas fa-download" style={{ marginRight: 8 }}></i>Download Pass Again
-                </button>
+              <div style={{ width: 'calc(100% + 40px)', maxWidth: 390, margin: '20px -20px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0', background: '#000' }}>
 
-                <div id="pass-card-container" style={{ background: '#FFF', padding: '30px 24px', borderRadius: '16px', boxShadow: '0 15px 35px rgba(0,0,0,0.08)', border: '1px solid #E6E1D6', maxWidth: '320px', width: '100%', textAlign: 'center', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div style={{ borderBottom: '1px solid #F0EDE9', width: '100%', paddingBottom: '15px', marginBottom: '20px' }}>
-                    <h4 style={{ fontFamily: 'Cormorant Garamond', fontSize: '1.8rem', color: darkEspresso, margin: '0', fontWeight: 'normal', letterSpacing: '1px' }}>
-                      {groomFirst} & {brideFirst}
-                    </h4>
-                    <p style={{ fontFamily: 'Montserrat', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '2px', color: terracotta, margin: '6px 0 0 0' }}>
-                      Wedding Entrance Pass
-                    </p>
-                  </div>
+                {/* Black header */}
+                <div style={{ width: '100%', maxWidth: 390, background: '#000', padding: '24px 20px 20px', boxSizing: 'border-box', textAlign: 'center' }}>
+                  <h3 style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '1.45rem', fontWeight: '900', color: '#ffffff', textTransform: 'uppercase', letterSpacing: '3px', margin: 0 }}>
+                    THIS IS YOUR E CARD
+                  </h3>
+                </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px' }}>
-                    <QRCodeCanvas
-                      id="qr-canvas"
-                      value={getQrValue()}
-                      size={180}
-                      level="L"
-                      bgColor="#FFFFFF"
-                      fgColor={darkEspresso}
-                    />
-                  </div>
+                {/* Main white card */}
+                {/* On iOS: once rendered, show as <img> so guest can long-press → Save to Photos */}
+                {isIOS && cardRenderedUrl ? (
+                  <img
+                    src={cardRenderedUrl}
+                    alt="Your Wedding E Card — press and hold to save to Photos"
+                    style={{
+                      width: '100%', maxWidth: 390, display: 'block',
+                      WebkitTouchCallout: 'default',
+                      userSelect: 'none',
+                      touchAction: 'manipulation'
+                    }}
+                  />
+                ) : null}
 
-                  <div style={{ marginTop: '20px', borderTop: '1px solid #F0EDE9', paddingTop: '15px', width: '100%' }}>
-                    <p style={{ fontFamily: 'Cormorant Garamond', fontSize: '1.3rem', fontStyle: 'italic', color: darkEspresso, margin: '0 0 4px 0' }}>
-                      {rsvpForm.name}
-                    </p>
-                    <p style={{ fontFamily: 'Montserrat', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '1px', color: terracotta, margin: '0 0 12px 0' }}>
-                      {parseInt(rsvpForm.guests, 10) > 1 ? `Admit ${rsvpForm.guests} Guests` : 'Admit 1 Guest'}
-                    </p>
-                    <p style={{ fontFamily: 'Montserrat', fontSize: '0.7rem', color: '#666', margin: '0 0 3px 0' }}>
-                      {d.date ? new Date(d.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ''}
-                    </p>
-                    <p style={{ fontFamily: 'Montserrat', fontSize: '0.7rem', color: '#666', margin: '0' }}>
-                      {d.venue?.name || d.location || 'Wedding Venue'}
-                    </p>
-                  </div>
+                {/* HTML card — always rendered for html2canvas; hidden on iOS once image is ready */}
+                <div
+                  id="terracotta-earth-pass-card"
+                  style={{
+                    width: '100%', maxWidth: 390, background: '#f2f2f2',
+                    boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
+                    ...(isIOS && cardRenderedUrl ? { position: 'absolute', opacity: 0, pointerEvents: 'none', left: '-9999px', top: 0 } : {})
+                  }}
+                >
 
-                  <div style={{ borderTop: '1px solid #F0EDE9', width: '100%', paddingTop: '12px', marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <img src={logoImg} alt="SaveMeASeat Logo" style={{ height: '12px', objectFit: 'contain' }} />
-                      <span style={{ fontFamily: 'Montserrat', fontSize: '0.5rem', fontWeight: 'bold', color: terracotta }}>
-                        SaveMeASeat
+                  {/* Upper white section */}
+                  <div style={{ background: '#ffffff', width: '100%', padding: '20px 20px 16px', boxSizing: 'border-box' }}>
+                    {/* Brand + Seat Number row */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px' }}>
+                      <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.75rem', fontWeight: '800', color: '#111', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+                        SAVEMEASEAT
                       </span>
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.55rem', color: '#999', textTransform: 'uppercase', letterSpacing: '1.5px', margin: '0 0 3px 0' }}>SEAT NUMBER</p>
+                        <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '1rem', fontWeight: '900', color: '#111', margin: 0, letterSpacing: '1px' }}>
+                          {submittedRSVP?.seat_number
+                            ? (submittedRSVP.seat_number_end && submittedRSVP.seat_number_end !== submittedRSVP.seat_number
+                              ? `${submittedRSVP.seat_number} & ${submittedRSVP.seat_number_end}`
+                              : `${submittedRSVP.seat_number}`)
+                            : '—'}
+                        </p>
+                      </div>
                     </div>
-                    <span style={{ fontFamily: 'Montserrat', fontSize: '0.5rem', color: terracotta, letterSpacing: '0.5px' }}>
-                      savemeaseatzambia.com
-                    </span>
+
+                    {/* QR Code — centered, large */}
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 16px' }}>
+                      <QRCodeCanvas
+                        id="qr-canvas"
+                        value={getQrValue()}
+                        size={230}
+                        level="M"
+                        bgColor="#FFFFFF"
+                        fgColor="#000000"
+                      />
+                    </div>
+
+                    {/* Event Name */}
+                    <div style={{ textAlign: 'center', padding: '8px 0 4px' }}>
+                      <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.6rem', color: '#999', textTransform: 'uppercase', letterSpacing: '2px', margin: '0 0 5px 0' }}>EVENT NAME</p>
+                      <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '1.2rem', fontWeight: '700', color: '#111', margin: '0 0 16px 0', lineHeight: 1.2 }}>
+                        {d.couple?.bride?.name || brideFirst} & {d.couple?.groom?.name || groomFirst}
+                      </p>
+                      <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.6rem', color: '#999', textTransform: 'uppercase', letterSpacing: '2px', margin: '0 0 5px 0' }}>DATE AND TIME</p>
+                      <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '1.1rem', fontWeight: '700', color: '#111', margin: 0 }}>
+                        {formatDate(d.date)}{d.reception?.time ? ` ${formatTime(d.reception.time)}` : (d.ceremony?.time ? ` ${formatTime(d.ceremony.time)}` : '')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Tear-off divider */}
+                  <div style={{ width: '100%', position: 'relative', display: 'flex', alignItems: 'center', height: 24 }}>
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#000', position: 'absolute', left: -12 }} />
+                    <div style={{ flex: 1, borderTop: '2px dashed #ccc', margin: '0 18px' }} />
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#000', position: 'absolute', right: -12 }} />
+                  </div>
+
+                  {/* Lower details section */}
+                  <div style={{ background: '#ffffff', width: '100%', padding: '20px 20px 22px', boxSizing: 'border-box' }}>
+                    {/* Row 1 */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0', marginBottom: '20px' }}>
+                      <div>
+                        <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.58rem', color: '#999', textTransform: 'uppercase', letterSpacing: '1.2px', margin: '0 0 5px 0' }}>GUEST NAME</p>
+                        <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.85rem', fontWeight: '800', color: '#111', margin: 0, textTransform: 'uppercase', lineHeight: 1.3 }}>
+                          {(() => {
+                            const pName = submittedRSVP?.name || rsvpForm.name || 'Guest';
+                            const partName = submittedRSVP?.partner_name || rsvpForm.partner_name || '';
+                            if (partName) {
+                              const clean = pName.includes(' & ') ? pName.split(' & ')[0].trim() : pName;
+                              return `${clean} & ${partName}`;
+                            }
+                            return pName;
+                          })()}
+                        </p>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.58rem', color: '#999', textTransform: 'uppercase', letterSpacing: '1.2px', margin: '0 0 5px 0' }}>VENUE</p>
+                        <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.85rem', fontWeight: '700', color: '#111', margin: 0, lineHeight: 1.3 }}>
+                          {d.venue?.name || d.location || 'Wedding Venue'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Row 2 */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0' }}>
+                      <div>
+                        <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.58rem', color: '#999', textTransform: 'uppercase', letterSpacing: '1.2px', margin: '0 0 5px 0' }}>CATEGORY</p>
+                        <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.85rem', fontWeight: '800', color: '#111', margin: 0 }}>
+                          {submittedRSVP?.category || 'General'}
+                        </p>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.58rem', color: '#999', textTransform: 'uppercase', letterSpacing: '1.2px', margin: '0 0 5px 0' }}>GUESTS</p>
+                        <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '1.2rem', fontWeight: '800', color: '#111', margin: 0 }}>
+                          {(submittedRSVP?.guests_count || parseInt(rsvpForm.guests, 10) || 1) > 1
+                            ? `Admit ${submittedRSVP?.guests_count || parseInt(rsvpForm.guests, 10) || 1}`
+                            : 'Admit 1'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Extra card text */}
+                    {(d.extra_card_text || (d.venue?.description?.startsWith("EXTRA_CARD_TEXT:") ? d.venue.description.replace("EXTRA_CARD_TEXT:", "") : "")) && (
+                      <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.72rem', color: '#b91c1c', fontWeight: '600', marginTop: '14px', borderTop: '1px dashed #ddd', paddingTop: '12px', lineHeight: '1.4' }}>
+                        {d.extra_card_text || d.venue?.description?.replace("EXTRA_CARD_TEXT:", "")}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Footer strip */}
+                  <div style={{ background: '#f2f2f2', width: '100%', padding: '12px 20px', boxSizing: 'border-box', textAlign: 'center' }}>
+                    <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.62rem', color: '#888', margin: '0 0 2px 0' }}>Valid for single entry only • Present at venue entrance</p>
+                    <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.55rem', color: '#bbb', margin: 0 }}>Powered by SaveMeASeat Zambia © 2026</p>
                   </div>
                 </div>
+
+                {/* Save button — Android/Desktop auto-download; iOS shows hint */}
+                <div style={{ background: '#000', width: '100%', maxWidth: 390, padding: '16px 20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  {isIOS && cardRenderedUrl && (
+                    <p style={{ margin: 0, fontSize: '0.72rem', color: '#6b7280', fontFamily: '-apple-system, sans-serif', textAlign: 'center' }}>
+                      Press &amp; hold your E Card above → <strong style={{ color: '#9ca3af' }}>Save to Photos</strong>
+                    </p>
+                  )}
+                  <button
+                    onClick={downloadPassCard}
+                    disabled={isDownloading}
+                    style={{ background: isDownloading ? '#555' : '#ffffff', color: '#111', border: 'none', padding: '13px 32px', borderRadius: '6px', cursor: isDownloading ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '8px', letterSpacing: '0.5px', minWidth: 180, justifyContent: 'center', transition: 'background 0.2s' }}
+                  >
+                    {isDownloading ? 'Preparing...' : isIOS ? (cardRenderedUrl ? 'Re-render Card' : 'Save to Photos') : 'Save E Card'}
+                  </button>
+                </div>
+
               </div>
             )}
           </div>
@@ -1195,6 +1453,7 @@ const TerracottaEarth = ({ weddingData }) => {
             </div>
           </div>
 
+          <TemplateFooter />
         </div>
       </div>
 

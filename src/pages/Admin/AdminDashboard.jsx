@@ -5,6 +5,8 @@ import * as XLSX from 'xlsx';
 import { sendEmail } from '../../utils/emailService';
 import ReminderModal from '../../components/ReminderModal';
 import EmailMarketing from '../../components/EmailMarketing';
+import ApprovalRequests from './ApprovalRequests';
+import useUserRole from '../../utils/useUserRole';
 
 import './Admin.css';
 
@@ -280,9 +282,26 @@ const AdminDashboard = () => {
     const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
     const [vendorUploadProgress, setVendorUploadProgress] = useState({});
 
+    const { isSuperAdmin } = useUserRole();
+    const [userProfiles, setUserProfiles] = useState({});
     const [selectedTemplateId, setSelectedTemplateId] = useState(1);
     const [currentUser, setCurrentUser] = useState(null);
     const navigate = useNavigate();
+
+    const fetchProfiles = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('id, email, full_name, role');
+            if (!error && data) {
+                const map = {};
+                data.forEach(p => { map[p.id] = p; });
+                setUserProfiles(map);
+            }
+        } catch (err) {
+            console.warn('[AdminDashboard] Profiles query error:', err);
+        }
+    };
 
     useEffect(() => {
         if (activeActionSheet && activeActionSheet.type === 'wedding') {
@@ -314,6 +333,7 @@ const AdminDashboard = () => {
             fetchBirthdays(user);
             fetchBridalShowers(user);
             fetchVendors();
+            fetchProfiles();
         };
 
         initDashboard();
@@ -757,6 +777,27 @@ const AdminDashboard = () => {
         }
     };
 
+    const handleApproveWedding = async (wedding) => {
+        if (!SUPER_USER_EMAILS.includes(currentUser?.email)) return;
+        if (!window.confirm(`Approve payment and activate ${wedding.groom_name} & ${wedding.bride_name}?`)) return;
+
+        try {
+            const { error } = await supabase
+                .from('weddings')
+                .update({ status: 'active', approved_at: new Date().toISOString() })
+                .eq('id', wedding.id);
+            if (error) throw error;
+            setWeddings(prev => prev.map(item => item.id === wedding.id
+                ? { ...item, status: 'active', approved_at: new Date().toISOString() }
+                : item
+            ));
+            setActiveActionSheet(null);
+            alert('Event approved and activated. The owner can now share and manage it.');
+        } catch (error) {
+            alert('Error approving event: ' + error.message);
+        }
+    };
+
     const handleDeleteAccount = async () => {
         if (!currentUser) return;
         
@@ -1124,6 +1165,7 @@ const AdminDashboard = () => {
         v.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const pendingApprovalCount = weddings.filter(w => w.status === 'pending').length;
 
     return (
         <div className="rr-page">
@@ -1140,7 +1182,36 @@ const AdminDashboard = () => {
                         <div className="hero-meta">Managing all your celebrations</div>
 
                         <div className="hero-btns">
-                            {currentUser && SUPER_USER_EMAILS.includes(currentUser.email) && (
+                            <button
+                                type="button"
+                                className="hbtn"
+                                onClick={() => setActiveTab('approvals')}
+                                style={{ textDecoration: 'none', position: 'relative', border: 'none', background: 'rgba(255,255,255,0.08)', cursor: 'pointer' }}
+                            >
+                                <div className="hbtn-icon" style={{ color: '#f59e0b' }}><i className="fas fa-stamp"></i></div>
+                                <span className="hbtn-lbl">APPROVALS</span>
+                                {pendingApprovalCount > 0 && (
+                                    <span style={{
+                                        position: 'absolute',
+                                        top: -4,
+                                        right: -4,
+                                        background: '#ef4444',
+                                        color: '#fff',
+                                        borderRadius: '50%',
+                                        width: 22,
+                                        height: 22,
+                                        fontSize: '0.72rem',
+                                        fontWeight: 800,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+                                    }}>
+                                        {pendingApprovalCount}
+                                    </span>
+                                )}
+                            </button>
+                            {(isSuperAdmin || (currentUser && SUPER_USER_EMAILS.includes(currentUser.email))) && (
                                 <>
                                     <Link to="/addWedding" className="hbtn" style={{ textDecoration: 'none' }}>
                                         <div className="hbtn-icon"><i className="fas fa-plus"></i></div>
@@ -1187,6 +1258,11 @@ const AdminDashboard = () => {
                             <div className="sec-title">Event Activities</div>
                             <div className="sec-tabs" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                                 <style>{`.sec-tabs::-webkit-scrollbar { display: none; }`}</style>
+                                <button className={`sec-tab ${activeTab === 'approvals' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('approvals')}>
+                                    <i className="fas fa-stamp" style={{ marginRight: 6 }}></i>
+                                    Approvals
+                                    {pendingApprovalCount > 0 && <span className="tab-pending-badge">{pendingApprovalCount}</span>}
+                                </button>
                                 <button className={`sec-tab ${activeTab === 'weddings' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('weddings')}>Weddings</button>
                                 <button className={`sec-tab ${activeTab === 'birthdays' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('birthdays')}>Birthdays</button>
                                 <button className={`sec-tab ${activeTab === 'bridal_showers' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('bridal_showers')}>Bridal Showers</button>
@@ -1195,6 +1271,19 @@ const AdminDashboard = () => {
                                 <button className={`sec-tab ${activeTab === 'archives' ? 'sec-tab-on' : ''}`} onClick={() => setActiveTab('archives')}>Archives</button>
                             </div>
                         </div>
+
+                        {/* APPROVALS TAB CONTENT */}
+                        {activeTab === 'approvals' && (
+                            <ApprovalRequests
+                                weddings={weddings}
+                                onRefresh={async () => {
+                                    await fetchWeddings(currentUser);
+                                    await fetchProfiles();
+                                }}
+                                currentUser={currentUser}
+                                userProfiles={userProfiles}
+                            />
+                        )}
 
                         {/* LIST */}
                         <div className="guest-list">
@@ -1207,13 +1296,13 @@ const AdminDashboard = () => {
                             {activeTab === 'weddings' && activeWeddings.map(wedding => {
                                 const isPositive = (wedding.rsvp_count || 0) > 0;
                                 return (
-                                    <div key={wedding.id} className="g-row" onClick={() => navigate(`/w/${wedding.slug}`)} style={{ cursor: 'pointer' }}>
+                                    <div key={wedding.id} className="g-row" onClick={() => (wedding.status === 'active' || !wedding.status || SUPER_USER_EMAILS.includes(currentUser?.email)) && navigate(`/w/${wedding.slug}`)} style={{ cursor: wedding.status === 'pending' ? 'default' : 'pointer' }}>
                                         <div className="g-avatar" style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%)' }}>
                                             {wedding.groom_name?.substring(0, 1)}{wedding.bride_name?.substring(0, 1)}
                                         </div>
                                         <div className="g-info">
                                             <span className="g-name">{wedding.groom_name} & {wedding.bride_name}</span>
-                                            <span className="g-sub">Wedding Co. • {new Date(wedding.date).toLocaleDateString()}</span>
+                                            <span className="g-sub">Wedding Co. • {new Date(wedding.date).toLocaleDateString()} • {wedding.status === 'pending' ? 'Awaiting approval' : 'Active'}</span>
                                         </div>
                                         <div className="g-right">
                                             <span className={`g-count ${isPositive ? 'gc-green' : 'gc-red'}`}>{wedding.rsvp_count || 0}</span>
@@ -1233,6 +1322,7 @@ const AdminDashboard = () => {
                                                     copyType: 'preview',
                                                     editUrl: `/editWedding/${wedding.id}`,
                                                     rawEvent: wedding,
+                                                    restricted: wedding.status === 'pending' && !SUPER_USER_EMAILS.includes(currentUser?.email),
                                                     reportUrl: `/report/${wedding.slug}`,
                                                     onDownload: () => downloadRSVPs(wedding.id, `${wedding.groom_name}_${wedding.bride_name}`),
                                                     onDelete: () => handleDelete(wedding.id, `${wedding.groom_name} & ${wedding.bride_name}`)
@@ -1574,6 +1664,28 @@ const AdminDashboard = () => {
 
                 {/* BOTTOM NAV */}
                 <nav className="btm-nav">
+                    <button className={`bn-item ${activeTab === 'approvals' ? 'bn-active' : ''}`} onClick={() => setActiveTab('approvals')} style={{ position: 'relative' }}>
+                        <i className="fas fa-stamp"></i><span>Approvals</span>
+                        {pendingApprovalCount > 0 && (
+                            <span style={{
+                                position: 'absolute',
+                                top: 4,
+                                right: '20%',
+                                background: '#ef4444',
+                                color: '#fff',
+                                borderRadius: '50%',
+                                width: 16,
+                                height: 16,
+                                fontSize: '0.65rem',
+                                fontWeight: 800,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}>
+                                {pendingApprovalCount}
+                            </span>
+                        )}
+                    </button>
                     <button className={`bn-item ${activeTab === 'weddings' ? 'bn-active' : ''}`} onClick={() => setActiveTab('weddings')}>
                         <i className="fas fa-ring"></i><span>Weddings</span>
                     </button>
@@ -1586,9 +1698,6 @@ const AdminDashboard = () => {
                     <button className={`bn-item ${activeTab === 'bridal_showers' ? 'bn-active' : ''}`} onClick={() => setActiveTab('bridal_showers')}>
                         <i className="fas fa-gift"></i><span>Showers</span>
                     </button>
-                    <button className={`bn-item ${activeTab === 'vendors' ? 'bn-active' : ''}`} onClick={() => setActiveTab('vendors')}>
-                        <i className="fas fa-store"></i><span>Vendors</span>
-                    </button>
                 </nav>
             </div>
 
@@ -1598,7 +1707,31 @@ const AdminDashboard = () => {
                     <div className="vm-box" onClick={e => e.stopPropagation()} style={{ padding: '1.5rem', height: 'auto', gap: '0.85rem' }}>
                         <h3 className="vm-name">Menu</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                            {currentUser && SUPER_USER_EMAILS.includes(currentUser.email) && (
+                            <button
+                                type="button"
+                                className="nav-btn primary"
+                                onClick={() => {
+                                    setActiveTab('approvals');
+                                    setShowMobileMenu(false);
+                                }}
+                                style={{
+                                    padding: '0.85rem',
+                                    textAlign: 'center',
+                                    background: 'linear-gradient(135deg, #1fa09b 0%, #167a76 100%)',
+                                    color: '#fff',
+                                    borderRadius: '12px',
+                                    border: 'none',
+                                    fontWeight: 700,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.5rem',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <i className="fas fa-stamp" /> Approval Requests ({pendingApprovalCount})
+                            </button>
+                            {(isSuperAdmin || (currentUser && SUPER_USER_EMAILS.includes(currentUser.email))) && (
                                 <>
                                     <Link to="/addWedding" className="nav-btn primary" onClick={() => setShowMobileMenu(false)} style={{ padding: '0.85rem', textAlign: 'center', background: '#12121c', color: '#a3e635', borderRadius: '12px', textDecoration: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                                         <i className="fas fa-plus"></i> Create New Wedding
@@ -1642,7 +1775,7 @@ const AdminDashboard = () => {
                         <p className="vm-desc" style={{ marginBottom: '1.5rem' }}>{activeActionSheet.subtitle}</p>
 
                         {/* Template Selector for Wedding */}
-                        {activeActionSheet.type === 'wedding' && (
+                        {activeActionSheet.type === 'wedding' && !activeActionSheet.restricted && (
                             <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                 <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>
                                     <i className="fas fa-layer-group" style={{ marginRight: 6 }}></i> Choose Template to Share:
@@ -1710,7 +1843,22 @@ const AdminDashboard = () => {
                             </div>
                         )}
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {activeActionSheet.type === 'wedding' && activeActionSheet.rawEvent.status === 'pending' && currentUser && SUPER_USER_EMAILS.includes(currentUser.email) && (
+                            <button
+                                onClick={() => handleApproveWedding(activeActionSheet.rawEvent)}
+                                className="ga-approve"
+                                style={{ background: '#16a34a', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem', marginBottom: '0.75rem' }}
+                            >
+                                <i className="fas fa-check-circle"></i> Confirm Payment & Approve Event
+                            </button>
+                        )}
+
+                        {activeActionSheet.restricted ? (
+                            <div style={{ padding: '1rem', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '12px', color: '#9a3412' }}>
+                                <strong>Pending approval</strong>
+                                <p style={{ margin: '0.45rem 0 0' }}>Share Link, Manage Guests, RSVPs, and guest list tools will appear here after payment is confirmed by the admin.</p>
+                            </div>
+                        ) : <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             <a 
                                 href={
                                     activeActionSheet.type === 'wedding'
@@ -1755,7 +1903,7 @@ const AdminDashboard = () => {
                             <button onClick={() => { activeActionSheet.onDelete(); setActiveActionSheet(null); }} className="ga-approve" style={{ background: '#ef4444', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '0.85rem' }}>
                                 <i className="fas fa-trash"></i> Delete Event
                             </button>
-                        </div>
+                        </div>}
                     </div>
                 </div>
             )}

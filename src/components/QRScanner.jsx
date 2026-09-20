@@ -8,22 +8,16 @@ const QRScanner = ({ onScan, onError, isActive = true }) => {
     const scannerInstanceRef = useRef(null);
     const isStartedRef = useRef(false);
 
-    useEffect(() => {
-        onScanRef.current = onScan;
-    }, [onScan]);
-
-    useEffect(() => {
-        onErrorRef.current = onError;
-    }, [onError]);
+    useEffect(() => { onScanRef.current = onScan; }, [onScan]);
+    useEffect(() => { onErrorRef.current = onError; }, [onError]);
 
     const stopScanner = async () => {
         if (!scannerInstanceRef.current || !isStartedRef.current) return;
-
         try {
             await scannerInstanceRef.current.stop();
             scannerInstanceRef.current.clear();
         } catch (err) {
-            // Ignore stop errors while camera is already inactive.
+            // Ignore stop errors
         } finally {
             isStartedRef.current = false;
         }
@@ -31,20 +25,16 @@ const QRScanner = ({ onScan, onError, isActive = true }) => {
 
     const startScanner = async () => {
         if (!scannerRef.current || isStartedRef.current) return;
-
         const html5QrCode = new Html5Qrcode("qr-reader");
         scannerInstanceRef.current = html5QrCode;
-
         try {
             await html5QrCode.start(
                 { facingMode: "environment" },
                 {
                     fps: 10,
                     qrbox: (viewfinderWidth, viewfinderHeight) => {
-                        const minEdgePercentage = 0.7;
-                        const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
-                        const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
-                        return { width: qrboxSize, height: qrboxSize };
+                        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                        return { width: Math.floor(minEdge * 0.85), height: Math.floor(minEdge * 0.85) };
                     },
                     aspectRatio: 1.0,
                     formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]
@@ -54,63 +44,46 @@ const QRScanner = ({ onScan, onError, isActive = true }) => {
                         onScanRef.current([{ rawValue: decodedText.trim() }]);
                     }
                 },
-                () => {
-                    // Ignore frequent frame-level decode errors.
-                }
+                () => { /* ignore frame-level errors */ }
             );
             isStartedRef.current = true;
         } catch (err) {
             console.error("Camera start error", err);
-            if (onErrorRef.current) {
-                onErrorRef.current(err);
-            }
+            if (onErrorRef.current) onErrorRef.current(err);
         }
     };
 
     useEffect(() => {
         startScanner();
-        return () => {
-            stopScanner();
-        };
+        return () => { stopScanner(); };
     }, []);
 
     useEffect(() => {
-        if (isActive) {
-            startScanner();
-        } else {
-            stopScanner();
-        }
+        if (isActive) startScanner();
+        else stopScanner();
     }, [isActive]);
 
     return (
-        <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: '300px', background: '#000' }}>
-            <div id="qr-reader" ref={scannerRef} style={{ width: '100%', height: '100%', minHeight: '300px', background: '#000' }}></div>
+        <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: '360px', background: '#000' }}>
+            <div id="qr-reader" ref={scannerRef} style={{ width: '100%', height: '100%', minHeight: '360px', background: '#000' }} />
             {!isActive && (
                 <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'rgba(15, 23, 42, 0.48)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 20,
-                    backdropFilter: 'blur(2px)'
+                    position: 'absolute', inset: 0,
+                    background: 'rgba(0,0,0,0.65)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 20, backdropFilter: 'blur(3px)'
                 }}>
                     <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.6rem',
-                        background: 'rgba(15, 23, 42, 0.72)',
-                        border: '1px solid rgba(255,255,255,0.12)',
-                        borderRadius: '999px',
-                        color: '#f8fafc',
-                        padding: '0.6rem 0.9rem',
-                        fontSize: '0.76rem',
+                        background: 'rgba(255,255,255,0.08)',
+                        border: '1px solid rgba(255,255,255,0.18)',
+                        borderRadius: '6px',
+                        color: '#f1f5f9',
+                        padding: '0.55rem 1.1rem',
+                        fontSize: '0.75rem',
                         fontWeight: 700,
-                        letterSpacing: '0.04em',
+                        letterSpacing: '0.12em',
                         textTransform: 'uppercase'
                     }}>
-                        <i className="fas fa-lock"></i>
                         Scanner Paused
                     </div>
                 </div>

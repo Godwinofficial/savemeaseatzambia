@@ -18,17 +18,16 @@
 .modern-builder-container {
     display: flex;
     width: 100%;
-    height: 100dvh;
+    min-height: 100vh;
     overflow: hidden;
     font-family: 'Inter', sans-serif;
-    background: var(--aw-bg);
+    background:
+        radial-gradient(circle at top left, rgba(129, 140, 248, 0.16), transparent 22%),
+        radial-gradient(circle at bottom right, rgba(236, 72, 153, 0.08), transparent 26%),
+        linear-gradient(135deg, #f8fafc 0%, #eef2ff 40%, #f8fafc 100%);
     color: var(--aw-text);
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 9999;
+    position: relative;
+    z-index: 1;
 }
 
 /* Sidebar Navigation */
@@ -182,20 +181,21 @@
 }
 
 .editor-header {
-    padding: 1.25rem 2rem;
-    background: rgba(248, 250, 252, 0.97);
+    padding: 1.4rem 2.25rem;
+    background: rgba(255, 255, 255, 0.75);
     position: sticky;
     top: 0;
     z-index: 20;
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--aw-border);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.04);
 }
 .editor-header-main {
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    max-width: 960px;
+    max-width: 1040px;
     margin: 0 auto;
     gap: 1rem;
 }
@@ -245,14 +245,14 @@
     font-family: 'Outfit', sans-serif;
 }
 .header-action-btn.primary {
-    background: var(--aw-primary);
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
     color: #ffffff;
-    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+    box-shadow: 0 10px 22px rgba(79, 70, 229, 0.24);
 }
 .header-action-btn.primary:hover {
-    background: var(--aw-primary-dark);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+    background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(79, 70, 229, 0.32);
 }
 .header-action-btn.secondary {
     background: #ffffff;
@@ -388,20 +388,20 @@
 .clean-form-container .story-card,
 .clean-form-container .highlight-card,
 .clean-form-container .map-section {
-    background: rgba(255, 255, 255, 0.7) !important;
+    background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.98) 100%) !important;
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.5) !important;
-    border-radius: var(--aw-radius) !important;
+    border: 1px solid rgba(148, 163, 184, 0.18) !important;
+    border-radius: 22px !important;
     padding: 2rem;
     margin-bottom: 1.75rem;
-    box-shadow: var(--aw-shadow);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 .clean-form-container .person-card:hover,
 .clean-form-container .event-card:hover,
 .clean-form-container .story-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--aw-shadow-hover);
+    transform: translateY(-3px);
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.11);
 }
 
 .clean-form-container h3,
@@ -702,27 +702,27 @@
 }
 
 .footer-btn.btn-next {
-    background: #0f172a;
-    border: 1px solid #0f172a;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border: 1px solid rgba(15, 23, 42, 0.4);
     color: #ffffff;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+    box-shadow: 0 10px 18px rgba(15, 23, 42, 0.15);
 }
 .footer-btn.btn-next:hover {
-    background: #1e293b;
+    background: linear-gradient(135deg, #111827 0%, #334155 100%);
     transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.2);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.22);
 }
 
 .footer-btn.btn-submit {
-    background: var(--aw-primary);
-    border: 1px solid var(--aw-primary);
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    border: 1px solid rgba(79, 70, 229, 0.2);
     color: #ffffff;
-    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+    box-shadow: 0 12px 20px rgba(79, 70, 229, 0.28);
 }
 .footer-btn.btn-submit:hover {
-    background: var(--aw-primary-dark);
+    background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4);
+    box-shadow: 0 16px 26px rgba(79, 70, 229, 0.38);
 }
 
 /* Preview Area - Disabled to prevent wasting space */

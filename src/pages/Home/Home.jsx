@@ -9,6 +9,7 @@ import logoImg from '/src/assets/images/logo1.png';
 import weddingImg from '/src/assets/images/wedding.png';
 import wedding2Img from '/src/assets/images/wedding2.jpg';
 import { supabase } from '../../supabaseClient';
+import useUserRole from '../../utils/useUserRole';
 import corporateImg from '/src/assets/images/Business Meeting Invitation.png';
 import birthdayImg from '/src/assets/images/Birthday Greeting Card.png';
 import weddingInvitationCardImg from '/src/assets/images/Wedding Invitation Card.png';
@@ -57,7 +58,7 @@ const playSuccessBeep = () => {
 };
 
 // Header Component
-const Header = ({ user, onOpenAuth }) => {
+const Header = ({ user, onOpenAuth, isSuperAdmin }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
 
@@ -102,18 +103,23 @@ const Header = ({ user, onOpenAuth }) => {
                         <li><a href="#payment" onClick={handleNavClick}>Payment</a></li>
                         <li><a href="#faq-section" onClick={handleNavClick}>FAQ</a></li>
                         <li><a href="#contact" onClick={handleNavClick}>Contact</a></li>
-                        
+
+
+
                         {user ? (
                             <>
-                                <li><Link to="/admin" onClick={handleNavClick} style={{ fontWeight: 700, color: 'var(--primary)' }}>Dashboard</Link></li>
+                                <li><Link to="/my-events" onClick={handleNavClick} style={{ fontWeight: 700, color: 'var(--primary)' }}>My Events</Link></li>
+                                {isSuperAdmin && (
+                                    <li><Link to="/admin" onClick={handleNavClick} style={{ fontWeight: 700, color: '#c5a059' }}><i className="fas fa-shield-alt" style={{ marginRight: 4 }} />Admin</Link></li>
+                                )}
                                 <li>
-                                    <a 
-                                        href="#" 
-                                        onClick={async (e) => { 
-                                            e.preventDefault(); 
-                                            await supabase.auth.signOut(); 
-                                            handleNavClick(); 
-                                        }} 
+                                    <a
+                                        href="#"
+                                        onClick={async (e) => {
+                                            e.preventDefault();
+                                            await supabase.auth.signOut();
+                                            handleNavClick();
+                                        }}
                                         style={{ color: '#ef4444', fontWeight: 600 }}
                                     >
                                         Sign Out
@@ -122,20 +128,20 @@ const Header = ({ user, onOpenAuth }) => {
                             </>
                         ) : (
                             <li>
-                                <a 
-                                    href="#" 
-                                    onClick={(e) => { 
-                                        e.preventDefault(); 
-                                        onOpenAuth('signin'); 
-                                        handleNavClick(); 
-                                    }} 
+                                <a
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        onOpenAuth('signin');
+                                        handleNavClick();
+                                    }}
                                     style={{ fontWeight: 700, color: 'var(--primary)' }}
                                 >
                                     Sign In
                                 </a>
                             </li>
                         )}
-                        
+
                         <li className="nav-cta-item">
                             <a
                                 href="https://wa.me/260960968349"
@@ -154,7 +160,7 @@ const Header = ({ user, onOpenAuth }) => {
 };
 
 // Modern Hero Component (SaaS Layout)
-const Hero = ({ user, onOpenAuth }) => {
+const Hero = ({ user, onOpenAuth, isSuperAdmin }) => {
     return (
         <section className="hero modern-hero">
             <div className="hero-mesh-bg"></div>
@@ -163,22 +169,25 @@ const Hero = ({ user, onOpenAuth }) => {
                 {/* Left Content Area */}
                 <div className="hero-content">
                     <h1 className="animate-fade-in-up delay-1 hero-main-title">
-                        Create The <br />
-                        <span className="highlight-text">Perfect Invitation</span>
+                        Digital Event <br />
+                        <span className="highlight-text">Management Platform</span>
                     </h1>
 
                     <p className="hero-description animate-fade-in-up delay-2">
-                        Create unforgettable digital invitations with seamless guest management for weddings, birthdays, bridal showers, and corporate events.
+                        A complete event management system to handle your guest list, send beautiful digital invitations, track RSVPs in real-time, and manage check-ins.
                     </p>
 
                     <div className="hero-buttons animate-fade-in-up delay-3">
+                        <Link to="/create-event" className="hero-btn-dark" style={{ background: 'linear-gradient(135deg, #14352b 0%, #1f4d3f 100%)', border: '1px solid rgba(197, 160, 89, 0.4)', color: '#c5a059', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
+                            Create Your Event <i className="fas fa-arrow-right btn-arrow" style={{ marginLeft: 8, color: '#1fa09b' }}></i>
+                        </Link>
                         {user ? (
-                            <Link to="/admin" className="hero-btn-dark">
-                                Go to Dashboard <i className="fas fa-arrow-right btn-arrow"></i>
+                            <Link to={isSuperAdmin ? "/admin" : "/my-events"} className="hero-btn-line-link" style={{ textDecoration: 'none' }}>
+                                <span className="btn-inline-line"></span>{isSuperAdmin ? "ADMIN DASHBOARD" : "MY EVENTS"}
                             </Link>
                         ) : (
-                            <button onClick={() => onOpenAuth('signup')} className="hero-btn-dark" style={{ border: 'none', cursor: 'pointer' }}>
-                                Sign Up <i className="fas fa-arrow-right btn-arrow"></i>
+                            <button onClick={() => onOpenAuth('signup')} className="hero-btn-line-link" style={{ border: 'none', background: 'none', cursor: 'pointer', font: 'inherit' }}>
+                                <span className="btn-inline-line"></span>SIGN UP FREE
                             </button>
                         )}
                         <Link to="/templates" className="hero-btn-line-link">
@@ -191,10 +200,10 @@ const Hero = ({ user, onOpenAuth }) => {
                             <img src={avatar1} alt="User" className="avatar-img" />
                             <img src={avatar2} alt="User" className="avatar-img" />
                             <img src={avatar3} alt="User" className="avatar-img" />
-                            <div className="avatar-overflow">+2k</div>
+                            <div className="avatar-overflow">+50k</div>
                         </div>
                         <div className="social-proof-text">
-                            <strong>Trusted by 2K+</strong> hosts and planners across Zambia.
+                            <strong>Trusted by 50K+</strong> hosts and planners across Zambia.
                         </div>
                     </div>
                 </div>
@@ -480,28 +489,52 @@ const ServiceCard = ({ icon, title, description, labelCode, index }) => (
 const Services = () => {
     const services = [
         {
-            icon: 'fas fa-envelope-open-text',
-            title: 'Wedding Invitations',
-            description: 'Elegant and romantic wedding invitation portals with robust guest lists, map widgets, gift registry integration, and live RSVP dashboards.',
-            labelCode: 'PRT-WD-01'
+            icon: 'fas fa-ring',
+            title: 'Weddings',
+            description: 'Beautiful invitations, couple guest management, RSVP tracking and QR check-in.',
+            labelCode: 'EVT-WD'
+        },
+        {
+            icon: 'fas fa-birthday-cake',
+            title: 'Birthdays',
+            description: 'Fun invitations, custom guest message walls, and easy attendance tracking.',
+            labelCode: 'EVT-BD'
+        },
+        {
+            icon: 'fas fa-graduation-cap',
+            title: 'Graduations',
+            description: 'Share your achievement, manage family RSVPs, and track guest numbers.',
+            labelCode: 'EVT-GR'
+        },
+        {
+            icon: 'fas fa-gem',
+            title: 'Bridal Showers',
+            description: 'Elegant layouts, dress code guidelines, and integrated gift registries.',
+            labelCode: 'EVT-BS'
+        },
+        {
+            icon: 'fas fa-baby',
+            title: 'Baby Showers',
+            description: 'Cute invitations, group management, and registry syncing in one place.',
+            labelCode: 'EVT-BBS'
+        },
+        {
+            icon: 'fas fa-utensils',
+            title: 'Kitchen Parties',
+            description: 'Vibrant templates, committee coordination, and custom guest categories.',
+            labelCode: 'EVT-KP'
         },
         {
             icon: 'fas fa-briefcase',
             title: 'Corporate Events',
-            description: 'Professional high-speed event invitations built for conferences, product launches, and annual banquets with direct brand customization.',
-            labelCode: 'PRT-CP-02'
+            description: 'Professional invitations, attendee registration, and attendance tracking.',
+            labelCode: 'EVT-CP'
         },
         {
-            icon: 'fas fa-birthday-cake',
-            title: 'Birthdays & Anniversaries',
-            description: 'Fun, modern templates featuring memory sharing columns, photo uploaders, custom guest message walls, and vibrant colors.',
-            labelCode: 'PRT-BD-03'
-        },
-        {
-            icon: 'fas fa-crown',
-            title: 'Bridal & Baby Showers',
-            description: 'Editorial-grade customized showcase invitations with beautiful script typography, dress code guidelines, and direct register syncs.',
-            labelCode: 'PRT-BS-04'
+            icon: 'fas fa-glass-cheers',
+            title: 'Private Events',
+            description: 'Exclusive invitations, strict capacity control, and secure guest access.',
+            labelCode: 'EVT-PR'
         }
     ];
 
@@ -509,10 +542,10 @@ const Services = () => {
         <section className="services" id="services">
             <div className="container">
                 <div className="section-title-wrap">
-                    <span className="sub-title">CORE CAPABILITIES</span>
-                    <h2>Tailored Digital Guest Infrastructure</h2>
+                    <span className="sub-title">EVENT TYPES</span>
+                    <h2>Tailored For Every Occasion</h2>
                     <p className="section-desc">
-                        Beautiful, high-speed, and interactive digital invitations that simplify how Zambia plans celebrations.
+                        Each event has its own management requirements. Our platform adapts seamlessly to your needs.
                     </p>
                 </div>
                 <div className="services-grid">
@@ -889,33 +922,48 @@ const WhyChoose = () => {
     const features = [
         {
             num: '01',
-            title: 'LIVE RSVP DASHBOARD',
-            description: 'Gain instant, complete visibility over guest confirmation statuses, meal selections, and check-in metrics from your interactive client panel.'
+            title: 'GUEST MANAGEMENT',
+            description: 'Organise and manage everyone invited to your event.'
         },
         {
             num: '02',
-            title: 'SMART CAPACITY CONTROL',
-            description: 'Set strict guest capacity limits, configure automatic deadline locks, and adjust response rules instantly as your venue layout evolves.'
+            title: 'RSVP MANAGEMENT',
+            description: 'Track responses in real time.'
         },
         {
             num: '03',
-            title: 'ULTRA-FAST MOBILE LOAD',
-            description: 'Optimized, highly-compressed invitation layouts load in under 2 seconds on low-bandwidth Airtel and MTN connections, so no guest is left behind.'
+            title: 'DIGITAL INVITATIONS',
+            description: 'Create beautiful invitations without starting from scratch.'
         },
         {
             num: '04',
-            title: 'EXCLUSIVE GUEST SECURITY',
-            description: 'Prevent uninvited gatecrashers by locking RSVP access exclusively to verified invitee names, family units, or security-capped guest passes.'
+            title: 'EVENT INFORMATION',
+            description: 'Keep venue, date, programme, and dress code accessible to guests.'
         },
         {
             num: '05',
-            title: 'LUXURY DESIGN DIRECTIVES',
-            description: 'Every digital invitation website is tailor-made by elite designers, incorporating premium typography, smooth transitions, and high-fidelity layouts.'
+            title: 'QR CHECK IN',
+            description: 'Verify guests at the entrance and track attendance.'
         },
         {
             num: '06',
-            title: 'AUTOMATED GUEST NUDGES',
-            description: 'Shorten guest coordination cycles using automated email nudges and friendly reminder updates that prompt pending invitees before deadlines close.'
+            title: 'GUEST CATEGORIES',
+            description: 'Organise guests into groups such as Family, Friends, VIP and Colleagues.'
+        },
+        {
+            num: '07',
+            title: 'GUEST PASSES',
+            description: 'Give approved guests their personalised invitation or QR pass.'
+        },
+        {
+            num: '08',
+            title: 'EVENT ANALYTICS',
+            description: 'See important numbers such as invitations sent, responses and attendance.'
+        },
+        {
+            num: '09',
+            title: 'SEATING MANAGEMENT',
+            description: 'Assign seat numbers to guests and manage table arrangements easily.'
         }
     ];
 
@@ -923,10 +971,10 @@ const WhyChoose = () => {
         <section className="why-choose" id="why-choose">
             <div className="container">
                 <div className="section-title-wrap dark-section-title">
-                    <span className="sub-title">THE SAVE ME A SEAT WAY</span>
-                    <h2>The Pillars of Zambia's Event Excellence</h2>
+                    <span className="sub-title">EVERYTHING IN ONE PLACE</span>
+                    <h2>Event Management Tools</h2>
                     <p className="section-desc">
-                        Engineering digital coordination tools that prioritize speed, security, and beautiful aesthetics.
+                        Everything you need to plan, invite, and track your guests seamlessly.
                     </p>
                 </div>
                 <div className="why-features-grid">
@@ -1037,27 +1085,39 @@ const HowItWorks = () => {
     const steps = [
         {
             number: '01',
-            icon: 'fas fa-comments',
-            title: 'Initial Consultation',
-            description: 'We discuss your event theme, program layout, guest limit requirements, and custom registry preferences.'
+            icon: 'fas fa-calendar-plus',
+            title: 'Create Your Event',
+            description: 'Sign up and enter your event details, schedule, and preferences in minutes.'
         },
         {
             number: '02',
             icon: 'fas fa-paint-brush',
-            title: 'Bespoke Design Phase',
-            description: 'Our design collective creates a premium digital invitation draft matching your colors, images, and fonts.'
+            title: 'Design Invitation',
+            description: 'Select a premium template and customise it with your photos, colours and typography.'
         },
         {
             number: '03',
-            icon: 'fas fa-rocket',
-            title: 'Launch & Guest Sendout',
-            description: 'Your invitation site goes live with a custom slug link, ready to be shared instantly across WhatsApp and social channels.'
+            icon: 'fas fa-users',
+            title: 'Add Your Guests',
+            description: 'Build your guest list, organise them into groups, and set plus-one rules.'
         },
         {
             number: '04',
-            icon: 'fas fa-chart-line',
-            title: 'Real-Time RSVP Control',
-            description: 'Track responses instantly. Export guest Excel sheets, scan check-in QR codes, and monitor attendance live.'
+            icon: 'fas fa-share-alt',
+            title: 'Share & Collect RSVPs',
+            description: 'Send invitations through WhatsApp or email and track responses automatically.'
+        },
+        {
+            number: '05',
+            icon: 'fas fa-tasks',
+            title: 'Manage Your Event',
+            description: 'Use your dashboard to handle seating arrangements, dietary needs, and schedules.'
+        },
+        {
+            number: '06',
+            icon: 'fas fa-qrcode',
+            title: 'Check In Guests',
+            description: 'Scan guest QR passes at the door for fast, secure entry and live attendance tracking.'
         }
     ];
 
@@ -1065,10 +1125,10 @@ const HowItWorks = () => {
         <section className="how-it-works" id="how-it-works">
             <div className="container">
                 <div className="section-title-wrap">
-                    <span className="sub-title">STREAMLINED PLANNING</span>
+                    <span className="sub-title">DO IT YOURSELF</span>
                     <h2>How It Works</h2>
                     <p className="section-desc">
-                        Our straightforward four-step process takes the hassle and stress out of invitation logistics.
+                        Our simple 6-step platform lets you create and manage your entire event on your own.
                     </p>
                 </div>
                 <div className="steps">
@@ -2397,8 +2457,8 @@ const Footer = () => {
 function App() {
     const [activePopup, setActivePopup] = useState(null);
     const [selectedTemplate, setSelectedTemplate] = useState(null);
-    const [user, setUser] = useState(null);
-    
+    const { user, isSuperAdmin } = useUserRole();
+
     // Auth Modal states
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [authMode, setAuthMode] = useState('signin'); // 'signin' | 'signup'
@@ -2411,16 +2471,8 @@ function App() {
 
     const navigate = useNavigate();
 
-    // Check session on mount
+    // Check email verification redirect
     useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setUser(session?.user ?? null);
-        });
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
-        });
-
         // Check if redirected from sign-up email confirmation link
         const hash = window.location.hash;
         const search = window.location.search;
@@ -2429,7 +2481,7 @@ function App() {
                 const { data: { session } } = await supabase.auth.getSession();
                 if (session) {
                     alert("Email verified successfully! Welcome to SaveMeASeat. 🎉 You have been logged in.");
-                    navigate('/admin');
+                    navigate(isSuperAdmin ? '/admin' : '/my-events');
                 }
             }, 800);
         }
@@ -2442,7 +2494,6 @@ function App() {
         window.addEventListener('open-auth-modal', handleOpenAuth);
 
         return () => {
-            subscription.unsubscribe();
             window.removeEventListener('open-auth-modal', handleOpenAuth);
         };
     }, [navigate]);
@@ -2475,7 +2526,7 @@ function App() {
                     }
                 });
                 if (error) throw error;
-                
+
                 if (data?.session) {
                     setShowAuthModal(false);
                     navigate('/admin');
@@ -2544,8 +2595,8 @@ function App() {
 
     return (
         <div className="home-page">
-            <Header user={user} onOpenAuth={openAuthWithMode} />
-            <Hero user={user} onOpenAuth={openAuthWithMode} />
+            <Header user={user} onOpenAuth={openAuthWithMode} isSuperAdmin={isSuperAdmin} />
+            <Hero user={user} onOpenAuth={openAuthWithMode} isSuperAdmin={isSuperAdmin} />
             <WeddingTemplatesPreview />
             <Services />
             <TemplateShowcase onSelectTemplate={setSelectedTemplate} />
@@ -2797,7 +2848,7 @@ function App() {
                 <div className="auth-overlay" onClick={() => setShowAuthModal(false)}>
                     <div className="auth-modal-card" onClick={(e) => e.stopPropagation()}>
                         <button className="auth-modal-close" onClick={() => setShowAuthModal(false)}>&times;</button>
-                        
+
                         <div className="auth-header">
                             <h3>{authMode === 'signin' ? 'Welcome Back' : 'Create Account'}</h3>
                             <p>{authMode === 'signin' ? 'Sign in to manage your events and guest lists' : 'Sign up to build your custom wedding & event invitations'}</p>

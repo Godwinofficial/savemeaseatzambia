@@ -5,20 +5,28 @@ export default async function handler(req, res) {
         return res.status(405).json({ message: 'Method Not Allowed' });
     }
 
+    if (process.env.EMAIL_SENDING_ENABLED !== 'true') {
+        return res.status(503).json({
+            success: false,
+            message: 'Email sending is temporarily disabled'
+        });
+    }
+
     const { to, subject, html, from } = req.body;
 
     if (!to || !subject || !html) {
         return res.status(400).json({ message: 'Missing required fields' });
     }
 
-    // Use hardcoded credentials as requested
-    const gmailUser = 'contact.savemeaseatzambia@gmail.com';
-    const gmailPass = 'gzcg rpjb xqnn ffec';
-
-    /*
     const gmailUser = process.env.GMAIL_USER;
     const gmailPass = process.env.GMAIL_PASS;
-    */
+
+    if (!gmailUser || !gmailPass) {
+        return res.status(500).json({
+            success: false,
+            message: 'Email service is not configured'
+        });
+    }
 
     try {
         const transporter = nodemailer.createTransport({

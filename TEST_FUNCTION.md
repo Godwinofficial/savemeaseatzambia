@@ -5,7 +5,7 @@
 Copy and paste this into PowerShell to test if your Edge Function works:
 
 ```powershell
-curl -X POST https://jfhszusuahxlydjtzzut.supabase.co/functions/v1/send-reminders -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmaHN6dXN1YWh4bHlkanR6enV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MTYzMDAsImV4cCI6MjA4MzE5MjMwMH0.gpEMjSa2cLpMzGC4NL79KDHnqI1SbZCmh1991KA4_iI" -H "Content-Type: application/json"
+curl -X POST https://YOUR_PROJECT_REF.supabase.co/functions/v1/send-reminders -H "Authorization: Bearer YOUR_ANON_KEY" -H "Content-Type: application/json"
 ```
 
 ## Expected Response

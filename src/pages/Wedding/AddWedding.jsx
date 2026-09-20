@@ -710,6 +710,14 @@ const AddWedding = () => {
     const [currentStep, setCurrentStep] = useState(0);
     const [isMapOpen, setIsMapOpen] = useState(false);
     const [showSidebar, setShowSidebar] = useState(false);
+    const [authUser, setAuthUser] = useState(null);
+    const [showClientAuth, setShowClientAuth] = useState(false);
+    const [authMode, setAuthMode] = useState('signup');
+    const [authName, setAuthName] = useState('');
+    const [authEmail, setAuthEmail] = useState('');
+    const [authPassword, setAuthPassword] = useState('');
+    const [authError, setAuthError] = useState('');
+    const isClientCreate = !isEditMode && window.location.pathname === '/create-event';
 
     const PROPOSAL_STORIES = [
         "Under a canopy of stars on a quiet evening by the lake, with soft waves lapping at the shore, a whispered question changed our lives forever. With happy tears and racing hearts, saying yes was the easiest decision ever made.",
@@ -739,26 +747,42 @@ const AddWedding = () => {
     const initialFormState = {
         extra_card_text: "",
         cover_image: "",
-        bride_name: "", bride_image: "", bride_description: "",
-        groom_name: "", groom_image: "", groom_description: "",
-        date: "", location: "",
-        venue_name: "", venue_address: "", venue_description: "",
-        story_part1: "", story_highlight: "", story_part2: PROPOSAL_STORIES[0],
-        ceremony_date: "", ceremony_time: "", ceremony_venue: "",
-        reception_date: "", reception_time: "", reception_venue: "", reception_address: "",
+        bride_name: "Mutale Mwila", bride_image: "", bride_description: "A joyful, thoughtful and creative soul who brings warmth to every room.",
+        groom_name: "Chanda Banda", groom_image: "", groom_description: "A kind-hearted adventurer who loves family, music and building a beautiful future.",
+        date: "2026-12-12", location: "Lusaka, Zambia",
+        venue_name: "Cathedral of the Holy Cross",
+        venue_address: "Independence Avenue, Lusaka, Zambia",
+        venue_description: "A beautiful celebration surrounded by family and friends.",
+        story_part1: HOW_WE_MET_STORIES[0],
+        story_highlight: SPECIAL_QUOTES[0],
+        story_part2: PROPOSAL_STORIES[0],
+        ceremony_date: "2026-12-12", ceremony_time: "10:00", ceremony_venue: "Cathedral of the Holy Cross",
+        reception_date: "2026-12-12", reception_time: "14:30", reception_venue: "Grand Ballroom at Taj Pamodzi", reception_address: "Church Road, Lusaka, Zambia",
         reception_title: "RECEPTION",
         reception_subtitle: "Party",
         show_gallery_titles: true,
-        rsvp_deadline: "",
-        dress_code: "", dress_code_desc: "",
+        rsvp_deadline: "2026-11-20",
+        dress_code: "Emerald Green and Champagne Gold Formal Attire", dress_code_desc: "Please wear formal attire in emerald green, champagne gold or complementary neutral tones.",
         map_location: "",
         tagline: "We are getting married",
         template_id: 1,
-        slider_images: [], bridesmaids: [], groomsmen: [], gifts: [], gallery_images: [], other_events: [],
-        allowed_guests: ["1"],
-        theme_colors: ['#A68A64', '#FAFAF9', '#E7E5E4', '#292524'],
-        dress_code_colors: [],
-        music_url: "",
+        slider_images: [],
+        bridesmaids: [
+            { name: "Thandiwe Phiri", role: "Maid of Honour", photo: "" },
+            { name: "Ruth Zulu", role: "Bridesmaid", photo: "" }
+        ],
+        groomsmen: [
+            { name: "Bwalya Mwansa", role: "Best Man", photo: "" },
+            { name: "Tapiwa Chileshe", role: "Groomsman", photo: "" }
+        ],
+        gifts: [
+            { giftType: "Mobile Money", provider: "Airtel Money", accountName: "Chanda and Mutale", accountNumber: "097 000 0000", instructions: "Please use wedding reference CBMW", url: "" }
+        ],
+        gallery_images: [], other_events: [],
+        allowed_guests: ["1", "2"],
+        theme_colors: ['#1FA09B', '#C5A059', '#FFFFFF', '#0F172A'],
+        dress_code_colors: ['#1FA09B', '#C5A059'],
+        music_url: defaultMusic,
         hero_video_url: ""
     };
 
@@ -784,6 +808,10 @@ const AddWedding = () => {
     const [musicSearchError, setMusicSearchError] = useState(null);
     const [musicTab, setMusicTab] = useState("search"); // 'search' | 'curated' | 'upload' | 'url'
     const [selectedSongMetadata, setSelectedSongMetadata] = useState(null);
+
+    useEffect(() => {
+        supabase.auth.getUser().then(({ data }) => setAuthUser(data?.user || null));
+    }, []);
 
     const searchOnlineMusic = async (term) => {
         const queryTerm = (term !== undefined ? term : musicSearchQuery).trim();
@@ -1213,7 +1241,7 @@ const AddWedding = () => {
 
             if (uploadError) {
                 if (uploadError.message.includes("row-level security")) {
-                    alert("Supabase Security Error: You need to run the policies in SUPABASE_SETUP.sql to allow uploads.");
+                    alert("There was an issue uploading your file. Please try again or contact support if the problem persists.");
                 }
                 throw uploadError;
             }
@@ -1329,9 +1357,16 @@ const AddWedding = () => {
         setFormData(prev => ({ ...prev, [field]: newArray }));
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (authenticatedUser = authUser) => {
         setLoading(true);
+        setAuthError('');
         try {
+            if (isClientCreate && !authenticatedUser) {
+                setShowClientAuth(true);
+                setLoading(false);
+                return;
+            }
+
             let slug = formData.slug;
             if (!slug) {
                 const slugBase = `${formData.groom_name}-${formData.bride_name}-${formData.date}`
@@ -1342,7 +1377,14 @@ const AddWedding = () => {
             }
 
             const { data: { user } } = await supabase.auth.getUser();
-            const payload = { ...formData, slug };
+            const payload = {
+                ...formData,
+                slug,
+                ...(isClientCreate ? {
+                    user_id: authenticatedUser.id,
+                    status: 'pending'
+                } : {})
+            };
             if (payload.client_id) delete payload.client_id;
 
             // Sanitize empty dates/times to NULL to prevent SQL errors
@@ -1502,6 +1544,37 @@ const AddWedding = () => {
         } catch (error) {
             alert('Error saving wedding: ' + error.message);
         } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleClientAuth = async (event) => {
+        event.preventDefault();
+        setLoading(true);
+        setAuthError('');
+        try {
+            let user = authUser;
+            if (authMode === 'signup') {
+                if (authPassword.length < 6) throw new Error('Password must be at least 6 characters.');
+                const { data, error } = await supabase.auth.signUp({
+                    email: authEmail.trim(),
+                    password: authPassword,
+                    options: { data: { full_name: authName.trim() || `${formData.groom_name} & ${formData.bride_name}` } }
+                });
+                if (error) throw error;
+                user = data?.user;
+                if (!data?.session) throw new Error('Please confirm your email, then log in to continue saving your event.');
+            } else {
+                const { data, error } = await supabase.auth.signInWithPassword({ email: authEmail.trim(), password: authPassword });
+                if (error) throw error;
+                user = data?.user;
+            }
+            setAuthUser(user);
+            setShowClientAuth(false);
+            setAuthPassword('');
+            await handleSubmit(user);
+        } catch (error) {
+            setAuthError(error.message || 'Authentication failed.');
             setLoading(false);
         }
     };
@@ -3519,6 +3592,27 @@ const AddWedding = () => {
                                 {currentStep === 1 && renderStep2()}
                                 {currentStep === 2 && renderStep3()}
                                 {currentStep === 3 && renderStep4()}
+                                {isClientCreate && currentStep === 3 && !authUser && (
+                                    <div className="form-section" style={{ marginTop: '1.5rem', border: '1px solid #cbd5e1', borderRadius: '14px', padding: '1.25rem', background: '#f8fafc' }}>
+                                        <div className="section-header">
+                                            <h3 className="section-subtitle"><i className="fas fa-lock"></i> Sign Up or Log In to Save</h3>
+                                            <p className="section-description">Your completed event will be saved to your account so you can manage it after approval.</p>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                                            <button type="button" className="footer-btn btn-next" onClick={() => { setAuthMode('signup'); setAuthError(''); }}>Create Account</button>
+                                            <button type="button" className="footer-btn btn-back" onClick={() => { setAuthMode('signin'); setAuthError(''); }}>Log In</button>
+                                        </div>
+                                        {showClientAuth && (
+                                            <form onSubmit={handleClientAuth} style={{ display: 'grid', gap: '0.75rem' }}>
+                                                {authMode === 'signup' && <input className="form-input" value={authName} onChange={(e) => setAuthName(e.target.value)} placeholder="Full name" required />}
+                                                <input className="form-input" type="email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} placeholder="Email address" required />
+                                                <input className="form-input" type="password" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} placeholder="Password (at least 6 characters)" required />
+                                                {authError && <div style={{ color: '#b91c1c', fontSize: '0.85rem' }}>{authError}</div>}
+                                                <button className="footer-btn btn-submit" type="submit" disabled={loading}>{loading ? 'Authenticating...' : authMode === 'signup' ? 'Create Account and Continue' : 'Log In and Continue'}</button>
+                                            </form>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

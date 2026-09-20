@@ -21,6 +21,12 @@ ALTER TABLE public.weddings ADD COLUMN IF NOT EXISTS reminder_sent_custom BOOLEA
 -- 3. Add Views Column (if missing)
 ALTER TABLE public.weddings ADD COLUMN IF NOT EXISTS views INTEGER DEFAULT 0;
 
+-- Client event approval workflow. Existing events stay active by default.
+ALTER TABLE public.weddings ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active';
+ALTER TABLE public.weddings ADD COLUMN IF NOT EXISTS payment_proof_sent_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE public.weddings ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ DEFAULT NULL;
+CREATE INDEX IF NOT EXISTS idx_weddings_status ON public.weddings(status);
+
 -- 4. Create RSVPs table if missing
 CREATE TABLE IF NOT EXISTS public.rsvps (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,

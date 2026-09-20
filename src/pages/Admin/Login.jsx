@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import { isDraftMeaningful, pushDraftToUserAccount } from '../../utils/draftManager';
 import './Admin.css';
 
 const Login = () => {
@@ -20,7 +21,27 @@ const Login = () => {
 
             if (error) throw error;
 
-            navigate('/admin');
+            if (isDraftMeaningful()) {
+                await pushDraftToUserAccount(data.user);
+                navigate('/my-events');
+                return;
+            }
+
+            // Check role from public.profiles
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', data.user.id)
+                .single();
+
+            const isSuperAdmin = profile?.role === 'super_admin' || 
+                ['admin@savemeaseat.com', 'godwinbanda19@gmail.com'].includes((data.user.email || '').toLowerCase());
+
+            if (isSuperAdmin) {
+                navigate('/admin');
+            } else {
+                navigate('/my-events');
+            }
         } catch (error) {
             alert(error.message);
         } finally {

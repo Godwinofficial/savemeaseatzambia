@@ -70,6 +70,7 @@ const WeddingTemplate = () => {
   const [cdnLoaded, setCdnLoaded] = useState(false);
   const [showOverlay, setShowOverlay] = useState(true);
   const [isOverlayClosing, setIsOverlayClosing] = useState(false);
+  const [notApproved, setNotApproved] = useState(false);
 
   // Initial Mock Data (Fallback)
   const initialWeddingData = {
@@ -118,14 +119,41 @@ const WeddingTemplate = () => {
     setIsSubmitting(true);
     try {
       const isCouple = dataToSubmit.guests === '2' || dataToSubmit.guests?.includes('2') || !!dataToSubmit.partner_name;
+      const guestsCount = parseInt(dataToSubmit.guests) || (isCouple ? 2 : 1);
+
+      // ── Compute next seat number ──────────────────────────────
+      let nextSeat = 1;
+      try {
+        const { data: seatData } = await supabase
+          .from('rsvps')
+          .select('seat_number, seat_number_end')
+          .eq('wedding_id', weddingData.id)
+          .not('seat_number', 'is', null)
+          .order('seat_number_end', { ascending: false })
+          .limit(1);
+
+        if (seatData && seatData.length > 0) {
+          const maxEnd = seatData[0].seat_number_end ?? seatData[0].seat_number ?? 0;
+          nextSeat = maxEnd + 1;
+        }
+      } catch (_) {
+        // seat_number column may not exist yet — will assign null gracefully
+        nextSeat = null;
+      }
+
+      const seatNumber = nextSeat;
+      const seatNumberEnd = nextSeat !== null ? (nextSeat + guestsCount - 1) : null;
+      // ─────────────────────────────────────────────────────────
+
       const basePayload = {
         wedding_id: weddingData.id,
         name: dataToSubmit.name,
         email: dataToSubmit.email,
         phone: dataToSubmit.phone,
         attending: dataToSubmit.attendance,
-        guests_count: parseInt(dataToSubmit.guests) || (isCouple ? 2 : 1),
-        status: 'pending'
+        guests_count: guestsCount,
+        status: 'pending',
+        ...(seatNumber !== null && { seat_number: seatNumber, seat_number_end: seatNumberEnd })
       };
 
       let insertPayload = {
@@ -164,7 +192,9 @@ const WeddingTemplate = () => {
         email: dataToSubmit.email,
         phone: dataToSubmit.phone,
         attending: dataToSubmit.attendance,
-        guests_count: parseInt(dataToSubmit.guests) || (isCouple ? 2 : 1)
+        guests_count: guestsCount,
+        seat_number: seatNumber ?? record.seat_number ?? null,
+        seat_number_end: seatNumberEnd ?? record.seat_number_end ?? null
       });
       setShowAdmissionCard(true);
 
@@ -192,7 +222,9 @@ const WeddingTemplate = () => {
         email: dataToSubmit.email,
         phone: dataToSubmit.phone,
         attending: dataToSubmit.attendance,
-        guests_count: parseInt(dataToSubmit.guests) || (isCouple ? 2 : 1)
+        guests_count: parseInt(dataToSubmit.guests) || (isCouple ? 2 : 1),
+        seat_number: null,
+        seat_number_end: null
       });
       setShowAdmissionCard(true);
     } finally {
@@ -202,8 +234,9 @@ const WeddingTemplate = () => {
 
   useEffect(() => {
     const isPreview = new URLSearchParams(window.location.search).get('preview') === 'true';
+    const isThemePreview = new URLSearchParams(window.location.search).get('theme_preview') === 'true';
 
-    if (isPreview) {
+    if (isPreview && !isThemePreview) {
       const loadPreviewData = () => {
         try {
           const raw = localStorage.getItem('savemeaseat_preview_data');
@@ -454,7 +487,14 @@ const WeddingTemplate = () => {
 
           if (data && data.length > 0) {
             const dbData = data[0];
-            
+
+            // Status gate: block non-active events from public view (unless in theme preview mode)
+            if (!isThemePreview && (dbData.status === 'pending' || (dbData.status && dbData.status !== 'active' && dbData.status !== 'approved'))) {
+              setNotApproved(true);
+              setLoading(false);
+              return;
+            }
+
             let finalName = dbData.venue_name || dbData.reception_venue || dbData.ceremony_venue || "";
             let finalAddress = dbData.venue_address || dbData.reception_address || "";
             if (!finalName && dbData.location) {
@@ -652,23 +692,105 @@ const WeddingTemplate = () => {
     );
   }
 
+  // Status gate: show "Not Available Yet" for pending events
+  if (notApproved) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #f0fdfc 100%)',
+        fontFamily: "'Outfit', 'Segoe UI', system-ui, sans-serif",
+        padding: '2rem'
+      }}>
+        <div style={{
+          maxWidth: 440,
+          textAlign: 'center',
+          background: '#fff',
+          borderRadius: '20px',
+          padding: '3rem 2rem',
+          boxShadow: '0 8px 32px rgba(15,23,42,0.08)',
+          border: '1px solid #e2e8f0'
+        }}>
+          <div style={{
+            width: 64, height: 64, borderRadius: '50%',
+            background: '#fff7ed', color: '#f59e0b',
+            fontSize: '1.5rem',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 1.25rem'
+          }}>
+            <i className="fas fa-clock" />
+          </div>
+          <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem' }}>
+            Not Available Yet
+          </h1>
+          <p style={{ fontSize: '0.92rem', color: '#64748b', lineHeight: 1.55, margin: '0 0 1.5rem' }}>
+            This invitation is not available yet. The host is still setting things up — please check back later.
+          </p>
+          <a href="/" style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+            background: 'linear-gradient(135deg, #1fa09b, #0d9488)', color: '#fff',
+            padding: '0.6rem 1.25rem', borderRadius: '10px',
+            fontSize: '0.88rem', fontWeight: 700, textDecoration: 'none',
+            boxShadow: '0 4px 12px rgba(31,160,155,0.3)'
+          }}>
+            <i className="fas fa-home" /> Go Home
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   const queryTemplateId = new URLSearchParams(window.location.search).get('template');
   const templateId = queryTemplateId || weddingData.template_id?.toString() || '1';
 
   let templateContent = null;
 
   if (templateId === '2' || templateId === 'tropical-elegance') {
-    templateContent = <TropicalElegance weddingData={weddingData} />;
+    templateContent = (
+      <TropicalElegance
+        weddingData={weddingData}
+        handleRSVPSubmitFromParent={handleRSVPSubmit}
+        parentIsSubmitting={isSubmitting}
+        parentShowAdmissionCard={showAdmissionCard}
+        parentSubmittedRSVP={submittedRSVP}
+      />
+    );
   } else if (templateId === '3' || templateId === 'golden-romance') {
-    templateContent = <GoldenRomance weddingData={weddingData} />;
+    templateContent = (
+      <GoldenRomance
+        weddingData={weddingData}
+        handleRSVPSubmitFromParent={handleRSVPSubmit}
+        parentIsSubmitting={isSubmitting}
+        parentShowAdmissionCard={showAdmissionCard}
+        parentSubmittedRSVP={submittedRSVP}
+      />
+    );
   } else if (templateId === '7' || templateId === 'botanical-olive') {
-    templateContent = <BotanicalOlive weddingData={weddingData} />;
+    templateContent = (
+      <BotanicalOlive
+        weddingData={weddingData}
+        handleRSVPSubmitFromParent={handleRSVPSubmit}
+        parentIsSubmitting={isSubmitting}
+        parentShowAdmissionCard={showAdmissionCard}
+        parentSubmittedRSVP={submittedRSVP}
+      />
+    );
   } else if (templateId === '8' || templateId === 'terracotta-earth') {
-    templateContent = <TerracottaEarth weddingData={weddingData} />;
+    templateContent = (
+      <TerracottaEarth
+        weddingData={weddingData}
+        handleRSVPSubmitFromParent={handleRSVPSubmit}
+        parentIsSubmitting={isSubmitting}
+        parentShowAdmissionCard={showAdmissionCard}
+        parentSubmittedRSVP={submittedRSVP}
+      />
+    );
   } else {
     templateContent = (
-      <DefaultElegance 
-        weddingData={weddingData} 
+      <DefaultElegance
+        weddingData={weddingData}
         handleRSVPSubmitFromParent={handleRSVPSubmit}
         parentIsSubmitting={isSubmitting}
         parentShowAdmissionCard={showAdmissionCard}
@@ -680,9 +802,9 @@ const WeddingTemplate = () => {
   return (
     <>
       {showOverlay && (
-        <InvitationOverlay 
-          weddingData={weddingData} 
-          onEnter={() => setShowOverlay(false)} 
+        <InvitationOverlay
+          weddingData={weddingData}
+          onEnter={() => setShowOverlay(false)}
           onStartClose={() => setIsOverlayClosing(true)}
         />
       )}

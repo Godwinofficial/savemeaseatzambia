@@ -12,6 +12,16 @@ serve(async (req) => {
         return new Response('ok', { headers: corsHeaders })
     }
 
+    if (Deno.env.get('EMAIL_REMINDERS_ENABLED') !== 'true') {
+        return new Response(
+            JSON.stringify({ success: false, message: 'Email reminders are temporarily disabled' }),
+            {
+                status: 503,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+        )
+    }
+
     try {
         // Initialize Supabase client
         const supabaseClient = createClient(

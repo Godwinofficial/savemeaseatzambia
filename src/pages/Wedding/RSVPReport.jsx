@@ -1119,6 +1119,13 @@ const RSVPReport = () => {
                         <div className="hero-ring r1"></div>
                         <div className="hero-ring r2"></div>
 
+                        <div className="hero-nav-bar">
+                            <Link to="/my-events" className="hero-nav-btn">
+                                <i className="fas fa-arrow-left"></i> My Events
+                            </Link>
+                            <span className="hero-nav-badge">RSVP Report</span>
+                        </div>
+
                         <p className="hero-eyebrow">Your RSVPs</p>
                         <div className="hero-big-num">{guests.length + pendingGuests.length}</div>
                         <p className="hero-couple">{wedding.bride_name} & {wedding.groom_name} </p>
@@ -1751,9 +1758,45 @@ const RSVPReport = () => {
                 /* HERO — dark top section inside scroll-area */
                 .hero {
                     background: #12121c;
-                    padding: 2.75rem 1.75rem 2.25rem;
+                    padding: 1.75rem 1.75rem 2.25rem;
                     position: relative; overflow: hidden; text-align: center;
                     flex-shrink: 0;
+                }
+                .hero-nav-bar {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: 1.25rem;
+                    position: relative;
+                    z-index: 2;
+                }
+                .hero-nav-btn {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.4rem;
+                    color: rgba(255, 255, 255, 0.85);
+                    background: rgba(255, 255, 255, 0.12);
+                    padding: 0.4rem 0.8rem;
+                    border-radius: 20px;
+                    font-size: 0.78rem;
+                    font-weight: 600;
+                    text-decoration: none;
+                    backdrop-filter: blur(8px);
+                    transition: all 0.2s ease;
+                }
+                .hero-nav-btn:hover {
+                    background: rgba(255, 255, 255, 0.22);
+                    color: #fff;
+                }
+                .hero-nav-badge {
+                    font-size: 0.72rem;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 0.08em;
+                    color: #a3e635;
+                    background: rgba(163, 230, 53, 0.15);
+                    padding: 0.3rem 0.7rem;
+                    border-radius: 12px;
                 }
                 .hero-ring {
                     position: absolute; border-radius: 50%; pointer-events: none;

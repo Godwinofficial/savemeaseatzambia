@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import { isDraftMeaningful, pushDraftToUserAccount } from '../utils/draftManager';
 import './Admin.css';
 
 const Login = () => {
@@ -19,6 +20,12 @@ const Login = () => {
             });
 
             if (error) throw error;
+
+            if (isDraftMeaningful()) {
+                await pushDraftToUserAccount(data.user);
+                navigate('/my-events');
+                return;
+            }
 
             navigate('/admin');
         } catch (error) {
