@@ -3569,21 +3569,22 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
                 style={{
                   width: '100%', maxWidth: 390, background: '#f2f2f2',
                   boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
+                  alignItems: 'stretch',
+                  textAlign: 'left',
                   ...(isIOS && cardRenderedUrl ? { position: 'absolute', opacity: 0, pointerEvents: 'none', left: '-9999px', top: 0 } : {})
                 }}
               >
 
-
                 {/* Upper white section */}
-                <div style={{ background: '#ffffff', width: '100%', padding: '20px 20px 16px', boxSizing: 'border-box' }}>
+                <div style={{ background: '#ffffff', width: '100%', padding: '20px 20px 16px', boxSizing: 'border-box', textAlign: 'left' }}>
                   {/* Brand + Seat Number row */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px' }}>
-                    <span style={{ fontFamily: 'Montserrat', fontSize: '0.75rem', fontWeight: '800', color: '#111', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+                    <span style={{ fontFamily: 'Montserrat', fontSize: '0.75rem', fontWeight: '800', color: '#111', letterSpacing: '1.5px', textTransform: 'uppercase', textAlign: 'left' }}>
                       SAVEMEASEAT
                     </span>
                     <div style={{ textAlign: 'right' }}>
-                      <p style={{ fontFamily: 'Montserrat', fontSize: '0.55rem', color: '#999', textTransform: 'uppercase', letterSpacing: '1.5px', margin: '0 0 3px 0' }}>SEAT NUMBER</p>
-                      <p style={{ fontFamily: 'Montserrat', fontSize: '1rem', fontWeight: '900', color: '#111', margin: 0, letterSpacing: '1px' }}>
+                      <p style={{ fontFamily: 'Montserrat', fontSize: '0.55rem', color: '#999', textTransform: 'uppercase', letterSpacing: '1.5px', margin: '0 0 3px 0', textAlign: 'right' }}>SEAT NUMBER</p>
+                      <p style={{ fontFamily: 'Montserrat', fontSize: '1rem', fontWeight: '900', color: '#111', margin: 0, letterSpacing: '1px', textAlign: 'right' }}>
                         {submittedRSVP?.seat_number
                           ? (submittedRSVP.seat_number_end && submittedRSVP.seat_number_end !== submittedRSVP.seat_number
                             ? `${submittedRSVP.seat_number} & ${submittedRSVP.seat_number_end}`
@@ -3626,52 +3627,60 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
                 </div>
 
                 {/* Lower details section */}
-                <div style={{ background: '#ffffff', width: '100%', padding: '20px 20px 22px', boxSizing: 'border-box' }}>
+                <div style={{ background: '#ffffff', width: '100%', padding: '20px 20px 22px', boxSizing: 'border-box', textAlign: 'left', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
                   {/* Row 1 */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0', marginBottom: '20px' }}>
-                    <div>
-                      <p style={{ fontFamily: 'Montserrat', fontSize: '0.58rem', color: '#999', textTransform: 'uppercase', letterSpacing: '1.2px', margin: '0 0 5px 0' }}>GUEST NAME</p>
-                      <p style={{ fontFamily: 'Montserrat', fontSize: '0.85rem', fontWeight: '800', color: '#111', margin: 0, textTransform: 'uppercase', lineHeight: 1.3 }}>
-                        {(() => {
-                          const pName = submittedRSVP?.name || formData.name || 'Guest';
-                          const partName = submittedRSVP?.partner_name || formData.partner_name || '';
-                          if (partName) {
-                            const clean = pName.includes(' & ') ? pName.split(' & ')[0].trim() : pName;
-                            return `${clean} & ${partName}`;
-                          }
-                          return pName;
-                        })()}
-                      </p>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{ fontFamily: 'Montserrat', fontSize: '0.58rem', color: '#999', textTransform: 'uppercase', letterSpacing: '1.2px', margin: '0 0 5px 0' }}>VENUE</p>
-                      <p style={{ fontFamily: 'Montserrat', fontSize: '0.85rem', fontWeight: '700', color: '#111', margin: 0, lineHeight: 1.3 }}>
-                        {weddingData.venue?.name || weddingData.location || 'Wedding Venue'}
-                      </p>
-                    </div>
-                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', marginBottom: '20px', border: 'none' }}>
+                    <tbody>
+                      <tr>
+                        <td style={{ width: '55%', textAlign: 'left', verticalAlign: 'top', padding: 0, border: 'none' }}>
+                          <p style={{ fontFamily: 'Montserrat', fontSize: '0.58rem', color: '#999', textTransform: 'uppercase', letterSpacing: '1.2px', margin: '0 0 5px 0', textAlign: 'left' }}>GUEST NAME</p>
+                          <p style={{ fontFamily: 'Montserrat', fontSize: '0.85rem', fontWeight: '800', color: '#111', margin: 0, textTransform: 'uppercase', lineHeight: 1.3, textAlign: 'left', wordBreak: 'break-word' }}>
+                            {(() => {
+                              const pName = submittedRSVP?.name || formData.name || 'Guest';
+                              const partName = submittedRSVP?.partner_name || formData.partner_name || '';
+                              if (partName) {
+                                const clean = pName.includes(' & ') ? pName.split(' & ')[0].trim() : pName;
+                                return `${clean} & ${partName}`;
+                              }
+                              return pName;
+                            })()}
+                          </p>
+                        </td>
+                        <td style={{ width: '45%', textAlign: 'right', verticalAlign: 'top', padding: 0, border: 'none' }}>
+                          <p style={{ fontFamily: 'Montserrat', fontSize: '0.58rem', color: '#999', textTransform: 'uppercase', letterSpacing: '1.2px', margin: '0 0 5px 0', textAlign: 'right' }}>VENUE</p>
+                          <p style={{ fontFamily: 'Montserrat', fontSize: '0.85rem', fontWeight: '700', color: '#111', margin: 0, lineHeight: 1.3, textAlign: 'right', wordBreak: 'break-word' }}>
+                            {weddingData.venue?.name || weddingData.location || 'Wedding Venue'}
+                          </p>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
 
                   {/* Row 2 */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0' }}>
-                    <div>
-                      <p style={{ fontFamily: 'Montserrat', fontSize: '0.58rem', color: '#999', textTransform: 'uppercase', letterSpacing: '1.2px', margin: '0 0 5px 0' }}>CATEGORY</p>
-                      <p style={{ fontFamily: 'Montserrat', fontSize: '0.85rem', fontWeight: '800', color: '#111', margin: 0 }}>
-                        {submittedRSVP?.category || 'General'}
-                      </p>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{ fontFamily: 'Montserrat', fontSize: '0.58rem', color: '#999', textTransform: 'uppercase', letterSpacing: '1.2px', margin: '0 0 5px 0' }}>GUESTS</p>
-                      <p style={{ fontFamily: 'Montserrat', fontSize: '1.2rem', fontWeight: '800', color: '#111', margin: 0 }}>
-                        {(submittedRSVP?.guests_count || parseInt(formData.guests, 10) || 1) > 1
-                          ? `Admit ${submittedRSVP?.guests_count || parseInt(formData.guests, 10) || 1}`
-                          : 'Admit 1'}
-                      </p>
-                    </div>
-                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', border: 'none' }}>
+                    <tbody>
+                      <tr>
+                        <td style={{ width: '55%', textAlign: 'left', verticalAlign: 'top', padding: 0, border: 'none' }}>
+                          <p style={{ fontFamily: 'Montserrat', fontSize: '0.58rem', color: '#999', textTransform: 'uppercase', letterSpacing: '1.2px', margin: '0 0 5px 0', textAlign: 'left' }}>CATEGORY</p>
+                          <p style={{ fontFamily: 'Montserrat', fontSize: '0.85rem', fontWeight: '800', color: '#111', margin: 0, textAlign: 'left' }}>
+                            {submittedRSVP?.category || 'General'}
+                          </p>
+                        </td>
+                        <td style={{ width: '45%', textAlign: 'right', verticalAlign: 'top', padding: 0, border: 'none' }}>
+                          <p style={{ fontFamily: 'Montserrat', fontSize: '0.58rem', color: '#999', textTransform: 'uppercase', letterSpacing: '1.2px', margin: '0 0 5px 0', textAlign: 'right' }}>GUESTS</p>
+                          <p style={{ fontFamily: 'Montserrat', fontSize: '1.2rem', fontWeight: '800', color: '#111', margin: 0, textAlign: 'right' }}>
+                            {(submittedRSVP?.guests_count || parseInt(formData.guests, 10) || 1) > 1
+                              ? `Admit ${submittedRSVP?.guests_count || parseInt(formData.guests, 10) || 1}`
+                              : 'Admit 1'}
+                          </p>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
 
                   {/* Extra card text */}
                   {(weddingData.extra_card_text || (weddingData.venue?.description?.startsWith("EXTRA_CARD_TEXT:") ? weddingData.venue.description.replace("EXTRA_CARD_TEXT:", "") : "")) && (
-                    <p style={{ fontFamily: 'Montserrat', fontSize: '0.72rem', color: '#b91c1c', fontWeight: '600', marginTop: '14px', borderTop: '1px dashed #ddd', paddingTop: '12px', lineHeight: '1.4' }}>
+                    <p style={{ fontFamily: 'Montserrat', fontSize: '0.72rem', color: '#b91c1c', fontWeight: '600', marginTop: '14px', borderTop: '1px dashed #ddd', paddingTop: '12px', lineHeight: '1.4', textAlign: 'left' }}>
                       {weddingData.extra_card_text || weddingData.venue?.description?.replace("EXTRA_CARD_TEXT:", "")}
                     </p>
                   )}
