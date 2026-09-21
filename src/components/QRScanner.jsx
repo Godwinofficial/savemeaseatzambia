@@ -7,6 +7,8 @@ const QRScanner = ({ onScan, onError, isActive = true }) => {
     const onErrorRef = useRef(onError);
     const scannerInstanceRef = useRef(null);
     const isStartedRef = useRef(false);
+    const scannerIdRef = useRef(`qr-reader-${Math.random().toString(36).substring(2, 9)}`);
+    const cooldownUntilRef = useRef(Date.now() + 900);
 
     useEffect(() => { onScanRef.current = onScan; }, [onScan]);
     useEffect(() => { onErrorRef.current = onError; }, [onError]);
@@ -14,18 +16,18 @@ const QRScanner = ({ onScan, onError, isActive = true }) => {
     const stopScanner = async () => {
         if (!scannerInstanceRef.current || !isStartedRef.current) return;
         try {
+            isStartedRef.current = false;
             await scannerInstanceRef.current.stop();
             scannerInstanceRef.current.clear();
         } catch (err) {
             // Ignore stop errors
-        } finally {
-            isStartedRef.current = false;
         }
     };
 
     const startScanner = async () => {
         if (!scannerRef.current || isStartedRef.current) return;
-        const html5QrCode = new Html5Qrcode("qr-reader");
+        cooldownUntilRef.current = Date.now() + 900; // Ignore first 900ms to allow video feed to refresh
+        const html5QrCode = new Html5Qrcode(scannerIdRef.current);
         scannerInstanceRef.current = html5QrCode;
         try {
             await html5QrCode.start(
@@ -40,7 +42,9 @@ const QRScanner = ({ onScan, onError, isActive = true }) => {
                     formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]
                 },
                 (decodedText) => {
-                    if (onScanRef.current) {
+                    // Ignore stale/buffered frames while camera is initializing
+                    if (Date.now() < cooldownUntilRef.current) return;
+                    if (onScanRef.current && decodedText && decodedText.trim()) {
                         onScanRef.current([{ rawValue: decodedText.trim() }]);
                     }
                 },
@@ -54,18 +58,19 @@ const QRScanner = ({ onScan, onError, isActive = true }) => {
     };
 
     useEffect(() => {
-        startScanner();
-        return () => { stopScanner(); };
-    }, []);
-
-    useEffect(() => {
-        if (isActive) startScanner();
-        else stopScanner();
+        if (isActive) {
+            startScanner();
+        } else {
+            stopScanner();
+        }
+        return () => {
+            stopScanner();
+        };
     }, [isActive]);
 
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: '360px', background: '#000' }}>
-            <div id="qr-reader" ref={scannerRef} style={{ width: '100%', height: '100%', minHeight: '360px', background: '#000' }} />
+            <div id={scannerIdRef.current} ref={scannerRef} style={{ width: '100%', height: '100%', minHeight: '360px', background: '#000' }} />
             {!isActive && (
                 <div style={{
                     position: 'absolute', inset: 0,

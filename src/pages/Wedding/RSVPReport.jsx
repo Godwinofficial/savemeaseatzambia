@@ -162,6 +162,8 @@ const RSVPReport = () => {
     const [successMessage, setSuccessMessage] = useState(null);
     const [scanNextPrompt, setScanNextPrompt] = useState(null);
     const recentScannedCodesRef = useRef(new Set());
+    const lastScanTimeRef = useRef(0);
+    const lastScannedCodeRef = useRef('');
     const [processingAction, setProcessingAction] = useState(null);
     const [sendingReminders, setSendingReminders] = useState(false);
     const [vendors, setVendors] = useState([]);
@@ -655,6 +657,8 @@ const RSVPReport = () => {
                             <button
                                 onClick={() => {
                                     window.isProcessingScan = false;
+                                    lastScanTimeRef.current = Date.now() + 800;
+                                    lastScannedCodeRef.current = '';
                                     setScanNextPrompt(null);
                                     setShowQrScanner(true);
                                 }}
@@ -688,17 +692,18 @@ const RSVPReport = () => {
                         <QRScanner
                             onScan={async (detectedCodes) => {
                                 const rawCode = detectedCodes[0]?.rawValue;
-                                if (rawCode && !window.isProcessingScan) {
-                                    const rawScanKey = String(rawCode).trim().toLowerCase();
-                                    if (recentScannedCodesRef.current.has(rawScanKey)) {
-                                        playWarningSound();
-                                        setScanMessage('⚠️ Already Checked In');
-                                        setScannedGuest({ name: 'This pass', checked_in: true });
-                                        window.isProcessingScan = false;
-                                        return;
-                                    }
-                                    window.isProcessingScan = true;
-                                    setScanMessage(`Scanning code...`);
+                                if (!rawCode || window.isProcessingScan) return;
+
+                                const now = Date.now();
+                                const rawScanKey = String(rawCode).trim().toLowerCase();
+                                if (lastScannedCodeRef.current === rawScanKey && (now - lastScanTimeRef.current < 2500)) {
+                                    return;
+                                }
+                                lastScannedCodeRef.current = rawScanKey;
+                                lastScanTimeRef.current = now;
+
+                                window.isProcessingScan = true;
+                                setScanMessage(`Scanning code...`);
                                     try {
                                         let code = rawCode;
                                         let embeddedData = null;
@@ -761,18 +766,39 @@ const RSVPReport = () => {
                                             return;
                                         }
 
+                                        // Verify event matches
+                                        if (guestRecord.wedding_id && wedding?.id && String(guestRecord.wedding_id) !== String(wedding.id)) {
+                                            playWarningSound();
+                                            setScanMessage("❌ REJECTED — Pass belongs to a different event.");
+                                            setTimeout(() => { window.isProcessingScan = false; }, 2500);
+                                            return;
+                                        }
+
                                         const localCheckedIn = checkedInGuests.some(g => g.id === guestRecord.id);
                                         const isAlreadyCheckedIn = localCheckedIn || guestRecord.checked_in;
 
                                         if (isAlreadyCheckedIn) {
                                             playWarningSound();
                                             setScanMessage("❌ Already Checked In!");
+                                            setShowQrScanner(false);
                                             setScannedGuest({ ...guestRecord, checked_in: true });
                                             return;
                                         }
 
+                                        // Strict approval check: ONLY scan success for approved guests!
+                                        const guestStatus = (guestRecord.status || '').toLowerCase();
+                                        if (guestStatus !== 'approved') {
+                                            playWarningSound();
+                                            const guestName = guestRecord.name || 'Guest';
+                                            const statusLabel = guestStatus === 'pending' ? 'Pending Approval' : (guestStatus ? guestStatus.toUpperCase() : 'Not Approved');
+                                            setScanMessage(`❌ REJECTED — ${guestName} is NOT approved for this event (${statusLabel}).`);
+                                            setShowQrScanner(false);
+                                            setScannedGuest({ ...guestRecord, not_approved: true, checked_in: false, statusText: statusLabel });
+                                            return;
+                                        }
+
                                         playBeepSound();
-                                        setScanMessage("✅ Guest Found!");
+                                        setScanMessage("✅ Guest Found & Approved!");
                                         // Close scanner and show the guest confirmation modal
                                         setShowQrScanner(false);
                                         setScannedGuest(guestRecord);
@@ -781,7 +807,6 @@ const RSVPReport = () => {
                                         setScanMessage("❌ Error checking database.");
                                         setTimeout(() => { window.isProcessingScan = false; }, 2500);
                                     }
-                                }
                             }}
                             onError={(e) => console.error("Scanner Error:", e)}
                         />
@@ -789,7 +814,11 @@ const RSVPReport = () => {
 
                     {/* Status bar */}
                     {scanMessage && (
-                        <div className="qr-fs-status">{scanMessage}</div>
+                        <div className="qr-fs-status" style={{
+                            background: scanMessage.includes('❌') ? 'rgba(220, 38, 38, 0.95)' : scanMessage.includes('⚠️') ? 'rgba(217, 119, 6, 0.95)' : 'rgba(0,0,0,.88)'
+                        }}>
+                            {scanMessage}
+                        </div>
                     )}
 
                     {/* Bottom hint */}
@@ -803,11 +832,23 @@ const RSVPReport = () => {
             {/* Scanned Guest Confirmation Modal */}
             {scannedGuest && (() => {
                 const { isCouple, primaryName, partnerName, displayName } = getGuestDetails(scannedGuest);
+                const isNotApproved = scannedGuest.not_approved || scannedGuest.status !== 'approved';
+                const isAlreadyIn = scannedGuest.checked_in;
+
                 return (
                     <div className="vm-overlay" style={{ zIndex: 3100 }} onClick={() => { window.isProcessingScan = false; setScannedGuest(null); }}>
                         <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '2rem', maxWidth: '420px', width: '90%', textAlign: 'center' }}>
-                            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: scannedGuest.checked_in ? '#f59e0b' : '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
-                                <i className={`fas fa-${scannedGuest.checked_in ? 'exclamation' : 'check'}`} style={{ fontSize: '32px', color: '#fff' }}></i>
+                            <div style={{
+                                width: '64px',
+                                height: '64px',
+                                borderRadius: '50%',
+                                background: isNotApproved ? '#ef4444' : isAlreadyIn ? '#f59e0b' : '#10b981',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                margin: '0 auto 1rem auto'
+                            }}>
+                                <i className={`fas fa-${isNotApproved ? 'times' : isAlreadyIn ? 'exclamation' : 'check'}`} style={{ fontSize: '32px', color: '#fff' }}></i>
                             </div>
                             <h4 className="vm-name" style={{ fontSize: '1.45rem', marginBottom: '0.35rem', fontWeight: '700' }}>{displayName}</h4>
                             
@@ -839,7 +880,23 @@ const RSVPReport = () => {
                                 )}
                             </div>
 
-                            {scannedGuest.checked_in ? (
+                            {isNotApproved ? (
+                                <div style={{
+                                    background: '#fef2f2',
+                                    border: '1px solid #fecaca',
+                                    color: '#991b1b',
+                                    padding: '0.9rem 1rem',
+                                    borderRadius: '10px',
+                                    marginBottom: '1.2rem',
+                                    fontWeight: '600',
+                                    fontSize: '0.9rem',
+                                    textAlign: 'center',
+                                    lineHeight: '1.4'
+                                }}>
+                                    <i className="fas fa-ban" style={{ marginRight: '6px' }}></i>
+                                    <strong>ENTRY REJECTED:</strong> This guest has NOT been approved in the RSVP report for this event ({scannedGuest.statusText || 'Pending Approval'}). Entry is denied.
+                                </div>
+                            ) : isAlreadyIn ? (
                                 <div style={{ background: '#fef3c7', color: '#b45309', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', fontWeight: '500' }}>
                                     This pass has ALREADY checked in.
                                 </div>
@@ -848,6 +905,10 @@ const RSVPReport = () => {
                                     className="ga-approve"
                                     style={{ width: '100%', padding: '1rem', background: '#10b981', color: '#fff', fontSize: '1rem', justifyContent: 'center', marginBottom: '1rem' }}
                                     onClick={async () => {
+                                        if (scannedGuest.not_approved || scannedGuest.status !== 'approved') {
+                                            alert("Entry Rejected: Guest is not approved for this event.");
+                                            return;
+                                        }
                                         try {
                                             // Try updating both checked_in and checked_in_at
                                             let { error: updateError } = await supabase
@@ -881,8 +942,29 @@ const RSVPReport = () => {
                                 </button>
                             )}
 
-                            <button onClick={() => { window.isProcessingScan = false; setScannedGuest(null); }} className="ga-reject" style={{ width: '100%', padding: '1rem', background: '#f1f5f9', color: '#475569', fontSize: '1rem', justifyContent: 'center' }}>
-                                {scannedGuest.checked_in ? 'Scan Next' : 'Cancel & Scan Next'}
+                            <button
+                                onClick={() => {
+                                    window.isProcessingScan = false;
+                                    lastScanTimeRef.current = Date.now() + 800;
+                                    lastScannedCodeRef.current = '';
+                                    setScannedGuest(null);
+                                    setScanMessage(null);
+                                    if (isNotApproved || isAlreadyIn) {
+                                        setShowQrScanner(true);
+                                    }
+                                }}
+                                className="ga-reject"
+                                style={{
+                                    width: '100%',
+                                    padding: '1rem',
+                                    background: isNotApproved ? '#ef4444' : '#f1f5f9',
+                                    color: isNotApproved ? '#fff' : '#475569',
+                                    fontSize: '1rem',
+                                    fontWeight: '600',
+                                    justifyContent: 'center'
+                                }}
+                            >
+                                {isNotApproved ? 'Close & Scan Next' : isAlreadyIn ? 'Scan Next' : 'Cancel & Scan Next'}
                             </button>
                         </div>
                     </div>

@@ -125,6 +125,8 @@ const EventManage = () => {
     const [processingAction, setProcessingAction] = useState(null);
     const [successToast, setSuccessToast] = useState('');
     const recentScannedCodesRef = useRef(new Set());
+    const lastScanTimeRef = useRef(0);
+    const lastScannedCodeRef = useRef('');
 
     // Copy states
     const [copied, setCopied] = useState(false);
@@ -259,6 +261,10 @@ const EventManage = () => {
 
     // Toggle check-in (supports offline / column fallback)
     const handleToggleCheckIn = async (guest) => {
+        if (!guest.checked_in && (guest.status || '').toLowerCase() !== 'approved') {
+            alert(`Cannot check in ${guest.name || 'Guest'}: Must be approved first.`);
+            return;
+        }
         const newCheckedIn = !guest.checked_in;
         setProcessingAction(`${guest.id}-checkin`);
         try {
@@ -355,6 +361,14 @@ const EventManage = () => {
         const rawCode = detectedCodes[0]?.rawValue;
         if (!rawCode || window.isProcessingScan) return;
 
+        const now = Date.now();
+        const rawScanKey = String(rawCode).trim().toLowerCase();
+        if (lastScannedCodeRef.current === rawScanKey && (now - lastScanTimeRef.current < 2500)) {
+            return;
+        }
+        lastScannedCodeRef.current = rawScanKey;
+        lastScanTimeRef.current = now;
+
         window.isProcessingScan = true;
         setScanMessage('Reading pass...');
 
@@ -415,11 +429,14 @@ const EventManage = () => {
                 return;
             }
 
-            // ── Approval check ───────────────────────────────────────
+            // ── Approval check: ONLY scan success for approved guests ──
             const guestStatus = (guestRecord.status || '').toLowerCase();
-            if (guestStatus === 'pending' || guestStatus === 'rejected') {
+            if (guestStatus !== 'approved') {
                 playWarningSound();
-                setScanMessage(`NOT APPROVED — This guest's RSVP is ${guestStatus}. Entry denied.`);
+                const statusText = guestStatus === 'pending' ? 'Pending Approval' : (guestStatus ? guestStatus.toUpperCase() : 'Not Approved');
+                setScanMessage(`❌ ENTRY REJECTED — ${guestRecord.name || 'Guest'} is not approved for this event (${statusText}).`);
+                setShowQrScanner(false);
+                setScannedGuest({ ...guestRecord, not_approved: true, checked_in: false, statusText });
                 window.isProcessingScan = false;
                 return;
             }
@@ -427,10 +444,12 @@ const EventManage = () => {
             if (guestRecord.checked_in) {
                 playWarningSound();
                 setScanMessage('ALREADY CHECKED IN');
+                setShowQrScanner(false);
                 setScannedGuest({ ...guestRecord, checked_in: true });
             } else {
                 playBeepSound();
-                setScanMessage('PASS VALID');
+                setScanMessage('✅ PASS VALID & APPROVED');
+                setShowQrScanner(false);
                 setScannedGuest(guestRecord);
             }
         } catch (err) {
@@ -444,6 +463,10 @@ const EventManage = () => {
 
     const handleConfirmScannedCheckIn = async () => {
         if (!scannedGuest) return;
+        if (scannedGuest.not_approved || (scannedGuest.status || '').toLowerCase() !== 'approved') {
+            alert("Entry Rejected: Guest is not approved for this event.");
+            return;
+        }
         const { displayName } = getGuestDetails(scannedGuest);
         try {
             let updatePayload = {
@@ -1214,6 +1237,7 @@ const EventManage = () => {
                         {/* Scanned Guest Pass Confirmation Card */}
                         {scannedGuest && (() => {
                             const { isCouple, primaryName, partnerName, displayName } = getGuestDetails(scannedGuest);
+                            const isNotApproved = scannedGuest.not_approved || (scannedGuest.status || '').toLowerCase() !== 'approved';
                             const isAlreadyIn = scannedGuest.checked_in;
                             return (
                                 <div className="em-modal-overlay" style={{ zIndex: 3200 }} onClick={() => { window.isProcessingScan = false; setScannedGuest(null); }}>
@@ -1221,16 +1245,16 @@ const EventManage = () => {
 
                                         {/* Status bar */}
                                         <div style={{
-                                            background: isAlreadyIn ? '#f59e0b' : '#10b981',
+                                            background: isNotApproved ? '#ef4444' : isAlreadyIn ? '#f59e0b' : '#10b981',
                                             padding: '1rem 1.5rem',
                                             textAlign: 'center'
                                         }}>
-                                            <div style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.15em', color: isAlreadyIn ? '#78350f' : '#022c22', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-                                                {isAlreadyIn ? 'Already Checked In' : 'Valid Pass'}
+                                            <div style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.15em', color: isNotApproved ? '#fef2f2' : isAlreadyIn ? '#78350f' : '#022c22', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                                                {isNotApproved ? 'ENTRY REJECTED' : isAlreadyIn ? 'Already Checked In' : 'Valid Pass'}
                                             </div>
                                             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>{displayName}</div>
                                             {isCouple && (
-                                                <div style={{ marginTop: '0.35rem', fontSize: '0.72rem', fontWeight: 600, color: isAlreadyIn ? '#fef3c7' : '#a7f3d0', letterSpacing: '0.05em' }}>COUPLE PASS — 2 GUESTS</div>
+                                                <div style={{ marginTop: '0.35rem', fontSize: '0.72rem', fontWeight: 600, color: isNotApproved ? '#fee2e2' : isAlreadyIn ? '#fef3c7' : '#a7f3d0', letterSpacing: '0.05em' }}>COUPLE PASS — 2 GUESTS</div>
                                             )}
                                         </div>
 
@@ -1255,7 +1279,12 @@ const EventManage = () => {
                                                 </div>
                                             )}
 
-                                            {isAlreadyIn ? (
+                                            {isNotApproved ? (
+                                                <div style={{ marginTop: '1.25rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '0.75rem 1rem', fontSize: '0.82rem', color: '#991b1b', fontWeight: 600 }}>
+                                                    <i className="fas fa-ban" style={{ marginRight: '6px' }}></i>
+                                                    ENTRY REJECTED: Guest is NOT approved for this event ({scannedGuest.statusText || 'Pending Approval'}). Entry is denied.
+                                                </div>
+                                            ) : isAlreadyIn ? (
                                                 <div style={{ marginTop: '1.25rem', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '0.75rem 1rem', fontSize: '0.82rem', color: '#92400e', fontWeight: 600 }}>
                                                     This pass has already been used for entry.
                                                 </div>
@@ -1272,11 +1301,19 @@ const EventManage = () => {
 
                                             <button
                                                 type="button"
-                                                onClick={() => { window.isProcessingScan = false; setScannedGuest(null); }}
+                                                onClick={() => {
+                                                    window.isProcessingScan = false;
+                                                    lastScanTimeRef.current = Date.now() + 800;
+                                                    lastScannedCodeRef.current = '';
+                                                    setScannedGuest(null);
+                                                    if (isNotApproved || isAlreadyIn) {
+                                                        setShowQrScanner(true);
+                                                    }
+                                                }}
                                                 className="em-btn em-btn-secondary full-width"
-                                                style={{ marginTop: '0.6rem' }}
+                                                style={{ marginTop: '0.6rem', background: isNotApproved ? '#ef4444' : undefined, color: isNotApproved ? '#fff' : undefined }}
                                             >
-                                                {isAlreadyIn ? 'Scan Next Pass' : 'Cancel'}
+                                                {isNotApproved ? 'Close & Scan Next' : isAlreadyIn ? 'Scan Next Pass' : 'Cancel'}
                                             </button>
                                         </div>
                                     </div>

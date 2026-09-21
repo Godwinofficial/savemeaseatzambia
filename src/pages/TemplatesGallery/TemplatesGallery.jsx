@@ -6,6 +6,7 @@ import '../../pages/Home/Home.css';
 const ALL_TEMPLATES = [
     {
         id: 'default-elegance',
+        category: 'wedding',
         name: 'Classic Elegance',
         tags: ['Classic', 'Minimal', 'Elegant'],
         usedBy: 2150,
@@ -26,6 +27,7 @@ const ALL_TEMPLATES = [
     },
     {
         id: 'terracotta-earth',
+        category: 'wedding',
         name: 'Terracotta Earth',
         tags: ['Terracotta', 'Linen', 'Watercolor'],
         usedBy: 870,
@@ -46,6 +48,7 @@ const ALL_TEMPLATES = [
     },
     {
         id: 'tropical-elegance',
+        category: 'wedding',
         name: 'Tropical Elegance',
         tags: ['Tropical', 'Green', 'Gold'],
         usedBy: 1420,
@@ -66,6 +69,7 @@ const ALL_TEMPLATES = [
     },
     {
         id: 'golden-romance',
+        category: 'wedding',
         name: 'Golden Romance',
         tags: ['Elegant', 'Amber', 'Classic'],
         usedBy: 980,
@@ -86,6 +90,7 @@ const ALL_TEMPLATES = [
     },
     {
         id: 'botanical-olive',
+        category: 'wedding',
         name: 'Botanical Olive',
         tags: ['Olive', 'Earthy', 'Cursive'],
         usedBy: 1240,
@@ -101,6 +106,90 @@ const ALL_TEMPLATES = [
             ornament: '🍃',
             taglineText: 'OUR CELEBRATION',
             dateText: '12 · XII · 2026',
+            dark: false,
+        }
+    },
+    {
+        id: 'royal-ivory',
+        category: 'wedding',
+        name: 'Royal Ivory Wedding',
+        tags: ['Luxury', 'Gold', 'Royal'],
+        usedBy: 1650,
+        isNew: false,
+        isPopular: true,
+        route: '/templates/default-elegance',
+        preview: {
+            bg: 'linear-gradient(135deg, #fdfbf7 0%, #f4eee1 100%)',
+            accentColor: '#c5a059',
+            textColor: '#1a1a1a',
+            fontFamily: '"Playfair Display", Georgia, serif',
+            couple: 'Chileshe & Mutale',
+            ornament: '♔',
+            taglineText: 'THE WEDDING OF',
+            dateText: '26 · IX · 2026',
+            dark: false,
+        }
+    },
+    {
+        id: 'obsidian-midnight',
+        category: 'birthday',
+        name: 'Obsidian Midnight',
+        tags: ['Dark Mode', 'Modern', 'Party'],
+        usedBy: 890,
+        isNew: false,
+        isPopular: true,
+        route: '/b/midnight-30',
+        preview: {
+            bg: 'linear-gradient(135deg, #12131c 0%, #1c1d29 100%)',
+            accentColor: '#1fa09b',
+            textColor: '#ffffff',
+            fontFamily: '"Outfit", sans-serif',
+            couple: 'Midnight 30',
+            ornament: '🎂',
+            taglineText: 'BIRTHDAY CELEBRATION',
+            dateText: '14 · VII · 2026',
+            dark: true,
+        }
+    },
+    {
+        id: 'blossom-chic',
+        category: 'bridal',
+        name: 'Blossom Chic Shower',
+        tags: ['Floral', 'Chic', 'Pastel'],
+        usedBy: 640,
+        isNew: true,
+        isPopular: false,
+        route: '/templates/bridal-shower',
+        preview: {
+            bg: 'linear-gradient(135deg, #fff5f2 0%, #ffe8e1 100%)',
+            accentColor: '#e07a5f',
+            textColor: '#4a2820',
+            fontFamily: '"Cormorant Garamond", Georgia, serif',
+            couple: 'Natasha Lungu',
+            ornament: '🌸',
+            taglineText: 'HONORING THE BRIDE-TO-BE',
+            dateText: '05 · VI · 2026',
+            dark: false,
+        }
+    },
+    {
+        id: 'pro-summit',
+        category: 'corporate',
+        name: 'Corporate Pro Summit',
+        tags: ['Business', 'Summit', 'Formal'],
+        usedBy: 1100,
+        isNew: false,
+        isPopular: false,
+        route: '/templates/corporate-summit',
+        preview: {
+            bg: 'linear-gradient(135deg, #f0f5ff 0%, #e1ecfa 100%)',
+            accentColor: '#0066ff',
+            textColor: '#0f294a',
+            fontFamily: '"Montserrat", sans-serif',
+            couple: 'Zambia Tech Summit',
+            ornament: '⚡',
+            taglineText: 'ANNUAL LEADERSHIP BANQUET',
+            dateText: '15 · X · 2026',
             dark: false,
         }
     }
@@ -231,6 +320,20 @@ const Footer = () => {
 const TemplateHorizontalCard = ({ template }) => {
     const p = template.preview;
 
+    const getServiceLabel = (cat) => {
+        if (cat === 'birthday') return 'Birthday Portal';
+        if (cat === 'bridal') return 'Bridal Shower';
+        if (cat === 'corporate') return 'Corporate Event';
+        return 'Wedding Invite';
+    };
+
+    const getWaSubject = (cat) => {
+        if (cat === 'birthday') return 'birthday celebration';
+        if (cat === 'bridal') return 'bridal shower';
+        if (cat === 'corporate') return 'corporate event';
+        return 'wedding';
+    };
+
     return (
         <div className="vendor-horizontal-card" style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
             <div className="vhc-header" style={{ margin: 0 }}>
@@ -262,8 +365,8 @@ const TemplateHorizontalCard = ({ template }) => {
                 <div className="vhc-segment">
                     <i className="fas fa-envelope-open-text"></i>
                     <div className="vhc-seg-text">
-                        <span className="vhc-label">Service</span>
-                        <span className="vhc-value">Wedding Invite</span>
+                        <span className="vhc-label">Category</span>
+                        <span className="vhc-value">{getServiceLabel(template.category)}</span>
                     </div>
                 </div>
 
@@ -307,7 +410,7 @@ const TemplateHorizontalCard = ({ template }) => {
                     Live Demo <i className="fas fa-external-link-alt"></i>
                 </Link>
                 <a
-                    href={`https://wa.me/260960968349?text=Hi! I'm interested in the *${template.name}* digital invitation template for my wedding.`}
+                    href={`https://wa.me/260960968349?text=Hi! I'm interested in the *${template.name}* digital invitation template for my ${getWaSubject(template.category)}.`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="v-row-btn-select"
@@ -320,6 +423,20 @@ const TemplateHorizontalCard = ({ template }) => {
 };
 
 const TemplatesGallery = () => {
+    const [activeFilter, setActiveFilter] = useState('all');
+
+    const categories = [
+        { id: 'all', label: 'All', count: ALL_TEMPLATES.length },
+        { id: 'wedding', label: 'Wedding', count: ALL_TEMPLATES.filter(t => t.category === 'wedding').length },
+        { id: 'birthday', label: 'Birthday', count: ALL_TEMPLATES.filter(t => t.category === 'birthday').length },
+        { id: 'bridal', label: 'Bridal Shower', count: ALL_TEMPLATES.filter(t => t.category === 'bridal').length },
+        { id: 'corporate', label: 'Corporate', count: ALL_TEMPLATES.filter(t => t.category === 'corporate').length }
+    ];
+
+    const filteredTemplates = activeFilter === 'all'
+        ? ALL_TEMPLATES
+        : ALL_TEMPLATES.filter(t => t.category === activeFilter);
+
     return (
         <div className="home-page" style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
             <Header />
@@ -382,10 +499,10 @@ const TemplatesGallery = () => {
                 <div className="hero-mesh-bg"></div>
                 <div className="container" style={{ textAlign: 'center', position: 'relative', zIndex: 2 }}>
                     <span className="hero-badge animate-fade-in-up" style={{ display: 'inline-block', marginBottom: '16px' }}>
-                        Premium Wedding Layouts
+                        Curated Collection
                     </span>
                     <h1 className="animate-fade-in-up delay-1" style={{ fontSize: '2.5rem', marginBottom: '15px', lineHeight: 1.2 }}>
-                        Digital Wedding <span className="highlight-text">Invitation Templates</span>
+                        Digital Event <span className="highlight-text">Invitation Templates</span>
                     </h1>
                     <p className="hero-subtitle animate-fade-in-up delay-2" style={{ maxWidth: '650px', margin: '0 auto', fontSize: '1rem', color: 'var(--gray)' }}>
                         Select a template to view the live responsive preview. All themes include a digital RSVP dashboard, Google Maps locations, registries, and custom music settings.
@@ -393,11 +510,24 @@ const TemplatesGallery = () => {
                 </div>
             </section>
 
-            {/* Templates List Section with Padding container to prevent touching screen edges */}
+            {/* Templates List Section with Category Filter */}
             <section style={{ padding: '50px 0 100px 0' }}>
                 <div className="container">
+                    {/* Category Filter Tabs */}
+                    <div className="showcase-tabs-row" style={{ marginBottom: '36px' }}>
+                        {categories.map((cat) => (
+                            <button
+                                key={cat.id}
+                                className={`showcase-tab-btn ${activeFilter === cat.id ? 'active' : ''}`}
+                                onClick={() => setActiveFilter(cat.id)}
+                            >
+                                {cat.label} <span className="tab-count-pill">({cat.count})</span>
+                            </button>
+                        ))}
+                    </div>
+
                     <div className="vendors-grid-list" style={{ maxWidth: '800px', margin: '0 auto' }}>
-                        {ALL_TEMPLATES.map((template) => (
+                        {filteredTemplates.map((template) => (
                             <TemplateHorizontalCard key={template.id} template={template} />
                         ))}
                     </div>

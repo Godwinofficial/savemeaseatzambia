@@ -1936,6 +1936,8 @@ const AdminDashboard = () => {
 
                                             if (data.checked_in) {
                                                 alert(`Guest ${data.name} is ALREADY checked in.`);
+                                            } else if ((data.status || '').toLowerCase() !== 'approved') {
+                                                alert(`❌ ENTRY REJECTED! Guest ${data.name} is NOT approved for this event (Status: ${data.status || 'pending'}). Entry denied.`);
                                             } else {
                                                 const { error: updateError } = await supabase.from('rsvps').update({ checked_in: true }).eq('id', code);
                                                 if (updateError) throw updateError;

@@ -2665,6 +2665,30 @@
   transform: scaleX(1);
 }
 
+.home-page .tab-count-pill {
+  font-size: 0.85em;
+  font-weight: 600;
+  margin-left: 5px;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--gray);
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-block;
+  vertical-align: middle;
+  transition: var(--transition);
+}
+
+.home-page .showcase-tab-btn:hover .tab-count-pill {
+  background: rgba(31, 160, 155, 0.12);
+  color: var(--primary);
+}
+
+.home-page .showcase-tab-btn.active .tab-count-pill {
+  background: var(--primary);
+  color: #ffffff;
+  font-weight: 700;
+}
+
 .home-page .templates-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));

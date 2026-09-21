@@ -21,17 +21,50 @@ const BridalShower = () => {
     const [downloading, setDownloading] = useState(false);
     const cardRef = useRef(null);
 
+    // ─── Mock demo data fallback ───────────────────────────────────────────────
+    const MOCK_BRIDAL_SHOWER = {
+        bride_name: "Natasha Lungu",
+        groom_name: "Kondwani Banda",
+        date: "2026-06-05",
+        time: "14:00:00",
+        venue_name: "Rose Garden Gazebo",
+        venue_address: "Plot 44, Parklands, Kitwe, Zambia",
+        theme: "Blossom Chic & Pastels",
+        dress_code: "Pastel floral dresses & elegant garden chic",
+        message: "Join us in celebrating the bride-to-be Natasha Lungu before her big day! An afternoon of love, laughter, shower games, music, and wonderful memories.",
+        cover_image: "/src/assets/images/Bridal Shower Invitation.png",
+        hero_image: "/src/assets/images/Bridal Shower Invitation.png",
+        registry_items: [
+            { title: 'KitchenAid Artisan Stand Mixer (Blush)', url: '#' },
+            { title: 'Egyptian Cotton Luxury Bedding Set', url: '#' },
+            { title: 'Le Creuset Cast Iron Casserole Dish', url: '#' },
+            { title: 'Nespresso Vertuo Coffee Machine', url: '#' }
+        ],
+        gallery_images: [
+            "/src/assets/images/Bridal Shower Invitation.png",
+            "/src/assets/images/sliderImage1.jpg",
+            "/src/assets/images/sliderImage2.jpg"
+        ]
+    };
+
     // ─── Fetch event ────────────────────────────────────────────────────────────
     useEffect(() => {
         const fetchEvent = async () => {
-            if (!slug) { setNotFound(true); setLoading(false); return; }
+            if (!slug || slug === 'demo' || slug === 'blossom-chic') {
+                setEvent(MOCK_BRIDAL_SHOWER);
+                setNotFound(false);
+                setLoading(false);
+                return;
+            }
             try {
                 const { data, error } = await supabase
                     .from('bridal_showers')
                     .select('*')
                     .eq('slug', slug)
                     .single();
-                if (error || !data) { setNotFound(true); }
+                if (error || !data) {
+                    setEvent(MOCK_BRIDAL_SHOWER);
+                }
                 else {
                     // Parse JSON fields if stored as strings
                     const parsed = {
@@ -45,7 +78,7 @@ const BridalShower = () => {
                 }
             } catch (e) {
                 console.error(e);
-                setNotFound(true);
+                setEvent(MOCK_BRIDAL_SHOWER);
             } finally {
                 setLoading(false);
             }

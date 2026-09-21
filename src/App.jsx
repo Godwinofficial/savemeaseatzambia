@@ -12,6 +12,7 @@ import Birthday from './pages/Birthday/Birthday';
 import BridalShower from './pages/BridalShower/BridalShower';
 import AddBridalShower from './pages/BridalShower/AddBridalShower';
 import BridalShowerReport from './pages/BridalShower/BridalShowerReport';
+import CorporateSummit from './templates/corporate/CorporateSummit';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 // Wedding Invitation Templates
@@ -69,16 +70,21 @@ function App() {
           <Route path="/w/:slug" element={<Wedding />} />
           <Route path="/wedding" element={<Wedding />} />
           <Route path="/wedding.html" element={<Wedding />} />
-          {/* Wedding Invitation Template Demos */}
+          {/* Invitation Template Demos */}
           <Route path="/templates" element={<TemplatesGallery />} />
           <Route path="/templates/tropical-elegance" element={<TemplatePreviewWrapper slug="sasha-chris-2026-10-10-1779303772193"><TropicalElegance /></TemplatePreviewWrapper>} />
           <Route path="/templates/golden-romance" element={<TemplatePreviewWrapper slug="sasha-chris-2026-10-10-1779303772193"><GoldenRomance /></TemplatePreviewWrapper>} />
           <Route path="/templates/botanical-olive" element={<TemplatePreviewWrapper slug="sasha-chris-2026-10-10-1779303772193"><BotanicalOlive /></TemplatePreviewWrapper>} />
           <Route path="/templates/terracotta-earth" element={<TemplatePreviewWrapper slug="sasha-chris-2026-10-10-1779303772193"><TerracottaEarth /></TemplatePreviewWrapper>} />
           <Route path="/templates/default-elegance" element={<TemplatePreviewWrapper slug="sasha-chris-2026-10-10-1779303772193"><DefaultElegance /></TemplatePreviewWrapper>} />
+          <Route path="/templates/bridal-shower" element={<BridalShower />} />
+          <Route path="/templates/corporate-summit" element={<CorporateSummit />} />
           <Route path="/b/:slug" element={<Birthday />} />
           <Route path="/birthday" element={<Birthday />} />
           <Route path="/bridal-shower/:slug" element={<BridalShower />} />
+          <Route path="/bridal-shower" element={<BridalShower />} />
+          <Route path="/corporate" element={<CorporateSummit />} />
+          <Route path="/corporate-summit" element={<CorporateSummit />} />
           <Route path="/bs-report/:slug" element={<BridalShowerReport />} />
           <Route path="/report/:slug" element={<RSVPReport />} />
           <Route path="/b-report/:slug" element={<BirthdayReport />} />

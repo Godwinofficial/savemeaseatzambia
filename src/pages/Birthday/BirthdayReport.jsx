@@ -88,6 +88,8 @@ const BirthdayReport = () => {
     const [scannerActive, setScannerActive] = useState(true);
     const [scannerKey, setScannerKey] = useState(0);
     const recentScannedCodesRef = useRef(new Set());
+    const lastScanTimeRef = useRef(0);
+    const lastScannedCodeRef = useRef('');
 
     useEffect(() => {
         const prev = document.querySelector('meta[name="theme-color"]')?.content;
@@ -139,7 +141,7 @@ const BirthdayReport = () => {
 
             const allGuests = rsvps || [];
             setGuests(allGuests.filter(g => (g.status === 'approved' || !g.status) && !g.checked_in));
-            setCheckedInGuests(allGuests.filter(g => g.checked_in && (!g.status || g.status === 'pending')));
+            setCheckedInGuests(allGuests.filter(g => g.checked_in));
             setPendingGuests(allGuests.filter(g => g.status === 'pending' && !g.checked_in));
         } catch (err) {
             console.error(err);
@@ -151,6 +153,8 @@ const BirthdayReport = () => {
 
     const resetScannerSession = () => {
         window.isProcessingScan = false;
+        lastScanTimeRef.current = Date.now() + 800;
+        lastScannedCodeRef.current = '';
         setScanMessage(null);
         setScannedGuest(null);
         setScanNextPrompt(null);
@@ -164,6 +168,10 @@ const BirthdayReport = () => {
     };
 
     const handleCheckInGuest = async (guest) => {
+        if (guest.not_approved || guest.status !== 'approved') {
+            alert("Cannot check in: Guest is not approved for this event.");
+            return;
+        }
         setCheckingIn(true);
         try {
             const isNumericId = /^\d+$/.test(String(guest.id));
@@ -870,14 +878,13 @@ const BirthdayReport = () => {
                             onScan={async (detectedCodes) => {
                                 const rawCode = detectedCodes[0]?.rawValue;
                                 if (rawCode && !window.isProcessingScan && scannerActive) {
+                                    const now = Date.now();
                                     const rawScanKey = String(rawCode).trim().toLowerCase();
-                                    if (recentScannedCodesRef.current.has(rawScanKey)) {
-                                        playWarningSound();
-                                        setScanMessage('⚠️ Already Checked In');
-                                        setScannedGuest({ name: 'This pass', checked_in: true });
-                                        window.isProcessingScan = false;
+                                    if (lastScannedCodeRef.current === rawScanKey && (now - lastScanTimeRef.current < 2500)) {
                                         return;
                                     }
+                                    lastScannedCodeRef.current = rawScanKey;
+                                    lastScanTimeRef.current = now;
 
                                     window.isProcessingScan = true;
                                     setScanMessage(null);
@@ -941,12 +948,13 @@ const BirthdayReport = () => {
                                             return;
                                         }
 
-                                        const guestStatus = freshGuest?.status ?? guestRecord?.status ?? 'pending';
+                                        const guestStatus = (freshGuest?.status ?? guestRecord?.status ?? 'pending').toLowerCase();
                                         if (guestStatus !== 'approved') {
                                             playWarningSound();
                                             const guestName = guestRecord?.name || freshGuest?.name || 'Guest';
-                                            setScanMessage(`❌ ${guestName} must be approved first`);
-                                            setScannedGuest({ ...guestRecord, checked_in: false, ...(freshGuest || {}) });
+                                            const statusText = guestStatus === 'pending' ? 'Pending Approval' : guestStatus.toUpperCase();
+                                            setScanMessage(`❌ REJECTED — ${guestName} is not approved for this event (${statusText})`);
+                                            setScannedGuest({ ...guestRecord, not_approved: true, checked_in: false, statusText, ...(freshGuest || {}) });
                                             window.isProcessingScan = false;
                                             return;
                                         }
@@ -969,12 +977,15 @@ const BirthdayReport = () => {
                     {/* Status banner */}
                     {scanMessage && (
                         <div
-                            className={`qr-fs-banner ${scanMessage.includes('Already') || scanMessage.includes('⚠️') ? 'qr-fs-banner-warning' : 'qr-fs-banner-success'}`}
+                            className={`qr-fs-banner ${scanMessage.includes('Already') || scanMessage.includes('⚠️') ? 'qr-fs-banner-warning' : scanMessage.includes('❌') || scanMessage.includes('REJECTED') ? 'qr-fs-banner-warning' : 'qr-fs-banner-success'}`}
+                            style={{
+                                background: scanMessage.includes('❌') || scanMessage.includes('REJECTED') ? '#dc2626' : undefined
+                            }}
                             role="status"
                             aria-live="polite"
                         >
                             <div className="qr-fs-banner-text">
-                                {scanMessage?.startsWith('✅') ? 'Checked in successfully' : scanMessage === '⚠️ Already Checked In' ? 'Already checked in' : scanMessage?.startsWith('❌') ? 'Not approved yet' : scanMessage}
+                                {scanMessage?.startsWith('✅') ? 'Checked in successfully' : scanMessage === '⚠️ Already Checked In' ? 'Already checked in' : scanMessage}
                             </div>
                             <button
                                 className="qr-fs-banner-btn"
@@ -1030,8 +1041,17 @@ const BirthdayReport = () => {
             {scannedGuest && (
                 <div className="vm-overlay" style={{ zIndex: 3100 }} onClick={() => { window.isProcessingScan = false; setScannedGuest(null); setScanMessage(null); setScannerActive(true); setShowQrScanner(true); }}>
                     <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '2rem', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
-                        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: scannedGuest.checked_in ? '#f59e0b' : '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
-                            <i className={`fas fa-${scannedGuest.checked_in ? 'exclamation' : 'check'}`} style={{ fontSize: '32px', color: '#fff' }}></i>
+                        <div style={{
+                            width: '64px',
+                            height: '64px',
+                            borderRadius: '50%',
+                            background: scannedGuest.not_approved ? '#ef4444' : scannedGuest.checked_in ? '#f59e0b' : '#10b981',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            margin: '0 auto 1rem auto'
+                        }}>
+                            <i className={`fas fa-${scannedGuest.not_approved ? 'times' : scannedGuest.checked_in ? 'exclamation' : 'check'}`} style={{ fontSize: '32px', color: '#fff' }}></i>
                         </div>
                         <h4 className="vm-name" style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{scannedGuest.name}</h4>
                         <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
@@ -1049,13 +1069,38 @@ const BirthdayReport = () => {
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <span style={{ color: '#64748b' }}>Status:</span>
-                                <span style={{ fontWeight: 600, color: scannedGuest.checked_in ? '#f59e0b' : '#10b981' }}>
-                                    {scannedGuest.checked_in ? 'Already Checked In' : 'Valid Pass'}
+                                <span style={{ fontWeight: 600, color: scannedGuest.not_approved ? '#ef4444' : scannedGuest.checked_in ? '#f59e0b' : '#10b981' }}>
+                                    {scannedGuest.not_approved ? `Rejected (${scannedGuest.statusText || 'Not Approved'})` : scannedGuest.checked_in ? 'Already Checked In' : 'Valid Pass'}
                                 </span>
                             </div>
                         </div>
 
-                        {!scannedGuest.checked_in ? (
+                        {scannedGuest.not_approved ? (
+                            <>
+                                <div style={{
+                                    background: '#fef2f2',
+                                    border: '1px solid #fecaca',
+                                    color: '#991b1b',
+                                    padding: '0.85rem 1rem',
+                                    borderRadius: '10px',
+                                    marginBottom: '1.2rem',
+                                    fontWeight: '600',
+                                    fontSize: '0.9rem',
+                                    textAlign: 'center',
+                                    lineHeight: '1.4'
+                                }}>
+                                    <i className="fas fa-ban" style={{ marginRight: '6px' }}></i>
+                                    <strong>ENTRY REJECTED:</strong> This guest is NOT approved for this event ({scannedGuest.statusText || 'Pending Approval'}). Entry is denied.
+                                </div>
+                                <button
+                                    onClick={() => { window.isProcessingScan = false; setScannedGuest(null); setScanMessage(null); setScannerActive(true); setShowQrScanner(true); }}
+                                    className="ga-approve"
+                                    style={{ background: '#ef4444', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '1rem', width: '100%', fontWeight: '600' }}
+                                >
+                                    <i className="fas fa-qrcode"></i> Close & Scan Next
+                                </button>
+                            </>
+                        ) : !scannedGuest.checked_in ? (
                             <button
                                 onClick={() => handleCheckInGuest(scannedGuest)}
                                 disabled={checkingIn}
