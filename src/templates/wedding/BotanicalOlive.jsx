@@ -1108,21 +1108,31 @@ const BotanicalOlive = ({
 
               {(() => {
                 const events = [];
-                if (d.ceremony?.time) {
-                  events.push({
-                    name: 'Marriage Blessing',
-                    time: d.ceremony.time,
-                    location: d.ceremony?.venue || d.ceremony?.address || d.venue?.name || d.location
+                if (d.program && Array.isArray(d.program) && d.program.length > 0) {
+                  d.program.forEach(p => {
+                    events.push({
+                      name: p.title || p.name || 'Program Part',
+                      time: p.time || '',
+                      location: p.description || p.location || ''
+                    });
                   });
+                } else {
+                  if (d.ceremony?.time) {
+                    events.push({
+                      name: d.ceremony_title || d.ceremony_subtitle || 'Marriage Blessing',
+                      time: d.ceremony.time,
+                      location: d.ceremony?.venue || d.ceremony?.address || d.venue?.name || d.location
+                    });
+                  }
+                  if (d.reception?.time) {
+                    events.push({
+                      name: d.reception_title || 'Reception',
+                      time: d.reception.time,
+                      location: d.reception?.venue || d.reception?.address || d.venue?.name || d.location
+                    });
+                  }
+                  if (d.otherEvents && d.otherEvents.length > 0) events.push(...d.otherEvents);
                 }
-                if (d.reception?.time) {
-                  events.push({
-                    name: 'Reception',
-                    time: d.reception.time,
-                    location: d.reception?.venue || d.reception?.address || d.venue?.name || d.location
-                  });
-                }
-                if (d.otherEvents && d.otherEvents.length > 0) events.push(...d.otherEvents);
 
                 // Fallback if no events at all
                 if (events.length === 0) {

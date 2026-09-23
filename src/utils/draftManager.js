@@ -171,6 +171,9 @@ export async function pushDraftToUserAccount(user, customFormData = null) {
             ceremony_date: data.ceremony_date || data.date || null,
             ceremony_time: data.ceremony_time || null,
             ceremony_venue: data.ceremony_venue || '',
+            ceremony_title: data.ceremony_title || 'Church Service',
+            ceremony_subtitle: data.ceremony_subtitle || 'Marriage Blessings',
+            program: Array.isArray(data.program) ? data.program : [],
             reception_date: data.reception_date || data.date || null,
             reception_time: data.reception_time || null,
             reception_venue: data.reception_venue || '',
@@ -219,10 +222,23 @@ export async function pushDraftToUserAccount(user, customFormData = null) {
         if (insertError) {
             console.warn('[draftManager] Extended insert failed, attempting fallback with base columns:', insertError.message);
             // Strip newly added columns in case migrations haven't run yet in Supabase
-            const { event_id, guest_count, price, pricing_tier, amount_paid, balance_due, ...basePayload } = payload;
+            const { event_id, guest_count, price, pricing_tier, amount_paid, balance_due, ceremony_title, ceremony_subtitle, program, ...basePayload } = payload;
+            let fallbackPayload = { ...basePayload };
+            if (payload.program && payload.program.length > 0) {
+                fallbackPayload.theme_colors = [
+                    ...(fallbackPayload.theme_colors || []),
+                    `PROGRAM:${JSON.stringify(payload.program)}`
+                ];
+            }
+            if (payload.ceremony_title) {
+                fallbackPayload.theme_colors = [
+                    ...(fallbackPayload.theme_colors || []),
+                    `CEREMONY_TITLE:${payload.ceremony_title}`
+                ];
+            }
             const fallback = await supabase
                 .from('weddings')
-                .insert([basePayload])
+                .insert([fallbackPayload])
                 .select()
                 .single();
 

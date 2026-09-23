@@ -79,6 +79,8 @@ const DEFAULT_FORM = {
     tagline: '',
     date: '', location: '',
     ceremony_date: '', ceremony_time: '', ceremony_venue: '', ceremony_address: '',
+    ceremony_title: 'Church Service', ceremony_subtitle: 'Marriage Blessings',
+    program: [],
     reception_date: '', reception_time: '', reception_venue: '', reception_address: '',
     reception_title: '', reception_subtitle: '',
     rsvp_deadline: '',
@@ -291,6 +293,48 @@ const ClientCreateWedding = () => {
                     gallery_images: Array.isArray(data.gallery_images) ? data.gallery_images : [],
                     dress_code_colors: Array.isArray(data.dress_code_colors) ? data.dress_code_colors : [],
                     theme_colors: Array.isArray(data.theme_colors) && data.theme_colors.length > 0 ? data.theme_colors : ['#000000', '#ffffff', '#ffffff', '#000000'],
+                    ceremony_title: data.ceremony_title || (() => {
+                        const rawTheme = data.theme_colors;
+                        if (rawTheme) {
+                            try {
+                                const parsed = typeof rawTheme === 'string' ? JSON.parse(rawTheme) : rawTheme;
+                                const found = Array.isArray(parsed) ? parsed.find(c => typeof c === 'string' && c.startsWith("CEREMONY_TITLE:")) : null;
+                                if (found) return found.substring("CEREMONY_TITLE:".length);
+                            } catch (e) { }
+                        }
+                        return 'Church Service';
+                    })(),
+                    ceremony_subtitle: data.ceremony_subtitle || (() => {
+                        const rawTheme = data.theme_colors;
+                        if (rawTheme) {
+                            try {
+                                const parsed = typeof rawTheme === 'string' ? JSON.parse(rawTheme) : rawTheme;
+                                const found = Array.isArray(parsed) ? parsed.find(c => typeof c === 'string' && c.startsWith("CEREMONY_SUBTITLE:")) : null;
+                                if (found) return found.substring("CEREMONY_SUBTITLE:".length);
+                            } catch (e) { }
+                        }
+                        return 'Marriage Blessings';
+                    })(),
+                    program: (() => {
+                        if (data.program) {
+                            try {
+                                const p = typeof data.program === 'string' ? JSON.parse(data.program) : data.program;
+                                if (Array.isArray(p)) return p;
+                            } catch (e) { }
+                        }
+                        const rawTheme = data.theme_colors;
+                        if (rawTheme) {
+                            try {
+                                const parsed = typeof rawTheme === 'string' ? JSON.parse(rawTheme) : rawTheme;
+                                const found = Array.isArray(parsed) ? parsed.find(c => typeof c === 'string' && c.startsWith("PROGRAM:")) : null;
+                                if (found) {
+                                    const parsedProg = JSON.parse(found.substring("PROGRAM:".length));
+                                    if (Array.isArray(parsedProg)) return parsedProg;
+                                }
+                            } catch (e) { }
+                        }
+                        return [];
+                    })(),
                 }));
             } catch (err) {
                 console.error('Error fetching event for edit:', err);
@@ -487,6 +531,13 @@ const ClientCreateWedding = () => {
     const addItem = (field, init) => setFormData(prev => ({ ...prev, [field]: [...(prev[field] || []), init] }));
     const updateItem = (field, idx, key, val) => setFormData(prev => { const arr = [...(prev[field] || [])]; arr[idx] = { ...arr[idx], [key]: val }; return { ...prev, [field]: arr }; });
     const removeItem = (field, idx) => setFormData(prev => { const arr = [...(prev[field] || [])]; arr.splice(idx, 1); return { ...prev, [field]: arr }; });
+    const moveItem = (field, fromIdx, toIdx) => setFormData(prev => {
+        const arr = [...(prev[field] || [])];
+        if (toIdx < 0 || toIdx >= arr.length) return prev;
+        const [moved] = arr.splice(fromIdx, 1);
+        arr.splice(toIdx, 0, moved);
+        return { ...prev, [field]: arr };
+    });
 
     // ── Music ────────────────────────────────────────────────────────────────
     const togglePreview = (url) => {
@@ -557,6 +608,9 @@ const ClientCreateWedding = () => {
                 ceremony_time: formData.ceremony_time || null,
                 ceremony_venue: formData.ceremony_venue || '',
                 ceremony_address: formData.ceremony_address || '',
+                ceremony_title: formData.ceremony_title || 'Church Service',
+                ceremony_subtitle: formData.ceremony_subtitle || 'Marriage Blessings',
+                program: Array.isArray(formData.program) ? formData.program : [],
                 venue_name: formData.ceremony_venue || '',
                 venue_address: formData.ceremony_address || '',
                 reception_date: formData.reception_date || formData.date || null,
@@ -592,7 +646,7 @@ const ClientCreateWedding = () => {
                 balance_due: balance,
             };
 
-            const { data: updated, error: updateErr } = await supabase
+            let { data: updated, error: updateErr } = await supabase
                 .from('weddings')
                 .update(updatePayload)
                 .eq('slug', editSlug)
@@ -600,7 +654,34 @@ const ClientCreateWedding = () => {
                 .select()
                 .single();
 
-            if (updateErr) throw updateErr;
+            if (updateErr) {
+                console.warn('Update failed, attempting unmigrated column fallback...', updateErr.message);
+                const retryPayload = { ...updatePayload };
+                let fallbackThemeColors = [...(retryPayload.theme_colors || [])];
+                if (retryPayload.program && retryPayload.program.length > 0) {
+                    fallbackThemeColors.push(`PROGRAM:${JSON.stringify(retryPayload.program)}`);
+                }
+                if (retryPayload.ceremony_title) {
+                    fallbackThemeColors.push(`CEREMONY_TITLE:${retryPayload.ceremony_title}`);
+                }
+                if (retryPayload.ceremony_subtitle) {
+                    fallbackThemeColors.push(`CEREMONY_SUBTITLE:${retryPayload.ceremony_subtitle}`);
+                }
+                delete retryPayload.ceremony_title;
+                delete retryPayload.ceremony_subtitle;
+                delete retryPayload.program;
+                retryPayload.theme_colors = fallbackThemeColors;
+
+                const retryRes = await supabase
+                    .from('weddings')
+                    .update(retryPayload)
+                    .eq('slug', editSlug)
+                    .eq('user_id', currentUser.id)
+                    .select()
+                    .single();
+                if (retryRes.error) throw retryRes.error;
+                updated = retryRes.data;
+            }
 
             setExistingEvent(updated || { ...existingEvent, ...updatePayload });
             setSaveToast('All changes saved successfully!');
@@ -1313,7 +1394,40 @@ const ClientCreateWedding = () => {
                             </div>
 
                             {/* Ceremony */}
-                            <div className="studio-section-subhead" style={{ marginTop: '1.5rem' }}><i className="fas fa-church" style={{ color: '#1fa09b' }} /><span>Ceremony Details</span></div>
+                            <div className="studio-section-subhead" style={{ marginTop: '1.5rem' }}>
+                                <i className="fas fa-church" style={{ color: '#1fa09b' }} />
+                                <span>Ceremony Details (Church Service / Marriage Blessings)</span>
+                            </div>
+                            <div className="form-row-2">
+                                <div>
+                                    <label className="studio-label">Ceremony Section Title</label>
+                                    <div className="studio-input-wrap">
+                                        <i className="fas fa-heading input-icon-left" style={{ color: '#1fa09b' }} />
+                                        <input
+                                            type="text"
+                                            name="ceremony_title"
+                                            value={formData.ceremony_title !== undefined ? formData.ceremony_title : 'Church Service'}
+                                            onChange={handleChange}
+                                            placeholder="e.g. Church Service or Marriage Blessings"
+                                            className="studio-input"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="studio-label">Ceremony Subheading</label>
+                                    <div className="studio-input-wrap">
+                                        <i className="fas fa-quote-right input-icon-left" style={{ color: '#1fa09b' }} />
+                                        <input
+                                            type="text"
+                                            name="ceremony_subtitle"
+                                            value={formData.ceremony_subtitle !== undefined ? formData.ceremony_subtitle : 'Marriage Blessings'}
+                                            onChange={handleChange}
+                                            placeholder="e.g. Holy Matrimony or Blessing"
+                                            className="studio-input"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                             <div className="form-row-2">
                                 <div>
                                     <label className="studio-label">Ceremony Venue *</label>
@@ -1335,6 +1449,150 @@ const ClientCreateWedding = () => {
                                 <div className="studio-input-wrap">
                                     <i className="fas fa-map-marker-alt input-icon-left" style={{ color: '#1fa09b' }} />
                                     <input type="text" name="ceremony_address" value={formData.ceremony_address} onChange={handleChange} placeholder="e.g. Great East Road, Lusaka" className="studio-input" />
+                                </div>
+                            </div>
+
+                            {/* Program / Order of Service Builder */}
+                            <div className="studio-section-subhead" style={{ marginTop: '1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <i className="fas fa-list-ol" style={{ color: '#1fa09b' }} />
+                                    <span>Program / Order of Service</span>
+                                </div>
+                                <span style={{ fontSize: '0.78rem', color: '#0369a1', background: '#e0f2fe', padding: '2px 9px', borderRadius: '999px', fontWeight: 600 }}>
+                                    {(formData.program || []).length} {(formData.program || []).length === 1 ? 'part' : 'parts'}
+                                </span>
+                            </div>
+                            <p style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '-0.3rem', marginBottom: '0.9rem' }}>
+                                Add each part of your church service or wedding day program (e.g. Processional, Vows & Rings, Sermon, Signing of Register, Photo Session). Guests can follow the timeline seamlessly!
+                            </p>
+
+                            <div className="studio-program-builder">
+                                {(formData.program || []).length === 0 ? (
+                                    <div className="studio-program-empty">
+                                        <i className="fas fa-clipboard-list" style={{ fontSize: '1.6rem', color: '#cbd5e1', marginBottom: '0.5rem' }} />
+                                        <p style={{ margin: 0, fontWeight: 600, color: '#475569', fontSize: '0.88rem' }}>No program parts added yet</p>
+                                        <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Outline your order of service so guests know the schedule of events.</span>
+                                    </div>
+                                ) : (
+                                    <div className="studio-program-list">
+                                        {(formData.program || []).map((prog, idx) => (
+                                            <div key={idx} className="studio-program-item">
+                                                <div className="studio-program-header">
+                                                    <span className="studio-program-badge">Part {idx + 1}</span>
+                                                    <div className="studio-program-controls">
+                                                        <button
+                                                            type="button"
+                                                            className="studio-btn-icon"
+                                                            title="Move Up"
+                                                            disabled={idx === 0}
+                                                            onClick={() => moveItem('program', idx, idx - 1)}
+                                                        >
+                                                            <i className="fas fa-arrow-up" />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="studio-btn-icon"
+                                                            title="Move Down"
+                                                            disabled={idx === (formData.program.length - 1)}
+                                                            onClick={() => moveItem('program', idx, idx + 1)}
+                                                        >
+                                                            <i className="fas fa-arrow-down" />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="studio-btn-icon studio-btn-delete"
+                                                            title="Delete Part"
+                                                            onClick={() => removeItem('program', idx)}
+                                                        >
+                                                            <i className="fas fa-trash-alt" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="form-row-2" style={{ marginBottom: '0.65rem' }}>
+                                                    <div>
+                                                        <label className="studio-label" style={{ fontSize: '0.78rem' }}>Time</label>
+                                                        <div className="studio-input-wrap">
+                                                            <i className="fas fa-clock input-icon-left" style={{ color: '#1fa09b' }} />
+                                                            <input
+                                                                type="text"
+                                                                className="studio-input"
+                                                                placeholder="e.g. 10:00 AM or 10:00"
+                                                                value={prog.time || ''}
+                                                                onChange={(e) => updateItem('program', idx, 'time', e.target.value)}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="studio-label" style={{ fontSize: '0.78rem' }}>Activity / Program Part *</label>
+                                                        <div className="studio-input-wrap">
+                                                            <i className="fas fa-bookmark input-icon-left" style={{ color: '#1fa09b' }} />
+                                                            <input
+                                                                type="text"
+                                                                className="studio-input"
+                                                                placeholder="e.g. Processional & Bridal Entry"
+                                                                value={prog.title || ''}
+                                                                onChange={(e) => updateItem('program', idx, 'title', e.target.value)}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="form-row-1">
+                                                    <label className="studio-label" style={{ fontSize: '0.78rem' }}>Officiant / Details / Location (Optional)</label>
+                                                    <div className="studio-input-wrap">
+                                                        <i className="fas fa-info-circle input-icon-left" style={{ color: '#94a3b8' }} />
+                                                        <input
+                                                            type="text"
+                                                            className="studio-input"
+                                                            placeholder="e.g. Officiated by Pastor Banda / Church Sanctuary"
+                                                            value={prog.description || ''}
+                                                            onChange={(e) => updateItem('program', idx, 'description', e.target.value)}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className="studio-program-actions" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.85rem' }}>
+                                    <button
+                                        type="button"
+                                        className="studio-btn studio-btn-primary"
+                                        onClick={() => addItem('program', { time: '', title: '', description: '' })}
+                                    >
+                                        <i className="fas fa-plus" /> Add Program Part
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="studio-btn studio-btn-outline"
+                                        onClick={() => {
+                                            const defaultChurchProgram = [
+                                                { time: '09:30 AM', title: 'Arrival of Guests', description: 'Guests seated in the main sanctuary' },
+                                                { time: '10:00 AM', title: 'Processional & Bridal Entry', description: 'Entrance of Bridal Party & The Bride' },
+                                                { time: '10:30 AM', title: 'Scripture Reading & Sermon', description: 'Word of encouragement' },
+                                                { time: '11:00 AM', title: 'Exchange of Vows & Rings', description: 'Holy Matrimony & Blessing' },
+                                                { time: '11:45 AM', title: 'Signing of Marriage Register', description: 'Official signing and presentation of couple' },
+                                                { time: '12:15 PM', title: 'Recessional & Photo Session', description: 'Family and church photo shoot' },
+                                            ];
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                program: [...(prev.program || []), ...defaultChurchProgram]
+                                            }));
+                                        }}
+                                        title="Quickly fill with standard church ceremony parts"
+                                    >
+                                        <i className="fas fa-magic" /> Load Standard Church Program
+                                    </button>
+                                    {(formData.program || []).length > 0 && (
+                                        <button
+                                            type="button"
+                                            className="studio-btn"
+                                            style={{ color: '#ef4444', borderColor: '#fecaca', background: '#fff' }}
+                                            onClick={() => setFormData(prev => ({ ...prev, program: [] }))}
+                                        >
+                                            <i className="fas fa-times" /> Clear Program
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -1770,8 +2028,9 @@ const ClientCreateWedding = () => {
                                 </div>
                                 <div className="summary-grid-details">
                                     <div className="summary-detail-item"><i className="fas fa-calendar" style={{ color: '#1fa09b' }} /><span>{formData.date ? new Date(formData.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Date not set'}</span></div>
-                                    <div className="summary-detail-item"><i className="fas fa-church" style={{ color: '#1fa09b' }} /><span>{formData.ceremony_venue || 'Ceremony venue'}</span></div>
-                                    <div className="summary-detail-item"><i className="fas fa-hotel" style={{ color: '#1fa09b' }} /><span>{formData.reception_venue || 'Reception venue'}</span></div>
+                                    <div className="summary-detail-item"><i className="fas fa-church" style={{ color: '#1fa09b' }} /><span>{formData.ceremony_title || 'Ceremony'}: {formData.ceremony_venue || 'Venue not set'}</span></div>
+                                    <div className="summary-detail-item"><i className="fas fa-hotel" style={{ color: '#1fa09b' }} /><span>{formData.reception_title || 'Reception'}: {formData.reception_venue || 'Venue not set'}</span></div>
+                                    <div className="summary-detail-item"><i className="fas fa-list-ol" style={{ color: '#1fa09b' }} /><span>{(formData.program || []).length} program parts</span></div>
                                     <div className="summary-detail-item"><i className="fas fa-tshirt" style={{ color: '#1fa09b' }} /><span>{formData.dress_code || 'Formal Attire'}</span></div>
                                     <div className="summary-detail-item"><i className="fas fa-users" style={{ color: '#1fa09b' }} /><span>{(formData.bridesmaids || []).length} bridesmaids · {(formData.groomsmen || []).length} groomsmen</span></div>
                                     <div className="summary-detail-item"><i className="fas fa-images" style={{ color: '#1fa09b' }} /><span>{(formData.gallery_images || []).length} gallery photos</span></div>
@@ -1893,11 +2152,31 @@ const ClientCreateWedding = () => {
                                 </div>
                                 <div className="mock-section" style={{ background: 'rgba(255,255,255,0.95)' }}>
                                     <div className="mock-section-title" style={{ color: '#0f172a' }}>
-                                        <i className="fas fa-church" style={{ color: '#1fa09b' }} /><span>Ceremony & Reception</span>
+                                        <i className="fas fa-church" style={{ color: '#1fa09b' }} /><span>{formData.ceremony_title || 'Ceremony'} & {formData.reception_title || 'Reception'}</span>
                                     </div>
                                     <div className="mock-venue-item"><strong>{formData.ceremony_venue || 'Ceremony Venue'}</strong><span>{formData.ceremony_time || 'Morning Service'}</span></div>
                                     <div className="mock-venue-item"><strong>{formData.reception_venue || 'Reception Venue'}</strong><span>{formData.reception_time || 'Afternoon Party'}</span></div>
                                 </div>
+                                {formData.program && formData.program.length > 0 && (
+                                    <div className="mock-section" style={{ background: 'rgba(255,255,255,0.95)' }}>
+                                        <div className="mock-section-title" style={{ color: '#0f172a' }}>
+                                            <i className="fas fa-list-ol" style={{ color: '#1fa09b' }} /><span>Program Timeline</span>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                            {formData.program.slice(0, 4).map((p, i) => (
+                                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#475569' }}>
+                                                    <span style={{ fontWeight: 600 }}>{p.title || `Part ${i + 1}`}</span>
+                                                    <span style={{ color: '#94a3b8' }}>{p.time || ''}</span>
+                                                </div>
+                                            ))}
+                                            {formData.program.length > 4 && (
+                                                <span style={{ fontSize: '0.68rem', color: '#1fa09b', fontStyle: 'italic' }}>
+                                                    +{formData.program.length - 4} more parts
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                                 {formData.dress_code && (
                                     <div className="mock-section" style={{ background: 'rgba(255,255,255,0.95)' }}>
                                         <div className="mock-section-title" style={{ color: '#0f172a' }}>

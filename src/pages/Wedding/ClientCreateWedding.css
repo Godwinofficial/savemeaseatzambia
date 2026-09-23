@@ -2216,3 +2216,105 @@ select.studio-input {
     background: #1e293b;
     box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15);
 }
+
+/* ── Program / Order of Service Builder ──────────────────────── */
+.studio-program-builder {
+    margin-top: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.studio-program-empty {
+    background: #f8fafc;
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.studio-program-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.studio-program-item {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem 1.15rem;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+    transition: all 0.2s ease;
+}
+
+.studio-program-item:hover {
+    border-color: #99f6e4;
+    box-shadow: 0 4px 12px rgba(31, 160, 155, 0.08);
+}
+
+.studio-program-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.studio-program-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #1fa09b;
+    background: #f0fdfc;
+    border: 1px solid #ccfbf1;
+    padding: 2px 9px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.studio-program-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.studio-btn-icon {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.studio-btn-icon:hover:not(:disabled) {
+    background: #f1f5f9;
+    color: #0f172a;
+    border-color: #cbd5e1;
+}
+
+.studio-btn-icon:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.studio-btn-icon.studio-btn-delete {
+    background: #fef2f2;
+    border-color: #fee2e2;
+    color: #ef4444;
+}
+
+.studio-btn-icon.studio-btn-delete:hover {
+    background: #fee2e2;
+    color: #b91c1c;
+}

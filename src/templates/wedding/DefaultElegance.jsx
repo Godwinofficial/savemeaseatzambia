@@ -3332,7 +3332,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
                   <div className="details-card-icon">
                     <i className="fas fa-building"></i>
                   </div>
-                  <h3>Marriage Blessings</h3>
+                  <h3>{weddingData.ceremony_title || "Marriage Blessings"}</h3>
                   <span className="details-card-date">{formatDate(weddingData.ceremony.date)}</span>
                   <span className="details-card-time">{weddingData.ceremony.time}</span>
                   <div className="details-card-divider"></div>
@@ -3345,7 +3345,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
                   <div className="details-card-icon">
                     <i className="fas fa-glass-cheers"></i>
                   </div>
-                  <h3>The Reception</h3>
+                  <h3>{weddingData.reception_title || "The Reception"}</h3>
                   <span className="details-card-date">{formatDate(weddingData.reception.date)}</span>
                   <span className="details-card-time">{weddingData.reception.time}</span>
                   <div className="details-card-divider"></div>
@@ -3353,6 +3353,36 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
                   {weddingData.reception.address && (
                     <p className="details-card-address">{weddingData.reception.address}</p>
                   )}
+                </div>
+              )}
+
+              {weddingData.program && Array.isArray(weddingData.program) && weddingData.program.length > 0 && (
+                <div className="details-card" id="program-item" style={{ gridColumn: '1 / -1', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
+
+                  <h3>Order of Service</h3>
+                  <span className="details-card-date">Wedding Program</span>
+                  <div className="details-card-divider"></div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left', marginTop: '10px' }}>
+                    {weddingData.program.map((p, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '8px' }}>
+                        {p.time && (
+                          <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#8b6f47', minWidth: '65px' }}>
+                            {p.time}
+                          </span>
+                        )}
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.92rem', color: '#1e293b' }}>
+                            {p.title || p.name}
+                          </div>
+                          {p.description && (
+                            <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
+                              {p.description}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

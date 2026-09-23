@@ -1784,3 +1784,29 @@
     color: #ffffff;
     border-color: var(--aw-primary);
 }
+
+/* ── Admin Wedding Program Builder ──────────────────────── */
+.admin-program-section {
+    margin-top: 10px;
+    margin-bottom: 25px;
+}
+.admin-program-card {
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+.admin-program-card:hover {
+    border-color: #c7d2fe;
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.08);
+}
+.btn-order-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: #475569;
+    transition: all 0.15s ease;
+}
+.btn-order-action:hover:not(:disabled) {
+    background: #e2e8f0 !important;
+    color: #0f172a;
+}

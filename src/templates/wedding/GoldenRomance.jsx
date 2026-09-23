@@ -850,28 +850,39 @@ const GoldenRomance = ({
                   <h2 className="gh-view-title">The Details</h2>
 
                   <div className="gh-timeline">
+                    {d.program && Array.isArray(d.program) && d.program.length > 0 ? (
+                      d.program.map((item, idx) => (
+                        <div key={idx} className="gh-timeline-item">
+                          <div className="gh-timeline-dot"></div>
+                          <div className="gh-time">{item.time || ''}</div>
+                          <div className="gh-event">{item.title || item.name}</div>
+                          {item.description && <div className="gh-event-desc">{item.description}</div>}
+                        </div>
+                      ))
+                    ) : (
+                      <>
+                        <div className="gh-timeline-item">
+                          <div className="gh-timeline-dot"></div>
+                          <div className="gh-time">3:30 PM</div>
+                          <div className="gh-event">Guest Arrival</div>
+                          <div className="gh-event-desc">Welcome drinks and seating</div>
+                        </div>
 
-                    <div className="gh-timeline-item">
-                      <div className="gh-timeline-dot"></div>
-                      <div className="gh-time">3:30 PM</div>
-                      <div className="gh-event">Guest Arrival</div>
-                      <div className="gh-event-desc">Welcome drinks and seating</div>
-                    </div>
+                        <div className="gh-timeline-item">
+                          <div className="gh-timeline-dot"></div>
+                          <div className="gh-time">{d.ceremony?.time || '4:30 PM'}</div>
+                          <div className="gh-event">{d.ceremony_title || d.ceremony_subtitle || 'Ceremony'}</div>
+                          <div className="gh-event-desc">{d.ceremony?.venue || 'The Rose Garden'}<br />{d.venue?.address || '123 Golden Valley Road'}</div>
+                        </div>
 
-                    <div className="gh-timeline-item">
-                      <div className="gh-timeline-dot"></div>
-                      <div className="gh-time">{d.ceremony?.time || '4:30 PM'}</div>
-                      <div className="gh-event">Ceremony</div>
-                      <div className="gh-event-desc">{d.ceremony?.venue || 'The Rose Garden'}<br />{d.venue?.address || '123 Golden Valley Road'}</div>
-                    </div>
-
-                    <div className="gh-timeline-item">
-                      <div className="gh-timeline-dot"></div>
-                      <div className="gh-time">{d.reception?.time || '6:00 PM'}</div>
-                      <div className="gh-event">Reception</div>
-                      <div className="gh-event-desc">{d.reception?.venue || 'The Crystal Ballroom'}<br />Dinner, Drinks & Dancing</div>
-                    </div>
-
+                        <div className="gh-timeline-item">
+                          <div className="gh-timeline-dot"></div>
+                          <div className="gh-time">{d.reception?.time || '6:00 PM'}</div>
+                          <div className="gh-event">{d.reception_title || 'Reception'}</div>
+                          <div className="gh-event-desc">{d.reception?.venue || 'The Crystal Ballroom'}<br />{d.reception?.address || 'Dinner, Drinks & Dancing'}</div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               )}

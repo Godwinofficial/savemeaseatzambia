@@ -87,6 +87,9 @@ const WeddingTemplate = () => {
     bridesmaids: [],
     groomsmen: [],
     ceremony: { date: "", time: "", venue: "" },
+    ceremony_title: "Church Service",
+    ceremony_subtitle: "Marriage Blessings",
+    program: [],
     reception: { date: "", time: "", venue: "", address: "" },
     dressCode: "",
     dressCodeDescription: "",
@@ -298,6 +301,31 @@ const WeddingTemplate = () => {
                 const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("RECEPTION_SUBTITLE:"));
                 return found ? found.substring("RECEPTION_SUBTITLE:".length) : "Party";
               })(),
+              ceremony_title: dbData.ceremony_title || (() => {
+                const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("CEREMONY_TITLE:"));
+                return found ? found.substring("CEREMONY_TITLE:".length) : "Church Service";
+              })(),
+              ceremony_subtitle: dbData.ceremony_subtitle || (() => {
+                const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("CEREMONY_SUBTITLE:"));
+                return found ? found.substring("CEREMONY_SUBTITLE:".length) : "Marriage Blessings";
+              })(),
+              program: (() => {
+                const raw = dbData.program;
+                if (raw) {
+                  try {
+                    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                  } catch (e) {}
+                }
+                const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("PROGRAM:"));
+                if (found) {
+                  try {
+                    const parsed = JSON.parse(found.substring("PROGRAM:".length));
+                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                  } catch (e) {}
+                }
+                return [];
+              })(),
               show_gallery_titles: dbData.show_gallery_titles !== undefined ? dbData.show_gallery_titles : (() => {
                 const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("SHOW_GALLERY_TITLES:"));
                 return found ? found.substring("SHOW_GALLERY_TITLES:".length) !== 'false' : true;
@@ -418,6 +446,31 @@ const WeddingTemplate = () => {
             reception_subtitle: dbData.reception_subtitle || (() => {
               const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("RECEPTION_SUBTITLE:"));
               return found ? found.substring("RECEPTION_SUBTITLE:".length) : "Party";
+            })(),
+            ceremony_title: dbData.ceremony_title || (() => {
+              const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("CEREMONY_TITLE:"));
+              return found ? found.substring("CEREMONY_TITLE:".length) : "Church Service";
+            })(),
+            ceremony_subtitle: dbData.ceremony_subtitle || (() => {
+              const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("CEREMONY_SUBTITLE:"));
+              return found ? found.substring("CEREMONY_SUBTITLE:".length) : "Marriage Blessings";
+            })(),
+            program: (() => {
+              const raw = dbData.program;
+              if (raw) {
+                try {
+                  const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                  if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                } catch (e) {}
+              }
+              const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("PROGRAM:"));
+              if (found) {
+                try {
+                  const parsed = JSON.parse(found.substring("PROGRAM:".length));
+                  if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                } catch (e) {}
+              }
+              return [];
             })(),
             show_gallery_titles: dbData.show_gallery_titles !== undefined ? dbData.show_gallery_titles : (() => {
               const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("SHOW_GALLERY_TITLES:"));
@@ -550,6 +603,31 @@ const WeddingTemplate = () => {
               reception_subtitle: dbData.reception_subtitle || (() => {
                 const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("RECEPTION_SUBTITLE:"));
                 return found ? found.substring("RECEPTION_SUBTITLE:".length) : "Party";
+              })(),
+              ceremony_title: dbData.ceremony_title || (() => {
+                const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("CEREMONY_TITLE:"));
+                return found ? found.substring("CEREMONY_TITLE:".length) : "Church Service";
+              })(),
+              ceremony_subtitle: dbData.ceremony_subtitle || (() => {
+                const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("CEREMONY_SUBTITLE:"));
+                return found ? found.substring("CEREMONY_SUBTITLE:".length) : "Marriage Blessings";
+              })(),
+              program: (() => {
+                const raw = dbData.program;
+                if (raw) {
+                  try {
+                    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                  } catch (e) {}
+                }
+                const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("PROGRAM:"));
+                if (found) {
+                  try {
+                    const parsed = JSON.parse(found.substring("PROGRAM:".length));
+                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                  } catch (e) {}
+                }
+                return [];
               })(),
               show_gallery_titles: dbData.show_gallery_titles !== undefined ? dbData.show_gallery_titles : (() => {
                 const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("SHOW_GALLERY_TITLES:"));

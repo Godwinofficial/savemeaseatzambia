@@ -707,7 +707,7 @@ const TropicalElegance = ({
 
             {/* Ceremony - Icon Left */}
             <div className="inv-section-item animate-on-scroll">
-              <SectionPill icon="fa-church" topText="LOCATION OF" bottomText="Marriage Blessings" iconLeft={true} />
+              <SectionPill icon="fa-church" topText={d.ceremony_subtitle || "LOCATION OF"} bottomText={d.ceremony_title || "Marriage Blessings"} iconLeft={true} />
               <div className="inv-section-content">
                 <p>
                   <strong>{typeof d.ceremony?.venue === 'string' ? d.ceremony.venue : (d.venue?.name || 'Igreja Santa Teresinha')}</strong><br />
@@ -716,6 +716,53 @@ const TropicalElegance = ({
                 </p>
               </div>
             </div>
+
+            {/* Program / Order of Service - if provided */}
+            {d.program && Array.isArray(d.program) && d.program.length > 0 && (
+              <>
+                <SquigglyDivider />
+                <div className="inv-section-item animate-on-scroll">
+                  <SectionPill icon="fa-list-ol" topText="ORDER OF EVENTS" bottomText="Wedding Program" iconLeft={false} />
+                  <div className="inv-section-content" style={{ width: '100%', maxWidth: '440px', margin: '0 auto' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
+                      {d.program.map((p, idx) => (
+                        <div key={idx} style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '12px',
+                          padding: '10px 14px',
+                          background: 'rgba(255, 255, 255, 0.7)',
+                          borderRadius: '14px',
+                          border: `1px solid rgba(92,53,34,0.15)`
+                        }}>
+                          {p.time && (
+                            <span style={{
+                              fontSize: '0.8rem',
+                              fontWeight: 700,
+                              color: accentBrown,
+                              whiteSpace: 'nowrap',
+                              minWidth: '65px'
+                            }}>
+                              {p.time}
+                            </span>
+                          )}
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, color: textBrown, fontSize: '0.88rem' }}>
+                              {p.title || p.name}
+                            </div>
+                            {p.description && (
+                              <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '2px', lineHeight: 1.3 }}>
+                                {p.description}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
 
             <SquigglyDivider />
 

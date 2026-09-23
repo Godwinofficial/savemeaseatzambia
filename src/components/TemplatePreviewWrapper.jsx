@@ -125,6 +125,21 @@ const TemplatePreviewWrapper = ({ children, slug }) => {
             rsvpDeadline: dbData.rsvp_deadline,
             allowedGuests: dbData.allowed_guests || [],
             otherEvents: dbData.other_events || [],
+            ceremony_title: dbData.ceremony_title || "Church Service",
+            ceremony_subtitle: dbData.ceremony_subtitle || "Marriage Blessings",
+            reception_title: dbData.reception_title || "RECEPTION",
+            reception_subtitle: dbData.reception_subtitle || "Party",
+            show_gallery_titles: dbData.show_gallery_titles !== undefined ? dbData.show_gallery_titles : true,
+            program: (() => {
+              const raw = dbData.program;
+              if (raw) {
+                try {
+                  const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                  if (Array.isArray(parsed)) return parsed;
+                } catch (e) {}
+              }
+              return [];
+            })(),
             tagline: dbData.tagline || "We are getting married"
           });
         }

@@ -757,6 +757,9 @@ const AddWedding = () => {
         story_highlight: SPECIAL_QUOTES[0],
         story_part2: PROPOSAL_STORIES[0],
         ceremony_date: "2026-12-12", ceremony_time: "10:00", ceremony_venue: "Cathedral of the Holy Cross",
+        ceremony_title: "Church Service",
+        ceremony_subtitle: "Marriage Blessings",
+        program: [],
         reception_date: "2026-12-12", reception_time: "14:30", reception_venue: "Grand Ballroom at Taj Pamodzi", reception_address: "Church Road, Lusaka, Zambia",
         reception_title: "RECEPTION",
         reception_subtitle: "Party",
@@ -1021,6 +1024,51 @@ const AddWedding = () => {
                             }
                         } catch (e) { }
                         return true;
+                    })(),
+                    ceremony_title: data.ceremony_title || (() => {
+                        const rawTheme = data.theme_colors;
+                        if (!rawTheme) return "Church Service";
+                        try {
+                            const parsed = typeof rawTheme === 'string' ? JSON.parse(rawTheme) : rawTheme;
+                            if (Array.isArray(parsed)) {
+                                const found = parsed.find(c => typeof c === 'string' && c.startsWith("CEREMONY_TITLE:"));
+                                return found ? found.substring("CEREMONY_TITLE:".length) : "Church Service";
+                            }
+                        } catch (e) { }
+                        return "Church Service";
+                    })(),
+                    ceremony_subtitle: data.ceremony_subtitle || (() => {
+                        const rawTheme = data.theme_colors;
+                        if (!rawTheme) return "Marriage Blessings";
+                        try {
+                            const parsed = typeof rawTheme === 'string' ? JSON.parse(rawTheme) : rawTheme;
+                            if (Array.isArray(parsed)) {
+                                const found = parsed.find(c => typeof c === 'string' && c.startsWith("CEREMONY_SUBTITLE:"));
+                                return found ? found.substring("CEREMONY_SUBTITLE:".length) : "Marriage Blessings";
+                            }
+                        } catch (e) { }
+                        return "Marriage Blessings";
+                    })(),
+                    program: (() => {
+                        if (data.program) {
+                            try {
+                                const p = typeof data.program === 'string' ? JSON.parse(data.program) : data.program;
+                                if (Array.isArray(p)) return p;
+                            } catch (e) { }
+                        }
+                        const rawTheme = data.theme_colors;
+                        if (!rawTheme) return [];
+                        try {
+                            const parsed = typeof rawTheme === 'string' ? JSON.parse(rawTheme) : rawTheme;
+                            if (Array.isArray(parsed)) {
+                                const found = parsed.find(c => typeof c === 'string' && c.startsWith("PROGRAM:"));
+                                if (found) {
+                                    const parsedProg = JSON.parse(found.substring("PROGRAM:".length));
+                                    if (Array.isArray(parsedProg)) return parsedProg;
+                                }
+                            }
+                        } catch (e) { }
+                        return [];
                     })(),
                     template_id: data.template_id || 1
                 });
@@ -1402,10 +1450,13 @@ const AddWedding = () => {
             });
 
             // Clean theme_colors of any prefix tags if saving normally
-            payload.theme_colors = (payload.theme_colors || []).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:") && !c.startsWith("MUSIC_URL:") && !c.startsWith("RECEPTION_TITLE:") && !c.startsWith("RECEPTION_SUBTITLE:") && !c.startsWith("SHOW_GALLERY_TITLES:"));
+            payload.theme_colors = (payload.theme_colors || []).filter(c => typeof c === 'string' && !c.startsWith("DRESS_CODE_COLOR:") && !c.startsWith("MUSIC_URL:") && !c.startsWith("RECEPTION_TITLE:") && !c.startsWith("RECEPTION_SUBTITLE:") && !c.startsWith("SHOW_GALLERY_TITLES:") && !c.startsWith("CEREMONY_TITLE:") && !c.startsWith("CEREMONY_SUBTITLE:") && !c.startsWith("PROGRAM:"));
             // Always pack custom fields into theme_colors so they persist even if table columns don't exist
             if (payload.reception_title) payload.theme_colors.push(`RECEPTION_TITLE:${payload.reception_title}`);
             if (payload.reception_subtitle) payload.theme_colors.push(`RECEPTION_SUBTITLE:${payload.reception_subtitle}`);
+            if (payload.ceremony_title) payload.theme_colors.push(`CEREMONY_TITLE:${payload.ceremony_title}`);
+            if (payload.ceremony_subtitle) payload.theme_colors.push(`CEREMONY_SUBTITLE:${payload.ceremony_subtitle}`);
+            if (payload.program && payload.program.length > 0) payload.theme_colors.push(`PROGRAM:${JSON.stringify(payload.program)}`);
             payload.theme_colors.push(`SHOW_GALLERY_TITLES:${payload.show_gallery_titles !== false}`);
 
             let error;
@@ -1425,8 +1476,11 @@ const AddWedding = () => {
                 const missingReceptionTitle = error.message && error.message.includes("reception_title");
                 const missingReceptionSubtitle = error.message && error.message.includes("reception_subtitle");
                 const missingShowGalleryTitles = error.message && error.message.includes("show_gallery_titles");
+                const missingCeremonyTitle = error.message && error.message.includes("ceremony_title");
+                const missingCeremonySubtitle = error.message && error.message.includes("ceremony_subtitle");
+                const missingProgram = error.message && error.message.includes("program");
 
-                if (missingExtraCardText || missingDressCodeColors || missingMusicUrl || missingHeroVideoUrl || missingReceptionTitle || missingReceptionSubtitle || missingShowGalleryTitles) {
+                if (missingExtraCardText || missingDressCodeColors || missingMusicUrl || missingHeroVideoUrl || missingReceptionTitle || missingReceptionSubtitle || missingShowGalleryTitles || missingCeremonyTitle || missingCeremonySubtitle || missingProgram) {
                     console.warn("Missing database columns, applying fallbacks...");
                     const retryPayload = { ...payload };
                     let msg = "";
@@ -1434,6 +1488,9 @@ const AddWedding = () => {
                     if (missingReceptionTitle) delete retryPayload.reception_title;
                     if (missingReceptionSubtitle) delete retryPayload.reception_subtitle;
                     if (missingShowGalleryTitles) delete retryPayload.show_gallery_titles;
+                    if (missingCeremonyTitle) delete retryPayload.ceremony_title;
+                    if (missingCeremonySubtitle) delete retryPayload.ceremony_subtitle;
+                    if (missingProgram) delete retryPayload.program;
 
                     if (missingExtraCardText) {
                         delete retryPayload.extra_card_text;
@@ -2913,6 +2970,30 @@ const AddWedding = () => {
                     </div>
                     <div className="grid-2">
                         <div className="form-group">
+                            <label className="form-label">
+                                <i className="fas fa-heading"></i> Section Title
+                            </label>
+                            <input
+                                className="form-input"
+                                name="ceremony_title"
+                                value={formData.ceremony_title !== undefined ? formData.ceremony_title : 'Church Service'}
+                                onChange={handleChange}
+                                placeholder="e.g. Church Service or Marriage Blessings"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">
+                                <i className="fas fa-quote-right"></i> Section Subheading
+                            </label>
+                            <input
+                                className="form-input"
+                                name="ceremony_subtitle"
+                                value={formData.ceremony_subtitle !== undefined ? formData.ceremony_subtitle : 'Marriage Blessings'}
+                                onChange={handleChange}
+                                placeholder="e.g. Holy Matrimony or Blessing"
+                            />
+                        </div>
+                        <div className="form-group">
                             <label className="form-label">Venue Name</label>
                             <input className="form-input" name="ceremony_venue" value={formData.ceremony_venue} onChange={handleChange} placeholder="e.g., St. Mary's Church" />
                         </div>
@@ -2994,6 +3075,210 @@ const AddWedding = () => {
                             <input className="form-input" name="reception_address" value={formData.reception_address} onChange={handleChange} placeholder="Full address for reception venue" />
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div className="section-header" style={{ marginTop: '50px' }}>
+                <h2 className="section-title">
+                    <i className="fas fa-list-ol"></i>
+                    Church Service & Wedding Program
+                </h2>
+                <p className="section-description">
+                    Add each part of your church service or wedding day program (Order of Events). People have different programs, so you can list each part with custom times and descriptions.
+                </p>
+            </div>
+
+            <div className="admin-program-section">
+                {(formData.program || []).length === 0 ? (
+                    <div className="admin-program-empty" style={{
+                        background: '#f8fafc',
+                        border: '2px dashed #cbd5e1',
+                        borderRadius: '12px',
+                        padding: '2rem 1.5rem',
+                        textAlign: 'center',
+                        marginBottom: '16px'
+                    }}>
+                        <i className="fas fa-clipboard-list" style={{ fontSize: '1.8rem', color: '#94a3b8', marginBottom: '8px' }}></i>
+                        <h4 style={{ margin: '0 0 4px', color: '#334155' }}>No Program Parts Listed Yet</h4>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Click <strong>Add Program Part</strong> or <strong>Load Standard Church Program</strong> to outline the schedule for guests.</p>
+                    </div>
+                ) : (
+                    (formData.program || []).map((part, idx) => (
+                        <div key={idx} className="event-card admin-program-card" style={{ marginBottom: '16px' }}>
+                            <div className="event-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <span style={{
+                                        fontSize: '0.75rem',
+                                        fontWeight: 700,
+                                        color: '#4f46e5',
+                                        background: '#eef2ff',
+                                        border: '1px solid #c7d2fe',
+                                        padding: '2px 9px',
+                                        borderRadius: '6px',
+                                        textTransform: 'uppercase'
+                                    }}>Part {idx + 1}</span>
+                                    <h3 style={{ margin: 0 }}>{part.title || `Program Part #${idx + 1}`}</h3>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <button
+                                        type="button"
+                                        className="btn-order-action"
+                                        title="Move Up"
+                                        disabled={idx === 0}
+                                        onClick={() => {
+                                            const newProg = [...formData.program];
+                                            const [moved] = newProg.splice(idx, 1);
+                                            newProg.splice(idx - 1, 0, moved);
+                                            setFormData(prev => ({ ...prev, program: newProg }));
+                                        }}
+                                        style={{
+                                            background: '#f8fafc',
+                                            border: '1px solid #cbd5e1',
+                                            borderRadius: '6px',
+                                            width: '28px',
+                                            height: '28px',
+                                            cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                            opacity: idx === 0 ? 0.4 : 1
+                                        }}
+                                    >
+                                        <i className="fas fa-arrow-up"></i>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn-order-action"
+                                        title="Move Down"
+                                        disabled={idx === (formData.program || []).length - 1}
+                                        onClick={() => {
+                                            const newProg = [...formData.program];
+                                            const [moved] = newProg.splice(idx, 1);
+                                            newProg.splice(idx + 1, 0, moved);
+                                            setFormData(prev => ({ ...prev, program: newProg }));
+                                        }}
+                                        style={{
+                                            background: '#f8fafc',
+                                            border: '1px solid #cbd5e1',
+                                            borderRadius: '6px',
+                                            width: '28px',
+                                            height: '28px',
+                                            cursor: idx === (formData.program || []).length - 1 ? 'not-allowed' : 'pointer',
+                                            opacity: idx === (formData.program || []).length - 1 ? 0.4 : 1
+                                        }}
+                                    >
+                                        <i className="fas fa-arrow-down"></i>
+                                    </button>
+                                    <button
+                                        className="btn-remove-member"
+                                        onClick={() => removeItem('program', idx)}
+                                        type="button"
+                                        title="Delete Part"
+                                    >
+                                        <i className="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="grid-2">
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        <i className="fas fa-clock"></i> Time
+                                    </label>
+                                    <input
+                                        className="form-input"
+                                        placeholder="e.g. 10:00 AM or 10:00"
+                                        value={part.time || ''}
+                                        onChange={(e) => updateItem('program', idx, 'time', e.target.value)}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        <i className="fas fa-bookmark"></i> Activity / Program Part Name *
+                                    </label>
+                                    <input
+                                        className="form-input"
+                                        placeholder="e.g. Processional & Bridal Entry"
+                                        value={part.title || ''}
+                                        onChange={(e) => updateItem('program', idx, 'title', e.target.value)}
+                                    />
+                                </div>
+                                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                    <label className="form-label">
+                                        <i className="fas fa-info-circle"></i> Officiant / Details / Location (Optional)
+                                    </label>
+                                    <input
+                                        className="form-input"
+                                        placeholder="e.g. Officiated by Pastor Banda / Church Sanctuary"
+                                        value={part.description || ''}
+                                        onChange={(e) => updateItem('program', idx, 'description', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                )}
+
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '10px' }}>
+                    <button
+                        className="btn-add-member"
+                        onClick={() => addItem('program', { time: "", title: "", description: "" })}
+                        type="button"
+                    >
+                        <i className="fas fa-plus"></i>
+                        Add Program Part
+                    </button>
+                    <button
+                        type="button"
+                        style={{
+                            background: '#f8fafc',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '10px',
+                            padding: '10px 18px',
+                            color: '#475569',
+                            fontWeight: 600,
+                            fontSize: '0.9rem',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}
+                        onClick={() => {
+                            const standardChurchProgram = [
+                                { time: '09:30 AM', title: 'Arrival of Guests', description: 'Guests seated in the sanctuary' },
+                                { time: '10:00 AM', title: 'Processional & Bridal Entry', description: 'Entrance of Bridal Party & Bride' },
+                                { time: '10:30 AM', title: 'Scripture Reading & Sermon', description: 'Word of encouragement' },
+                                { time: '11:00 AM', title: 'Exchange of Vows & Rings', description: 'Holy Matrimony & Blessing' },
+                                { time: '11:45 AM', title: 'Signing of Marriage Register', description: 'Official signing and presentation of couple' },
+                                { time: '12:15 PM', title: 'Recessional & Photo Session', description: 'Congregation & Family photos' },
+                            ];
+                            setFormData(prev => ({
+                                ...prev,
+                                program: [...(prev.program || []), ...standardChurchProgram]
+                            }));
+                        }}
+                    >
+                        <i className="fas fa-magic"></i>
+                        Load Standard Church Program
+                    </button>
+                    {(formData.program || []).length > 0 && (
+                        <button
+                            type="button"
+                            style={{
+                                background: '#fef2f2',
+                                border: '1px solid #fecaca',
+                                borderRadius: '10px',
+                                padding: '10px 18px',
+                                color: '#ef4444',
+                                fontWeight: 600,
+                                fontSize: '0.9rem',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}
+                            onClick={() => setFormData(prev => ({ ...prev, program: [] }))}
+                        >
+                            <i className="fas fa-trash-alt"></i>
+                            Clear Program
+                        </button>
+                    )}
                 </div>
             </div>
 

@@ -1110,37 +1110,78 @@ const TerracottaEarth = ({
           <div className="te-program-section">
             <h2 className="te-program-title te-fade-up">Itinerary</h2>
             <div className="te-timeline">
-              {d.ceremony?.time && (
-                <div className="te-timeline-item te-slide-right" style={{ transitionDelay: '0.1s' }}>
-                  <div className="te-timeline-content" style={{ opacity: 0 }}></div>
-                  <div className="te-timeline-dot"></div>
-                  <div className="te-timeline-content">
-                    <div className="te-timeline-time">{formatTime(d.ceremony.time)}</div>
-                    <div className="te-timeline-event">Marriage Blessings</div>
-                    {(d.ceremony.venue || d.ceremony.location) && (
-                      <div style={{ fontSize: '0.7rem', color: textMuted, marginTop: '4px', lineHeight: '1.4' }}>
-                        {d.ceremony.venue || d.ceremony.location}
+              {d.program && Array.isArray(d.program) && d.program.length > 0 ? (
+                d.program.map((item, idx) => {
+                  const isEven = idx % 2 === 0;
+                  return (
+                    <div key={idx} className="te-timeline-item te-slide-right" style={{ transitionDelay: `${0.1 * (idx + 1)}s` }}>
+                      {isEven ? (
+                        <>
+                          <div className="te-timeline-content" style={{ opacity: 0 }}></div>
+                          <div className="te-timeline-dot"></div>
+                          <div className="te-timeline-content">
+                            <div className="te-timeline-time">{formatTime(item.time)}</div>
+                            <div className="te-timeline-event">{item.title || item.name}</div>
+                            {item.description && (
+                              <div style={{ fontSize: '0.7rem', color: textMuted, marginTop: '4px', lineHeight: '1.4' }}>
+                                {item.description}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="te-timeline-content">
+                            <div className="te-timeline-time">{formatTime(item.time)}</div>
+                            <div className="te-timeline-event">{item.title || item.name}</div>
+                            {item.description && (
+                              <div style={{ fontSize: '0.7rem', color: textMuted, marginTop: '4px', lineHeight: '1.4' }}>
+                                {item.description}
+                              </div>
+                            )}
+                          </div>
+                          <div className="te-timeline-dot"></div>
+                          <div className="te-timeline-content" style={{ opacity: 0 }}></div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <>
+                  {d.ceremony?.time && (
+                    <div className="te-timeline-item te-slide-right" style={{ transitionDelay: '0.1s' }}>
+                      <div className="te-timeline-content" style={{ opacity: 0 }}></div>
+                      <div className="te-timeline-dot"></div>
+                      <div className="te-timeline-content">
+                        <div className="te-timeline-time">{formatTime(d.ceremony.time)}</div>
+                        <div className="te-timeline-event">{d.ceremony_title || d.ceremony_subtitle || 'Marriage Blessings'}</div>
+                        {(d.ceremony.venue || d.ceremony.location) && (
+                          <div style={{ fontSize: '0.7rem', color: textMuted, marginTop: '4px', lineHeight: '1.4' }}>
+                            {d.ceremony.venue || d.ceremony.location}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </div>
-              )}
-              {d.reception?.time && (
-                <div className="te-timeline-item te-slide-right" style={{ transitionDelay: '0.3s' }}>
-                  <div className="te-timeline-content">
-                    <div className="te-timeline-time">{formatTime(d.reception.time)}</div>
-                    <div className="te-timeline-event">Reception</div>
-                    {(d.reception.venue || d.reception.address || d.reception.location) && (
-                      <div style={{ fontSize: '0.7rem', color: textMuted, marginTop: '4px', lineHeight: '1.4' }}>
-                        {d.reception.venue}
-                        {d.reception.venue && d.reception.address ? <br /> : null}
-                        {d.reception.address || d.reception.location}
+                    </div>
+                  )}
+                  {d.reception?.time && (
+                    <div className="te-timeline-item te-slide-right" style={{ transitionDelay: '0.3s' }}>
+                      <div className="te-timeline-content">
+                        <div className="te-timeline-time">{formatTime(d.reception.time)}</div>
+                        <div className="te-timeline-event">{d.reception_title || 'Reception'}</div>
+                        {(d.reception.venue || d.reception.address || d.reception.location) && (
+                          <div style={{ fontSize: '0.7rem', color: textMuted, marginTop: '4px', lineHeight: '1.4' }}>
+                            {d.reception.venue}
+                            {d.reception.venue && d.reception.address ? <br /> : null}
+                            {d.reception.address || d.reception.location}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <div className="te-timeline-dot"></div>
-                  <div className="te-timeline-content" style={{ opacity: 0 }}></div>
-                </div>
+                      <div className="te-timeline-dot"></div>
+                      <div className="te-timeline-content" style={{ opacity: 0 }}></div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
