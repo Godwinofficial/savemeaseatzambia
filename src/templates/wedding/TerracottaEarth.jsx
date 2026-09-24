@@ -1234,7 +1234,7 @@ const TerracottaEarth = ({
               </p>
               <div className="te-map-wrap">
                 <iframe
-                  src={d.mapLocation || `https://maps.google.com/maps?q=${encodeURIComponent((d.venue?.name || '') + ' ' + (d.venue?.address || d.location || ''))}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+                  src={d.mapLocation || `https://maps.google.com/maps?q=${encodeURIComponent([d.venue?.name, d.venue?.address, d.reception?.venue, d.reception?.address, d.ceremony?.venue, d.location].filter(Boolean).join(', ') || 'Lusaka, Zambia')}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}

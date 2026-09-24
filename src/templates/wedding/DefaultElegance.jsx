@@ -444,7 +444,8 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
     couple: { bride: { name: "Catherine", image: "" }, groom: { name: "Alexander", image: "" } },
     sliderImages: [], bridesmaids: [], groomsmen: [],
     ceremony: {}, reception: {}, gifts: [], galleryImages: [], allowedGuests: ["1"], otherEvents: [],
-    dress_code_colors: []
+    dress_code_colors: [],
+    venue: {}, location: "", mapLocation: ""
   };
   const weddingData = propsWeddingData || initialData;
 
@@ -456,6 +457,60 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
     deadline.setHours(23, 59, 59, 999);
     return new Date() > deadline;
   })();
+
+  const getMapEmbedUrl = () => {
+    const raw = weddingData.mapLocation || weddingData.map_location;
+    if (raw && typeof raw === 'string') {
+      const trimmed = raw.trim();
+      if (trimmed) {
+        // If an entire <iframe> was pasted, extract src
+        if (trimmed.includes('<iframe')) {
+          const match = trimmed.match(/src=["']([^"']+)["']/i);
+          if (match && match[1]) return match[1];
+        }
+        // If already an embed URL (Google Maps or OpenStreetMap)
+        if (trimmed.includes('output=embed') || trimmed.includes('/embed') || trimmed.includes('openstreetmap.org/export/embed')) {
+          return trimmed;
+        }
+        // If it contains coordinates @lat,lng or q=lat,lng
+        const coordMatch = trimmed.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) || trimmed.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+        if (coordMatch) {
+          return `https://maps.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&z=15&output=embed`;
+        }
+        // If it's a Google Maps URL with a query param
+        if (trimmed.includes('google.com/maps') || trimmed.includes('maps.google.com')) {
+          try {
+            const urlObj = new URL(trimmed);
+            const q = urlObj.searchParams.get('q') || urlObj.searchParams.get('query');
+            if (q) {
+              return `https://maps.google.com/maps?q=${encodeURIComponent(q)}&z=15&output=embed`;
+            }
+          } catch (e) {}
+        }
+        // If it's raw coordinates like "-15.3875, 28.3228"
+        const rawCoords = trimmed.match(/^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/);
+        if (rawCoords) {
+          return `https://maps.google.com/maps?q=${rawCoords[1]},${rawCoords[2]}&z=15&output=embed`;
+        }
+        // If it's another URL or string
+        return `https://maps.google.com/maps?q=${encodeURIComponent(trimmed)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+      }
+    }
+
+    // Fallback: build query from venue, reception, ceremony, and location
+    const parts = [
+      weddingData.venue?.name,
+      weddingData.venue?.address,
+      weddingData.reception?.venue,
+      weddingData.reception?.address,
+      weddingData.ceremony?.venue,
+      weddingData.location
+    ].map(s => (s || '').trim()).filter(Boolean);
+
+    const uniqueParts = [...new Set(parts)];
+    const query = uniqueParts.length > 0 ? uniqueParts.join(', ') : 'Lusaka, Zambia';
+    return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+  };
 
 
 
@@ -3508,7 +3563,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
         <div className="map-container">
           <iframe
             id="location-map-iframe"
-            src={weddingData.mapLocation || `https://maps.google.com/maps?q=${encodeURIComponent((weddingData.venue?.name || '') + ' ' + (weddingData.venue?.address || weddingData.location || ''))}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+            src={getMapEmbedUrl()}
             width="100%"
             height="500"
             style={{ border: 0 }}
@@ -3516,7 +3571,6 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
             loading="lazy"
             title="Wedding Location"
           ></iframe>
-
         </div>
       </section>
 

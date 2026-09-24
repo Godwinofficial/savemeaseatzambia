@@ -1197,7 +1197,7 @@ const BotanicalOlive = ({
                   style={{ border: 0, display: 'block' }}
                   loading="lazy"
                   allowFullScreen
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(d.venue?.address || d.venue?.name || d.location || 'Lusaka')}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                  src={d.mapLocation || `https://maps.google.com/maps?q=${encodeURIComponent(d.venue?.address || d.venue?.name || d.location || 'Lusaka')}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
                 ></iframe>
               </div>
             </div>

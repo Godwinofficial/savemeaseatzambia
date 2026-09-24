@@ -747,44 +747,36 @@ const AddWedding = () => {
     const initialFormState = {
         extra_card_text: "",
         cover_image: "",
-        bride_name: "Mutale Mwila", bride_image: "", bride_description: "A joyful, thoughtful and creative soul who brings warmth to every room.",
-        groom_name: "Chanda Banda", groom_image: "", groom_description: "A kind-hearted adventurer who loves family, music and building a beautiful future.",
-        date: "2026-12-12", location: "Lusaka, Zambia",
-        venue_name: "Cathedral of the Holy Cross",
-        venue_address: "Independence Avenue, Lusaka, Zambia",
-        venue_description: "A beautiful celebration surrounded by family and friends.",
-        story_part1: HOW_WE_MET_STORIES[0],
-        story_highlight: SPECIAL_QUOTES[0],
-        story_part2: PROPOSAL_STORIES[0],
-        ceremony_date: "2026-12-12", ceremony_time: "10:00", ceremony_venue: "Cathedral of the Holy Cross",
-        ceremony_title: "Church Service",
-        ceremony_subtitle: "Marriage Blessings",
+        bride_name: "", bride_image: "", bride_description: "",
+        groom_name: "", groom_image: "", groom_description: "",
+        date: "", location: "",
+        venue_name: "",
+        venue_address: "",
+        venue_description: "",
+        story_part1: "",
+        story_highlight: "",
+        story_part2: "",
+        ceremony_date: "", ceremony_time: "", ceremony_venue: "",
+        ceremony_title: "",
+        ceremony_subtitle: "",
         program: [],
-        reception_date: "2026-12-12", reception_time: "14:30", reception_venue: "Grand Ballroom at Taj Pamodzi", reception_address: "Church Road, Lusaka, Zambia",
-        reception_title: "RECEPTION",
-        reception_subtitle: "Party",
+        reception_date: "", reception_time: "", reception_venue: "", reception_address: "",
+        reception_title: "",
+        reception_subtitle: "",
         show_gallery_titles: true,
-        rsvp_deadline: "2026-11-20",
-        dress_code: "Emerald Green and Champagne Gold Formal Attire", dress_code_desc: "Please wear formal attire in emerald green, champagne gold or complementary neutral tones.",
+        rsvp_deadline: "",
+        dress_code: "", dress_code_desc: "",
         map_location: "",
-        tagline: "We are getting married",
+        tagline: "",
         template_id: 1,
         slider_images: [],
-        bridesmaids: [
-            { name: "Thandiwe Phiri", role: "Maid of Honour", photo: "" },
-            { name: "Ruth Zulu", role: "Bridesmaid", photo: "" }
-        ],
-        groomsmen: [
-            { name: "Bwalya Mwansa", role: "Best Man", photo: "" },
-            { name: "Tapiwa Chileshe", role: "Groomsman", photo: "" }
-        ],
-        gifts: [
-            { giftType: "Mobile Money", provider: "Airtel Money", accountName: "Chanda and Mutale", accountNumber: "097 000 0000", instructions: "Please use wedding reference CBMW", url: "" }
-        ],
+        bridesmaids: [],
+        groomsmen: [],
+        gifts: [],
         gallery_images: [], other_events: [],
         allowed_guests: ["1", "2"],
         theme_colors: ['#1FA09B', '#C5A059', '#FFFFFF', '#0F172A'],
-        dress_code_colors: ['#1FA09B', '#C5A059'],
+        dress_code_colors: [],
         music_url: defaultMusic,
         hero_video_url: ""
     };
@@ -852,7 +844,7 @@ const AddWedding = () => {
             setPreviewingUrl(null);
         } else {
             audioEl.src = url;
-            audioEl.play().catch(() => {});
+            audioEl.play().catch(() => { });
             setPreviewingUrl(url);
             audioEl.onended = () => setPreviewingUrl(null);
         }
@@ -2976,7 +2968,7 @@ const AddWedding = () => {
                             <input
                                 className="form-input"
                                 name="ceremony_title"
-                                value={formData.ceremony_title !== undefined ? formData.ceremony_title : 'Church Service'}
+                                value={formData.ceremony_title || ''}
                                 onChange={handleChange}
                                 placeholder="e.g. Church Service or Marriage Blessings"
                             />
@@ -2988,7 +2980,7 @@ const AddWedding = () => {
                             <input
                                 className="form-input"
                                 name="ceremony_subtitle"
-                                value={formData.ceremony_subtitle !== undefined ? formData.ceremony_subtitle : 'Marriage Blessings'}
+                                value={formData.ceremony_subtitle || ''}
                                 onChange={handleChange}
                                 placeholder="e.g. Holy Matrimony or Blessing"
                             />
@@ -3031,7 +3023,7 @@ const AddWedding = () => {
                             <input
                                 className="form-input"
                                 name="reception_title"
-                                value={formData.reception_title !== undefined ? formData.reception_title : 'RECEPTION'}
+                                value={formData.reception_title || ''}
                                 onChange={handleChange}
                                 placeholder="e.g. RECEPTION"
                             />
@@ -3043,7 +3035,7 @@ const AddWedding = () => {
                             <input
                                 className="form-input"
                                 name="reception_subtitle"
-                                value={formData.reception_subtitle !== undefined ? formData.reception_subtitle : 'Party'}
+                                value={formData.reception_subtitle || ''}
                                 onChange={handleChange}
                                 placeholder="e.g. Party"
                             />
