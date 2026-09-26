@@ -485,7 +485,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
             if (q) {
               return `https://maps.google.com/maps?q=${encodeURIComponent(q)}&z=15&output=embed`;
             }
-          } catch (e) {}
+          } catch (e) { }
         }
         // If it's raw coordinates like "-15.3875, 28.3228"
         const rawCoords = trimmed.match(/^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/);
@@ -1208,7 +1208,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
       flex-direction: column;
       align-items: center;
       text-align: center;
-      margin-top: 0;
+      margin-top: -50px;
     }
 
     /* Tagline at the very top */
@@ -2948,7 +2948,7 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
       /* Hero Mobile Adjustments */
       .hero-content {
         padding: 0 15px !important;
-        margin-top: 20px !important;
+        margin-top: -30px !important;
       }
 
       .hero-tagline-top {
