@@ -144,6 +144,13 @@ const TEMPLATE_THEMES = [
         tags: ['Terracotta', 'Linen', 'Watercolor'],
         description: 'Warm, earthy tones inspired by natural linen, pottery, and rustic landscapes.',
         colors: ['#d9745b', '#fdf8f5', '#5c2c1e']
+    },
+    {
+        id: 9,
+        name: 'Modern Classic',
+        tags: ['Ivory', 'Editorial', 'Minimalist'],
+        description: 'Warm editorial ivory, Playfair Display typography, and quiet timeless sophistication.',
+        colors: ['#C9A86A', '#FFFCF8', '#1A1A1A']
     }
 ];
 

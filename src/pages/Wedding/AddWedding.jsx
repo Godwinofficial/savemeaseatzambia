@@ -1824,6 +1824,16 @@ const AddWedding = () => {
                     </div>
                     <span style={{ fontWeight: 600, fontSize: '0.8rem', color: '#374151' }}>Terracotta Earth</span>
                 </div>
+
+                <div
+                    className={`template-option-card ${formData.template_id === 9 ? 'active' : ''}`}
+                    onClick={() => setFormData(p => ({ ...p, template_id: 9 }))}
+                >
+                    <div className="template-preview-box" style={{ background: '#1A1A1A', color: '#C9A86A', border: '1px solid rgba(201, 168, 106, 0.4)' }}>
+                        <span style={{ fontFamily: 'Playfair Display, serif' }}>Modern Classic</span>
+                    </div>
+                    <span style={{ fontWeight: 600, fontSize: '0.8rem', color: '#374151' }}>Modern Classic</span>
+                </div>
             </div>
 
             <div className="section-header" style={{ marginTop: '30px' }}>

@@ -118,5 +118,111 @@ export const weddingMockData = {
     mapLocation: 'https://www.google.com/maps',
     rsvpDeadline: '2024-07-28',
     allowedGuests: ['1', '2']
+  },
+  'modern-classic': {
+    id: 'demo-modern-classic',
+    tagline: 'Together — Since 2019',
+    heroTagline: 'Together — Since 2019',
+    date: '2026-12-12T15:00:00',
+    coverImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1600',
+    sliderImages: [
+      'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1600',
+      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=1600',
+      'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=1600'
+    ],
+    galleryImages: [
+      'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200',
+      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=1200',
+      'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=1200',
+      'https://images.unsplash.com/photo-1606800052052-a08af7148866?auto=format&fit=crop&q=80&w=1200',
+      'https://images.unsplash.com/photo-1532712938310-34cb3982ef74?auto=format&fit=crop&q=80&w=1200',
+      'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?auto=format&fit=crop&q=80&w=1200'
+    ],
+    location: {
+      city: 'Lusaka, Zambia'
+    },
+    couple: {
+      her: 'Amara',
+      him: 'James',
+      bride: {
+        name: 'Amara',
+        image: 'https://images.unsplash.com/photo-1544006659-f0b21f04cb1d?auto=format&fit=crop&q=80&w=800',
+        description: 'Amara brings warmth, grace, and an eye for quiet, timeless beauty.'
+      },
+      groom: {
+        name: 'James',
+        image: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=800',
+        description: 'James is a grounded, devoted partner who cherishes every step of their journey together.'
+      }
+    },
+    venue: {
+      name: 'St. Ignatius Cathedral',
+      address: 'Church Road, Lusaka'
+    },
+    ceremony: {
+      date: '2026-12-12',
+      time: '15:00',
+      venue: 'St. Ignatius Cathedral',
+      address: 'Church Road, Lusaka'
+    },
+    reception: {
+      date: '2026-12-12',
+      time: '17:00',
+      venue: 'Latitude 15°',
+      address: 'Lake Road, Lusaka'
+    },
+    story: [
+      {
+        year: '2019',
+        title: 'How We Met',
+        desc: 'A rainy afternoon in Lusaka, a shared table at a quiet café. We spoke for hours, as if we had known each other before.',
+        accent: 'The beginning'
+      },
+      {
+        year: '2021',
+        title: 'Growing Together',
+        desc: 'Through cities and seasons, we built a language of small rituals — morning walks, Sunday markets, letters kept in a drawer.',
+        accent: 'Becoming us'
+      },
+      {
+        year: '2024',
+        title: 'Our Story',
+        desc: 'At sunrise, on the edge of Lake Kariba. No crowd, just the water and a question that had been waiting for years.',
+        accent: 'Yes'
+      },
+      {
+        year: '2026',
+        title: 'The Vow',
+        desc: 'Now we invite you to witness what was quietly, patiently becoming inevitable.',
+        accent: 'Forever'
+      }
+    ],
+    timeline: [
+      { time: '14:00', title: 'Guest Arrival', desc: 'Welcome drinks & seating in the garden' },
+      { time: '15:00', title: 'Ceremony', desc: 'Exchange of vows under open sky' },
+      { time: '16:30', title: 'Reception', desc: 'Lunch, toasts & first dance' },
+      { time: '20:00', title: 'Celebration', desc: 'Music into the Lusaka night' }
+    ],
+    dressCode: 'Modern Classic — Soft Tones & Linen',
+    dressCodeDescription: 'Garden seating, light fabrics, linen and warm neutrals.',
+    dress_code_colors: ['#1A1A1A', '#C9A86A', '#EDE6DA', '#FFFCF8'],
+    gifts: [
+      {
+        giftType: 'Mobile Money',
+        provider: 'Airtel Money',
+        accountName: 'Amara & James',
+        accountNumber: '0977 123 456',
+        instructions: 'Ref: Wedding Gift'
+      },
+      {
+        giftType: 'Bank Transfer',
+        provider: 'FNB Zambia',
+        accountName: 'James Banda',
+        accountNumber: '6289 1234 567',
+        instructions: 'Branch: Commercial Branch'
+      }
+    ],
+    rsvpDeadline: '2026-11-10',
+    allowedGuests: ['1', '2']
   }
 };

@@ -390,7 +390,7 @@ const AuthModal = ({ onAuthSuccess, onClose, draftLabel }) => {
                 </button>
 
                 <p className="auth-modal-footer-note">
-                    By continuing, you agree to our Terms of Service and Privacy Policy.
+                    By continuing, you agree to our Terms of Service and <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Privacy Policy</a>.
                 </p>
             </div>
         </div>

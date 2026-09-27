@@ -73,8 +73,8 @@ export const EMAIL_TEMPLATE = `<!DOCTYPE html>
 
                 <p style="margin-top: 25px; border-top: 1px solid #eeeeee; padding-top: 20px;">
                     <a href="https://savemeaseatzambia.com/privacy" style="color: #6c5ce7; text-decoration: none;">Privacy policy</a> | 
-                    <a href="#" style="color: #6c5ce7; text-decoration: none;">Unsubscribe</a> | 
-                    <a href="#" style="color: #6c5ce7; text-decoration: none;">Contact Support</a>
+                    <a href="mailto:contact.savemeaseatzambia@gmail.com?subject=Unsubscribe%20Request" style="color: #6c5ce7; text-decoration: none;">Unsubscribe</a> | 
+                    <a href="mailto:contact.savemeaseatzambia@gmail.com" style="color: #6c5ce7; text-decoration: none;">Contact Support</a>
                 </p>
             </td>
         </tr>

@@ -251,6 +251,27 @@ const ALL_TEMPLATES = [
         }
     },
     {
+        id: 'modern-classic',
+        category: 'wedding',
+        name: 'Modern Classic',
+        tags: ['Ivory', 'Editorial', 'Minimalist'],
+        usedBy: 1580,
+        isNew: true,
+        isPopular: true,
+        route: '/templates/modern-classic',
+        preview: {
+            bg: 'linear-gradient(135deg, #FFFCF8 0%, #F5F0E8 100%)',
+            accentColor: '#C9A86A',
+            textColor: '#1A1A1A',
+            fontFamily: '"Playfair Display", Georgia, serif',
+            couple: 'Amara & James',
+            ornament: '✦',
+            taglineText: 'TOGETHER — SINCE 2019',
+            dateText: '12 · XII · 2026',
+            dark: false,
+        }
+    },
+    {
         id: 'terracotta-earth',
         category: 'wedding',
         name: 'Terracotta Earth',
@@ -726,6 +747,26 @@ const TEMPLATE_DESIGNS = [
             countdownLabel: 'Days to Nuptials',
             registryLink: 'Standard Chartered 0100...',
             dressCode: 'Formal Black Tie'
+        }
+    },
+    {
+        id: 'modern-classic',
+        category: 'wedding',
+        title: 'Modern Classic',
+        description: 'Warm editorial ivory, bespoke Playfair Display typography, circular animated monogram, and quiet timeless sophistication.',
+        image: weddingImg,
+        accentColor: '#C9A86A',
+        style: 'elegant',
+        route: '/templates/modern-classic',
+        details: {
+            title: 'Modern Classic',
+            subtitle: 'THE WEDDING OF',
+            hosts: 'Amara & James',
+            date: 'December 12, 2026',
+            venue: 'St. Ignatius Cathedral & Latitude 15°, Lusaka',
+            countdownLabel: 'Counting — Lusaka Time',
+            registryLink: 'Lusaka, Zambia',
+            dressCode: 'Modern Classic — Soft Tones & Linen'
         }
     },
     {
@@ -2700,7 +2741,7 @@ const Footer = () => {
                 <div className="footer-bottom-row">
                     <p>
                         &copy; 2026 SaveMeASeat Zambia. All Rights Reserved. |
-                        <a href="#" id="privacyPolicyLink"> Privacy Policy</a> |
+                        <Link to="/privacy" id="privacyPolicyLink"> Privacy Policy</Link> |
                         <a href="#" id="termsServiceLink"> Terms of Service</a>
                     </p>
                     <p className="developer-tag">
@@ -2820,10 +2861,7 @@ function App() {
             }
         };
 
-        const privacyLink = document.getElementById('privacyPolicyLink');
         const termsLink = document.getElementById('termsServiceLink');
-
-        if (privacyLink) privacyLink.onclick = (e) => { e.preventDefault(); setActivePopup('privacyPolicy'); };
         if (termsLink) termsLink.onclick = (e) => { e.preventDefault(); setActivePopup('termsService'); };
 
         document.addEventListener('click', handleAnchorClick);
@@ -2887,7 +2925,7 @@ function App() {
                 <div className="popup-content">
                     <button className="popup-close" onClick={closePopup}>&times;</button>
                     <h3>Privacy Policy</h3>
-                    <p>We respect your privacy. Your data is only used for RSVP management and will never be shared with third parties. For more details, contact us at info@lightstackgroup.com.</p>
+                    <p>We respect your privacy. Your data is strictly used for RSVP management and will never be shared with third parties. For full details, read our <a href="/privacy" style={{ color: 'var(--primary)', fontWeight: 600 }}>Privacy Policy</a> or reach out at contact.savemeaseatzambia@gmail.com.</p>
                 </div>
             </div>
 

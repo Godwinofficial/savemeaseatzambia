@@ -44,10 +44,11 @@ const SPECIAL_QUOTES = [
 // ─── Template Options ─────────────────────────────────────────────────────────
 const TEMPLATE_OPTIONS = [
     { id: 1, name: 'Default Elegance', badge: 'Popular', desc: 'Timeless monochrome with crisp serif typography.', bg: 'linear-gradient(135deg, #111827 0%, #1f2937 100%)', accent: '#c5a059', textColor: '#ffffff', ornament: '♡' },
-    { id: 2, name: 'Golden Romance', badge: 'Luxury', desc: 'Warm champagne gold with royal candlelight vibes.', bg: 'linear-gradient(135deg, #2a2012 0%, #45341c 100%)', accent: '#e6ca85', textColor: '#fffaf0', ornament: '✦' },
-    { id: 3, name: 'Tropical Elegance', badge: 'Vibrant', desc: 'Deep emerald greens with lush botanical accents.', bg: 'linear-gradient(135deg, #0b221a 0%, #13392d 100%)', accent: '#34d399', textColor: '#ecfdf5', ornament: '🌿' },
+    { id: 2, name: 'Tropical Elegance', badge: 'Vibrant', desc: 'Deep emerald greens with lush botanical accents.', bg: 'linear-gradient(135deg, #0b221a 0%, #13392d 100%)', accent: '#34d399', textColor: '#ecfdf5', ornament: '🌿' },
+    { id: 3, name: 'Golden Romance', badge: 'Luxury', desc: 'Warm champagne gold with royal candlelight vibes.', bg: 'linear-gradient(135deg, #2a2012 0%, #45341c 100%)', accent: '#e6ca85', textColor: '#fffaf0', ornament: '✦' },
     { id: 7, name: 'Botanical Olive', badge: 'Minimal', desc: 'Earthy olive tones and clean organic minimalism.', bg: 'linear-gradient(135deg, #252e24 0%, #3e4a3b 100%)', accent: '#a3b18a', textColor: '#f4f6f0', ornament: '❀' },
-    { id: 8, name: 'Terracotta Earth', badge: 'Warm', desc: 'Warm terracotta and desert rose for romantic events.', bg: 'linear-gradient(135deg, #3d1f19 0%, #68362d 100%)', accent: '#f87171', textColor: '#fff5f5', ornament: '✧' }
+    { id: 8, name: 'Terracotta Earth', badge: 'Warm', desc: 'Warm terracotta and desert rose for romantic events.', bg: 'linear-gradient(135deg, #3d1f19 0%, #68362d 100%)', accent: '#f87171', textColor: '#fff5f5', ornament: '✧' },
+    { id: 9, name: 'Modern Classic', badge: 'Editorial', desc: 'Warm ivory, gold accents, and bespoke serif typography.', bg: 'linear-gradient(135deg, #1A1A1A 0%, #2A2521 100%)', accent: '#C9A86A', textColor: '#FFFCF8', ornament: '✦' }
 ];
 
 // ─── Music Tracks ─────────────────────────────────────────────────────────────

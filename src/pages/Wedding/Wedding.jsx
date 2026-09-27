@@ -6,6 +6,7 @@ import TropicalElegance from '../../templates/wedding/TropicalElegance';
 import GoldenRomance from '../../templates/wedding/GoldenRomance';
 import BotanicalOlive from '../../templates/wedding/BotanicalOlive';
 import TerracottaEarth from '../../templates/wedding/TerracottaEarth';
+import ModernClassic from '../../templates/wedding/ModernClassic';
 import InvitationOverlay from '../../components/InvitationOverlay';
 
 // Helper to format date safely
@@ -168,11 +169,16 @@ const WeddingTemplate = () => {
 
       let { data, error } = await supabase.from('rsvps').insert([insertPayload]).select();
 
-      // Graceful fallback if database column does not yet exist
-      if (error && (error.message?.includes('partner_') || error.code === 'PGRST204')) {
+      // Graceful fallback if database columns (partner_* or seat_number*) do not yet exist
+      if (error && (error.message?.includes('partner_') || error.message?.includes('seat_number') || error.code === 'PGRST204')) {
         const fallbackPayload = {
-          ...basePayload,
-          name: isCouple && dataToSubmit.partner_name ? `${dataToSubmit.name} & ${dataToSubmit.partner_name}` : dataToSubmit.name
+          wedding_id: weddingData.id,
+          name: isCouple && dataToSubmit.partner_name ? `${dataToSubmit.name} & ${dataToSubmit.partner_name}` : dataToSubmit.name,
+          email: dataToSubmit.email,
+          phone: dataToSubmit.phone,
+          attending: dataToSubmit.attendance,
+          guests_count: guestsCount,
+          status: 'pending'
         };
         const fallbackRes = await supabase.from('rsvps').insert([fallbackPayload]).select();
         error = fallbackRes.error;
@@ -186,6 +192,9 @@ const WeddingTemplate = () => {
         ...insertPayload
       };
 
+      const finalSeat = seatNumber || 1;
+      const finalSeatEnd = seatNumberEnd || (guestsCount > 1 ? finalSeat + guestsCount - 1 : finalSeat);
+
       setSubmittedRSVP({
         ...record,
         name: dataToSubmit.name,
@@ -196,8 +205,8 @@ const WeddingTemplate = () => {
         phone: dataToSubmit.phone,
         attending: dataToSubmit.attendance,
         guests_count: guestsCount,
-        seat_number: seatNumber ?? record.seat_number ?? null,
-        seat_number_end: seatNumberEnd ?? record.seat_number_end ?? null
+        seat_number: record.seat_number || finalSeat,
+        seat_number_end: record.seat_number_end || finalSeatEnd
       });
       setShowAdmissionCard(true);
 
@@ -215,6 +224,8 @@ const WeddingTemplate = () => {
     } catch (err) {
       console.error("Full RSVP Error:", err);
       const isCouple = dataToSubmit.guests === '2' || dataToSubmit.guests?.includes('2') || !!dataToSubmit.partner_name;
+      const guestsCount = parseInt(dataToSubmit.guests) || (isCouple ? 2 : 1);
+      const fallbackStart = 1;
       // Fallback
       setSubmittedRSVP({
         id: `local-${Date.now()}`,
@@ -225,9 +236,9 @@ const WeddingTemplate = () => {
         email: dataToSubmit.email,
         phone: dataToSubmit.phone,
         attending: dataToSubmit.attendance,
-        guests_count: parseInt(dataToSubmit.guests) || (isCouple ? 2 : 1),
-        seat_number: null,
-        seat_number_end: null
+        guests_count: guestsCount,
+        seat_number: fallbackStart,
+        seat_number_end: guestsCount > 1 ? fallbackStart + guestsCount - 1 : fallbackStart
       });
       setShowAdmissionCard(true);
     } finally {
@@ -315,14 +326,14 @@ const WeddingTemplate = () => {
                   try {
                     const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
                     if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-                  } catch (e) {}
+                  } catch (e) { }
                 }
                 const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("PROGRAM:"));
                 if (found) {
                   try {
                     const parsed = JSON.parse(found.substring("PROGRAM:".length));
                     if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-                  } catch (e) {}
+                  } catch (e) { }
                 }
                 return [];
               })(),
@@ -461,14 +472,14 @@ const WeddingTemplate = () => {
                 try {
                   const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
                   if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-                } catch (e) {}
+                } catch (e) { }
               }
               const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("PROGRAM:"));
               if (found) {
                 try {
                   const parsed = JSON.parse(found.substring("PROGRAM:".length));
                   if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-                } catch (e) {}
+                } catch (e) { }
               }
               return [];
             })(),
@@ -618,14 +629,14 @@ const WeddingTemplate = () => {
                   try {
                     const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
                     if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-                  } catch (e) {}
+                  } catch (e) { }
                 }
                 const found = parseArray(dbData.theme_colors).find(c => typeof c === 'string' && c.startsWith("PROGRAM:"));
                 if (found) {
                   try {
                     const parsed = JSON.parse(found.substring("PROGRAM:".length));
                     if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-                  } catch (e) {}
+                  } catch (e) { }
                 }
                 return [];
               })(),
@@ -858,6 +869,16 @@ const WeddingTemplate = () => {
   } else if (templateId === '8' || templateId === 'terracotta-earth') {
     templateContent = (
       <TerracottaEarth
+        weddingData={weddingData}
+        handleRSVPSubmitFromParent={handleRSVPSubmit}
+        parentIsSubmitting={isSubmitting}
+        parentShowAdmissionCard={showAdmissionCard}
+        parentSubmittedRSVP={submittedRSVP}
+      />
+    );
+  } else if (templateId === '9' || templateId === 'modern-classic' || templateId === 'classic-wedding' || templateId === 'classic-invitation') {
+    templateContent = (
+      <ModernClassic
         weddingData={weddingData}
         handleRSVPSubmitFromParent={handleRSVPSubmit}
         parentIsSubmitting={isSubmitting}

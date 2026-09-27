@@ -16,6 +16,7 @@ const TEMPLATE_META = {
     5: { bg: 'linear-gradient(135deg, #3d1f19 0%, #68362d 100%)', accent: '#f87171', ornament: '✧', name: 'Terracotta Earth' },
     7: { bg: 'linear-gradient(135deg, #252e24 0%, #3e4a3b 100%)', accent: '#a3b18a', ornament: '❀', name: 'Botanical Olive' },
     8: { bg: 'linear-gradient(135deg, #3d1f19 0%, #68362d 100%)', accent: '#f87171', ornament: '✧', name: 'Terracotta Earth' },
+    9: { bg: 'linear-gradient(135deg, #1A1A1A 0%, #2A2521 100%)', accent: '#C9A86A', ornament: '✦', name: 'Modern Classic' },
 };
 
 function statusClass(status) {

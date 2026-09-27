@@ -303,9 +303,41 @@ const AdminDashboard = () => {
         }
     };
 
+    const getWeddingTemplateName = (tid) => {
+        const id = typeof tid === 'string' ? (parseInt(tid, 10) || tid) : tid;
+        switch (id) {
+            case 2:
+            case 'tropical-elegance':
+                return 'Tropical Elegance';
+            case 3:
+            case 'golden-romance':
+                return 'Golden Romance';
+            case 7:
+            case 'botanical-olive':
+                return 'Botanical Olive';
+            case 8:
+            case 'terracotta-earth':
+                return 'Terracotta Earth';
+            case 9:
+            case 'modern-classic':
+            case 'classic-wedding':
+            case 'classic-invitation':
+                return 'Modern Classic';
+            default:
+                return 'Default Elegance';
+        }
+    };
+
     useEffect(() => {
         if (activeActionSheet && activeActionSheet.type === 'wedding') {
-            setSelectedTemplateId(activeActionSheet.rawEvent?.template_id || 1);
+            let tid = activeActionSheet.rawEvent?.template_id;
+            if (tid === 'modern-classic' || tid === 'classic-wedding' || tid === 'classic-invitation') tid = 9;
+            else if (tid === 'tropical-elegance') tid = 2;
+            else if (tid === 'golden-romance') tid = 3;
+            else if (tid === 'botanical-olive') tid = 7;
+            else if (tid === 'terracotta-earth') tid = 8;
+            else if (tid === 'default-elegance') tid = 1;
+            setSelectedTemplateId(parseInt(tid, 10) || 1);
         }
     }, [activeActionSheet]);
 
@@ -1302,7 +1334,7 @@ const AdminDashboard = () => {
                                         </div>
                                         <div className="g-info">
                                             <span className="g-name">{wedding.groom_name} & {wedding.bride_name}</span>
-                                            <span className="g-sub">Wedding Co. • {new Date(wedding.date).toLocaleDateString()} • {wedding.status === 'pending' ? 'Awaiting approval' : 'Active'}</span>
+                                            <span className="g-sub">Wedding Co. • {new Date(wedding.date).toLocaleDateString()} • <strong style={{ color: '#0284c7', fontWeight: 600 }}>{getWeddingTemplateName(wedding.template_id)}</strong> • {wedding.status === 'pending' ? 'Awaiting approval' : 'Active'}</span>
                                         </div>
                                         <div className="g-right">
                                             <span className={`g-count ${isPositive ? 'gc-green' : 'gc-red'}`}>{wedding.rsvp_count || 0}</span>
@@ -1778,12 +1810,12 @@ const AdminDashboard = () => {
                         {activeActionSheet.type === 'wedding' && !activeActionSheet.restricted && (
                             <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                 <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                                    <i className="fas fa-layer-group" style={{ marginRight: 6 }}></i> Choose Template to Share:
+                                    <i className="fas fa-layer-group" style={{ marginRight: 6 }}></i> Choose Wedding Template:
                                 </label>
-                                <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+                                <div style={{ display: 'flex', gap: '0.5rem', width: '100%', alignItems: 'center' }}>
                                     <select 
                                         value={selectedTemplateId} 
-                                        onChange={(e) => setSelectedTemplateId(parseInt(e.target.value))}
+                                        onChange={(e) => setSelectedTemplateId(parseInt(e.target.value, 10))}
                                         style={{ 
                                             flex: 1, 
                                             padding: '0.75rem', 
@@ -1800,7 +1832,30 @@ const AdminDashboard = () => {
                                         <option value={3}>Golden Romance</option>
                                         <option value={7}>Botanical Olive</option>
                                         <option value={8}>Terracotta Earth</option>
+                                        <option value={9}>Modern Classic</option>
                                     </select>
+                                    
+                                    <a
+                                        href={`${window.location.origin}/w/${activeActionSheet.slug}?template=${selectedTemplateId}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                            padding: '0.75rem 0.85rem',
+                                            fontSize: '0.75rem',
+                                            fontWeight: 700,
+                                            background: '#e0f2fe',
+                                            color: '#0369a1',
+                                            borderRadius: '8px',
+                                            textDecoration: 'none',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                        title="Preview how this wedding looks with the selected template"
+                                    >
+                                        <i className="fas fa-eye"></i> Preview
+                                    </a>
                                     
                                     <button 
                                         onClick={async () => {
@@ -1819,7 +1874,7 @@ const AdminDashboard = () => {
                                                 ));
                                                 
                                                 activeActionSheet.rawEvent.template_id = selectedTemplateId;
-                                                alert('Template set as default successfully!');
+                                                alert(`Template updated to "${getWeddingTemplateName(selectedTemplateId)}" successfully!`);
                                             } catch (err) {
                                                 alert('Error saving default template: ' + err.message);
                                             }

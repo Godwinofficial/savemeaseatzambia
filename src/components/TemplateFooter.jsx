@@ -67,7 +67,7 @@ const TemplateFooter = () => {
           fontFamily: "'Montserrat', sans-serif",
         }}
       >
-        Made with SaveMeASeat
+        Made with SaveMeASeat • <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Privacy Policy</a>
       </div>
     </section>
   );

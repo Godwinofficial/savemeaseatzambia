@@ -26,6 +26,27 @@ const ALL_TEMPLATES = [
         }
     },
     {
+        id: 'modern-classic',
+        category: 'wedding',
+        name: 'Modern Classic',
+        tags: ['Ivory', 'Editorial', 'Minimalist'],
+        usedBy: 1580,
+        isNew: true,
+        isPopular: true,
+        route: '/templates/modern-classic',
+        preview: {
+            bg: 'linear-gradient(135deg, #FFFCF8 0%, #F5F0E8 100%)',
+            accentColor: '#C9A86A',
+            textColor: '#1A1A1A',
+            fontFamily: '"Playfair Display", Georgia, serif',
+            couple: 'Amara & James',
+            ornament: '✦',
+            taglineText: 'TOGETHER — SINCE 2019',
+            dateText: '12 · XII · 2026',
+            dark: false,
+        }
+    },
+    {
         id: 'terracotta-earth',
         category: 'wedding',
         name: 'Terracotta Earth',
@@ -305,7 +326,7 @@ const Footer = () => {
                 <div className="footer-bottom-row">
                     <p>
                         &copy; 2026 SaveMeASeat Zambia. All Rights Reserved. |
-                        <a href="#" id="privacyPolicyLink"> Privacy Policy</a> |
+                        <Link to="/privacy" id="privacyPolicyLink"> Privacy Policy</Link> |
                         <a href="#" id="termsServiceLink"> Terms of Service</a>
                     </p>
                     <p className="developer-tag">

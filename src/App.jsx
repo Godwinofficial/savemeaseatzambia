@@ -21,6 +21,7 @@ import GoldenRomance from './templates/wedding/GoldenRomance';
 import BotanicalOlive from './templates/wedding/BotanicalOlive';
 import DefaultElegance from './templates/wedding/DefaultElegance';
 import TerracottaEarth from './templates/wedding/TerracottaEarth';
+import ModernClassic from './templates/wedding/ModernClassic';
 import ClientCreateWedding from './pages/Wedding/ClientCreateWedding';
 import TemplatesGallery from './pages/TemplatesGallery/TemplatesGallery';
 import TemplatePreviewWrapper from './components/TemplatePreviewWrapper';
@@ -29,6 +30,7 @@ import EventManage from './pages/MyEvents/EventManage';
 import { supabase } from './supabaseClient';
 import { isDraftMeaningful, pushDraftToUserAccount } from './utils/draftManager';
 import NotificationListener from './components/NotificationListener';
+import PrivacyPolicy from './pages/Privacy/PrivacyPolicy';
 import { Toaster } from 'sonner';
 import './App.css';
 
@@ -76,6 +78,8 @@ function App() {
           <Route path="/templates/golden-romance" element={<TemplatePreviewWrapper slug="sasha-chris-2026-10-10-1779303772193"><GoldenRomance /></TemplatePreviewWrapper>} />
           <Route path="/templates/botanical-olive" element={<TemplatePreviewWrapper slug="sasha-chris-2026-10-10-1779303772193"><BotanicalOlive /></TemplatePreviewWrapper>} />
           <Route path="/templates/terracotta-earth" element={<TemplatePreviewWrapper slug="sasha-chris-2026-10-10-1779303772193"><TerracottaEarth /></TemplatePreviewWrapper>} />
+          <Route path="/templates/modern-classic" element={<TemplatePreviewWrapper slug="sasha-chris-2026-10-10-1779303772193"><ModernClassic /></TemplatePreviewWrapper>} />
+          <Route path="/templates/classic-wedding" element={<TemplatePreviewWrapper slug="sasha-chris-2026-10-10-1779303772193"><ModernClassic /></TemplatePreviewWrapper>} />
           <Route path="/templates/default-elegance" element={<TemplatePreviewWrapper slug="sasha-chris-2026-10-10-1779303772193"><DefaultElegance /></TemplatePreviewWrapper>} />
           <Route path="/templates/bridal-shower" element={<BridalShower />} />
           <Route path="/templates/corporate-summit" element={<CorporateSummit />} />
@@ -89,6 +93,8 @@ function App() {
           <Route path="/report/:slug" element={<RSVPReport />} />
           <Route path="/b-report/:slug" element={<BirthdayReport />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
           {/* Protected User Routes */}
           <Route path="/my-events" element={<ProtectedRoute><MyEvents /></ProtectedRoute>} />
