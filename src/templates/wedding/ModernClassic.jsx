@@ -611,7 +611,7 @@ const ModernClassic = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [cardRenderedUrl, setCardRenderedUrl] = useState(null);
 
-  // Derived seat number display values (guarantees seat numbers never show as "—")
+  // Derived seatt number display values (guarantees seat numbers never show as "—")
   const displaySeatNumber = submittedRSVP?.seat_number || localSubmittedRSVP?.seat_number || 1;
   const displaySeatNumberEnd = submittedRSVP?.seat_number_end || localSubmittedRSVP?.seat_number_end || displaySeatNumber;
   const seatDisplayString = (displaySeatNumberEnd && displaySeatNumberEnd !== displaySeatNumber)
