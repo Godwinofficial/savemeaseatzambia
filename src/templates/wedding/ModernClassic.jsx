@@ -130,26 +130,32 @@ const ModernClassic = ({
     : defaultData.date.short;
 
   const eventCity = d.location?.city || d.location || defaultData.location.city;
-  const ceremonyVenue = d.ceremony?.venue || d.ceremony_venue || defaultData.location.ceremony;
-  const ceremonyAddress = d.ceremony?.address || d.ceremony_address || "Church Road, Lusaka";
-  const ceremonyTime = d.ceremony?.time ? formatTime(d.ceremony.time) : (d.ceremony_time ? formatTime(d.ceremony_time) : "15:00 — 16:00");
+  const hasCeremony = Boolean(
+    (d.ceremony?.venue && d.ceremony.venue.trim()) ||
+    (d.ceremony_venue && d.ceremony_venue.trim()) ||
+    (d.ceremony?.address && d.ceremony.address.trim()) ||
+    (d.ceremony_address && d.ceremony_address.trim())
+  );
+  const ceremonyVenue = d.ceremony?.venue || d.ceremony_venue || "";
+  const ceremonyAddress = d.ceremony?.address || d.ceremony_address || "";
+  const ceremonyTime = d.ceremony?.time ? formatTime(d.ceremony.time) : (d.ceremony_time ? formatTime(d.ceremony_time) : "");
   const ceremonyTitle = d.ceremony_title || "Ceremony";
-  const ceremonySubtitle = d.ceremony_subtitle || "Church Service";
+  const ceremonySubtitle = d.ceremony_subtitle || (hasCeremony ? "Church Service" : "");
 
-  const receptionVenue = 
-    d.reception?.venue || 
-    d.reception_venue || 
-    d.receptionVenue?.name || 
-    d.receptionVenue || 
-    d.venue?.name || 
-    d.venue_name || 
+  const receptionVenue =
+    d.reception?.venue ||
+    d.reception_venue ||
+    d.receptionVenue?.name ||
+    d.receptionVenue ||
+    d.venue?.name ||
+    d.venue_name ||
     defaultData.location.reception;
-  const receptionAddress = 
-    d.reception?.address || 
-    d.reception_address || 
-    d.receptionVenue?.address || 
-    d.venue?.address || 
-    d.venue_address || 
+  const receptionAddress =
+    d.reception?.address ||
+    d.reception_address ||
+    d.receptionVenue?.address ||
+    d.venue?.address ||
+    d.venue_address ||
     "Lake Road, Lusaka";
   const receptionTime = d.reception?.time ? formatTime(d.reception.time) : (d.reception_time ? formatTime(d.reception_time) : "17:00 — late");
   const receptionTitle = d.reception_title || "Reception";
@@ -226,6 +232,42 @@ const ModernClassic = ({
     if (d.couple?.groom?.image) pushImages(d.couple.groom.image);
     return Array.from(new Set(list));
   }, [d.sliderImages, d.slider_images, d.coverImage, d.cover_image, d.galleryImages, d.gallery_images, d.couple]);
+
+  // Extract user-uploaded gallery images only (deduplicated, no repeated images)
+  const userGalleryImages = useMemo(() => {
+    const list = [];
+    const pushImages = (imgs) => {
+      if (!imgs) return;
+      if (Array.isArray(imgs)) {
+        imgs.forEach(i => {
+          if (typeof i === 'string' && i.trim()) list.push(i.trim());
+          else if (i && typeof i.url === 'string' && i.url.trim()) list.push(i.url.trim());
+        });
+      } else if (typeof imgs === 'string' && imgs.trim()) {
+        try {
+          const parsed = JSON.parse(imgs);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(p => {
+              if (typeof p === 'string' && p.trim()) list.push(p.trim());
+              else if (p && typeof p.url === 'string' && p.url.trim()) list.push(p.url.trim());
+            });
+            return;
+          }
+        } catch (_) { }
+        list.push(imgs.trim());
+      }
+    };
+
+    pushImages(d.galleryImages);
+    pushImages(d.gallery_images);
+
+    if (list.length === 0) {
+      pushImages(d.sliderImages);
+      pushImages(d.slider_images);
+    }
+
+    return Array.from(new Set(list.filter(Boolean)));
+  }, [d.galleryImages, d.gallery_images, d.sliderImages, d.slider_images]);
 
   // Dedicated Hero Slider Images: prioritize sliderImages/slider_images, coverImage, then galleryImages
   const heroImages = useMemo(() => {
@@ -343,64 +385,69 @@ const ModernClassic = ({
     }));
   }, [d.story, d.story_part1, d.story_highlight, d.story_part2, d.story_year1, d.story_year2, d.story_year3, allUploadedImages, eventDateObj, formattedDateFull]);
 
-  // Timeline / program schedule parsing
+  // Timeline / program schedule parsing - DO NOT fall back to mock data
   const timelineList = useMemo(() => {
+    const parseList = (val) => {
+      if (Array.isArray(val)) return val;
+      if (typeof val === 'string' && val.trim()) {
+        try {
+          const parsed = JSON.parse(val);
+          if (Array.isArray(parsed)) return parsed;
+        } catch (_) { }
+      }
+      return null;
+    };
+
     // 1. Program from backend
-    if (d.program && Array.isArray(d.program) && d.program.length > 0) {
-      return d.program.map(item => ({
+    const prog = parseList(d.program);
+    if (prog && prog.length > 0) {
+      return prog.map(item => ({
         time: item.time ? formatTime(item.time) : (item.hour || "—"),
         title: item.title || item.name || item.event || item.activity || "Program Event",
         desc: item.desc || item.description || item.details || ""
-      }));
+      })).filter(item => item.title || item.desc);
     }
     // 2. Itinerary
-    if (d.itinerary && Array.isArray(d.itinerary) && d.itinerary.length > 0) {
-      return d.itinerary.map(item => ({
+    const itin = parseList(d.itinerary);
+    if (itin && itin.length > 0) {
+      return itin.map(item => ({
         time: item.time ? formatTime(item.time) : "—",
         title: item.title || item.event || "Event",
         desc: item.desc || item.description || ""
-      }));
+      })).filter(item => item.title || item.desc);
     }
     // 3. Timeline
-    if (d.timeline && Array.isArray(d.timeline) && d.timeline.length > 0) {
-      return d.timeline.map(item => ({
+    const timeL = parseList(d.timeline);
+    if (timeL && timeL.length > 0) {
+      return timeL.map(item => ({
         time: item.time ? formatTime(item.time) : "—",
         title: item.title || item.event || "Event",
         desc: item.desc || item.description || ""
-      }));
+      })).filter(item => item.title || item.desc);
     }
-    return defaultData.timeline;
-  }, [d.program, d.itinerary, d.timeline]);
+    // 4. Schedule
+    const sched = parseList(d.schedule);
+    if (sched && sched.length > 0) {
+      return sched.map(item => ({
+        time: item.time ? formatTime(item.time) : "—",
+        title: item.title || item.event || item.name || "Event",
+        desc: item.desc || item.description || ""
+      })).filter(item => item.title || item.desc);
+    }
+    // If no schedule has been added, do not fall back to mock data
+    return [];
+  }, [d.program, d.itinerary, d.timeline, d.schedule]);
 
-  // Gallery items (frames) mapped dynamically
+  // Gallery items (frames) mapped dynamically - no mock or placeholder fallback
   const galleryFrames = useMemo(() => {
-    const heights = ["h-[380px]", "h-[520px]", "h-[320px]", "h-[460px]", "h-[380px]", "h-[500px]"];
-    const gradients = [
-      "from-[#F5F0E8] to-[#E8DDD0]",
-      "from-[#EDE6DA] to-[#D9CBB8]",
-      "from-[#F2E9DC] to-[#EADDCB]",
-      "from-[#E8DDD0] to-[#CFC2B0]",
-      "from-[#F5F0E8] to-[#E7DDD0]",
-      "from-[#EDE6DA] to-[#D7C9B6]"
-    ];
-
-    if (allUploadedImages.length > 0) {
-      return allUploadedImages.map((img, i) => ({
-        h: heights[i % heights.length],
-        g: gradients[i % gradients.length],
+    if (userGalleryImages.length > 0) {
+      return userGalleryImages.map((img) => ({
         img
       }));
     }
 
-    return [
-      { h: "h-[380px]", g: gradients[0], img: null },
-      { h: "h-[520px]", g: gradients[1], img: null },
-      { h: "h-[320px]", g: gradients[2], img: null },
-      { h: "h-[460px]", g: gradients[3], img: null },
-      { h: "h-[380px]", g: gradients[4], img: null },
-      { h: "h-[500px]", g: gradients[5], img: null }
-    ];
-  }, [allUploadedImages]);
+    return [];
+  }, [userGalleryImages]);
 
   // Dress code color palette from backend
   const paletteColors = useMemo(() => {
@@ -659,7 +706,15 @@ const ModernClassic = ({
       setNavScrolled(scrollY > lastScrollY.current && scrollY > 120);
       lastScrollY.current = scrollY;
 
-      const sections = ["home", "save", "story", "gallery", "details", "schedule", "rsvp"];
+      const sections = [
+        "home",
+        "save",
+        "story",
+        ...(galleryFrames.length > 0 ? ["gallery"] : []),
+        "details",
+        ...(timelineList.length > 0 ? ["schedule"] : []),
+        "rsvp"
+      ];
       for (const secId of [...sections].reverse()) {
         const el = document.getElementById(secId);
         if (el && scrollY + 160 >= el.offsetTop) {
@@ -716,11 +771,11 @@ const ModernClassic = ({
 
   // Lightbox keyboard navigation
   useEffect(() => {
-    if (selectedPhotoIndex === null) return;
+    if (selectedPhotoIndex === null || galleryFrames.length === 0) return;
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') setSelectedPhotoIndex(null);
-      if (e.key === 'ArrowLeft') setSelectedPhotoIndex((prev) => (prev > 0 ? prev - 1 : defaultFrames.length - 1));
-      if (e.key === 'ArrowRight') setSelectedPhotoIndex((prev) => (prev < defaultFrames.length - 1 ? prev + 1 : 0));
+      if (e.key === 'ArrowLeft') setSelectedPhotoIndex((prev) => (prev > 0 ? prev - 1 : galleryFrames.length - 1));
+      if (e.key === 'ArrowRight') setSelectedPhotoIndex((prev) => (prev < galleryFrames.length - 1 ? prev + 1 : 0));
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -776,6 +831,14 @@ const ModernClassic = ({
       setIsPlayingMusic(false);
     } else {
       audioRef.current.play().then(() => setIsPlayingMusic(true)).catch(() => { });
+    }
+  };
+
+  // Scroll to section helper
+  const scrollToSection = (id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -1112,9 +1175,9 @@ const ModernClassic = ({
               {[
                 { id: "save", label: "Save" },
                 { id: "story", label: "Story" },
-                { id: "gallery", label: "Gallery" },
+                ...(galleryFrames.length > 0 ? [{ id: "gallery", label: "Gallery" }] : []),
                 { id: "details", label: "Details" },
-                { id: "schedule", label: "Schedule" },
+                ...(timelineList.length > 0 ? [{ id: "schedule", label: "Schedule" }] : []),
                 { id: "rsvp", label: "RSVP" }
               ].map((navItem) => (
                 <button
@@ -1197,8 +1260,8 @@ const ModernClassic = ({
                 The wedding of
               </p>
               <h1 className="serif text-[#FFFCF8] text-[52px] sm:text-[68px] md:text-[86px] leading-[0.9] tracking-[-0.02em] font-[500] drop-shadow-[0_2px_14px_rgba(0,0,0,0.5)]">
-                {brideFirst}
-                <span className="block italic font-light text-[#C9A86A] text-[38px] sm:text-[50px] md:text-[64px] leading-[1.1] my-1">& {groomFirst}</span>
+                {groomFirst}
+                <span className="block italic font-light text-[#C9A86A] text-[38px] sm:text-[50px] md:text-[64px] leading-[1.1] my-1">& {brideFirst}</span>
               </h1>
             </div>
 
@@ -1299,13 +1362,13 @@ const ModernClassic = ({
           <div className="mx-auto max-w-[1280px] px-6 md:px-10 py-20 md:py-28 grid md:grid-cols-[1.1fr_0.9fr] gap-12 md:gap-0">
             <div className="reveal md:border-r hairline md:pr-16">
               <p className="text-[10px] tracking-[0.4em] uppercase opacity-50 mb-8">
-                Save the Date — 01 / 02
+                Save the date {formattedDateFull} {/* Month Day — Date */}
               </p>
               <h2 className="serif text-[44px] md:text-[64px] leading-[0.95] tracking-[-0.02em]">
                 Save<br />the Date
               </h2>
               <p className="mt-8 max-w-[36ch] text-[15px] leading-[1.8] opacity-70">
-                {d.saveDateDescription || "A quiet garden, late afternoon light, vows spoken without hurry. Join us where the city softens into green."}
+                {d.saveDateDescription || "A celebration of love, vows spoken with joy. Join us as we begin our forever together."}
               </p>
               <div className="mt-10 h-[1px] w-full gold-line opacity-60" />
               <div className="mt-8 flex gap-10">
@@ -1504,112 +1567,99 @@ const ModernClassic = ({
         </section>
 
         {/* ─── Gallery Section ──────────────────────────────────────────────────────── */}
-        <section id="gallery" className="bg-[#FFFCF8]">
-          <div className="mx-auto max-w-[1280px] px-6 md:px-10 py-20 md:py-28">
-            <div className="reveal flex flex-wrap items-end justify-between gap-6 border-b hairline pb-10">
-              <h2 className="serif text-[42px] md:text-[56px] leading-[0.9]">
-                Gallery<br />
-                <span className="italic font-light">— soft light</span>
-              </h2>
-              <p className="max-w-[32ch] text-[13px] leading-[1.8] opacity-60">
-                Moments held in quiet tones. Click to open lightbox.
-              </p>
-            </div>
+        {galleryFrames.length > 0 && (
+          <section id="gallery" className="bg-[#FFFCF8]">
+            <div className="mx-auto max-w-[1280px] px-6 md:px-10 py-20 md:py-28">
+              <div className="reveal flex flex-wrap items-end justify-between gap-6 border-b hairline pb-10">
+                <h2 className="serif text-[42px] md:text-[56px] leading-[0.9]">
+                  Gallery<br />
+                  <span className="italic font-light">— soft light</span>
+                </h2>
+                <p className="max-w-[32ch] text-[13px] leading-[1.8] opacity-60">
+                  Moments held in quiet tones. Click to open lightbox.
+                </p>
+              </div>
 
-            <div className="mt-10 columns-1 md:columns-3 gap-6 [column-fill:_balance]">
-              {galleryFrames.map((frame, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedPhotoIndex(index)}
-                  className={`reveal group relative w-full mb-6 overflow-hidden rounded-[4px] border border-[#1A1A1A]/[0.06] text-left ${frame.h}`}
-                  style={{ transitionDelay: `${index * 60}ms` }}
-                >
-                  {frame.img ? (
+              <div className="mt-10 columns-1 sm:columns-2 md:columns-3 gap-6 [column-fill:_balance]">
+                {galleryFrames.map((frame, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedPhotoIndex(index)}
+                    className="reveal group relative w-full mb-6 break-inside-avoid overflow-hidden rounded-[4px] border border-[#1A1A1A]/[0.06] text-left block bg-[#F5F0E8]/30 shadow-sm hover:shadow-md transition-all"
+                    style={{ transitionDelay: `${index * 60}ms` }}
+                  >
                     <img
                       src={frame.img}
                       alt={`Wedding Frame ${index + 1}`}
-                      className="absolute inset-0 w-full h-full object-cover kenburns"
+                      className="w-full h-auto object-cover block group-hover:scale-[1.03] transition-transform duration-700 ease-out"
+                      loading="lazy"
                     />
-                  ) : (
-                    <div className={`absolute inset-0 bg-gradient-to-br ${frame.g} kenburns`} />
-                  )}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 bg-[#1A1A1A]/10" />
-                  <div className="absolute bottom-0 inset-x-0 p-5 flex items-end justify-between">
-                    <span className="text-[10px] tracking-[0.32em] uppercase bg-white/80 backdrop-blur px-3 py-1 rounded-full">
-                      Frame {String(index + 1).padStart(2, '0')}
-                    </span>
-                    <span className="w-8 h-8 rounded-full bg-white grid place-items-center text-[14px]">
-                      ↗
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Lightbox Modal */}
-          {selectedPhotoIndex !== null && (
-            <div className="fixed inset-0 z-50 bg-[#FFFCF8]/95 backdrop-blur-[18px] flex flex-col">
-              <div
-                className="h-[68px] border-b hairline flex items-center justify-between px-6 md:px-10"
-                style={{ paddingTop: "var(--safe-area-inset-top, 0px)" }}
-              >
-                <p className="text-[11px] tracking-[0.32em] uppercase opacity-60">
-                  {selectedPhotoIndex + 1} / {galleryFrames.length} — Soft Light
-                </p>
-                <button
-                  onClick={() => setSelectedPhotoIndex(null)}
-                  className="w-10 h-10 rounded-full border border-[#1A1A1A]/15 grid place-items-center hover:bg-[#1A1A1A] hover:text-white transition-colors"
-                  aria-label="Close lightbox"
-                >
-                  ✕
-                </button>
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[#1A1A1A]/10 pointer-events-none" />
+                    <div className="absolute bottom-0 inset-x-0 p-4 sm:p-5 flex items-end justify-between bg-gradient-to-t from-black/50 via-black/20 to-transparent pointer-events-none">
+                      <span className="text-[10px] tracking-[0.32em] uppercase bg-white/90 text-[#1A1A1A] backdrop-blur px-3 py-1 rounded-full font-medium shadow-sm">
+                        Frame {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <span className="w-8 h-8 rounded-full bg-white text-[#1A1A1A] grid place-items-center text-[14px] shadow-sm">
+                        ↗
+                      </span>
+                    </div>
+                  </button>
+                ))}
               </div>
+            </div>
 
-              <div className="flex-1 relative flex items-center justify-center p-6 md:p-10">
-                <div className="w-full max-w-[980px] aspect-[4/3] md:aspect-[16/10] rounded-[4px] overflow-hidden border border-[#1A1A1A]/10 relative flex items-center justify-center">
-                  {galleryFrames[selectedPhotoIndex]?.img ? (
+            {/* Lightbox Modal */}
+            {selectedPhotoIndex !== null && galleryFrames[selectedPhotoIndex] && (
+              <div className="fixed inset-0 z-50 bg-[#FFFCF8]/95 backdrop-blur-[18px] flex flex-col">
+                <div
+                  className="h-[68px] border-b hairline flex items-center justify-between px-6 md:px-10"
+                  style={{ paddingTop: "var(--safe-area-inset-top, 0px)" }}
+                >
+                  <p className="text-[11px] tracking-[0.32em] uppercase opacity-60">
+                    {selectedPhotoIndex + 1} / {galleryFrames.length} — Soft Light
+                  </p>
+                  <button
+                    onClick={() => setSelectedPhotoIndex(null)}
+                    className="w-10 h-10 rounded-full border border-[#1A1A1A]/15 grid place-items-center hover:bg-[#1A1A1A] hover:text-white transition-colors"
+                    aria-label="Close lightbox"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="flex-1 relative flex items-center justify-center p-4 sm:p-6 md:p-10">
+                  <div className="max-w-[1050px] max-h-[78vh] rounded-[4px] overflow-hidden border border-[#1A1A1A]/10 bg-black/5 shadow-2xl flex items-center justify-center">
                     <img
                       src={galleryFrames[selectedPhotoIndex].img}
                       alt="Gallery preview"
-                      className="w-full h-full object-cover"
+                      className="max-h-[75vh] max-w-[85vw] w-auto h-auto object-contain select-none block"
                     />
-                  ) : (
-                    <div
-                      className={`w-full h-full bg-gradient-to-br ${galleryFrames[selectedPhotoIndex]?.g || "from-[#F5F0E8] to-[#E8DDD0]"} flex flex-col items-center justify-center p-8 text-center`}
-                    >
-                      <span className="serif text-[72px] md:text-[96px] opacity-30 italic font-light">
-                        {monogram}
-                      </span>
-                      <p className="mt-4 serif text-[24px]">
-                        Frame {String(selectedPhotoIndex + 1).padStart(2, '0')}
-                      </p>
-                      <p className="mt-2 text-[12px] tracking-[0.25em] uppercase opacity-60">
-                        {eventCity}
-                      </p>
-                    </div>
+                  </div>
+
+                  {/* Left/Right Buttons */}
+                  {galleryFrames.length > 1 && (
+                    <>
+                      <button
+                        onClick={() => setSelectedPhotoIndex((prev) => (prev > 0 ? prev - 1 : galleryFrames.length - 1))}
+                        className="absolute left-6 md:left-10 w-11 h-11 rounded-full bg-white/80 backdrop-blur border border-[#1A1A1A]/15 grid place-items-center hover:bg-[#1A1A1A] hover:text-white transition-colors"
+                        aria-label="Previous image"
+                      >
+                        ←
+                      </button>
+                      <button
+                        onClick={() => setSelectedPhotoIndex((prev) => (prev < galleryFrames.length - 1 ? prev + 1 : 0))}
+                        className="absolute right-6 md:right-10 w-11 h-11 rounded-full bg-white/80 backdrop-blur border border-[#1A1A1A]/15 grid place-items-center hover:bg-[#1A1A1A] hover:text-white transition-colors"
+                        aria-label="Next image"
+                      >
+                        →
+                      </button>
+                    </>
                   )}
                 </div>
-
-                {/* Left/Right Buttons */}
-                <button
-                  onClick={() => setSelectedPhotoIndex((prev) => (prev > 0 ? prev - 1 : galleryFrames.length - 1))}
-                  className="absolute left-6 md:left-10 w-11 h-11 rounded-full bg-white/80 backdrop-blur border border-[#1A1A1A]/15 grid place-items-center hover:bg-[#1A1A1A] hover:text-white transition-colors"
-                  aria-label="Previous image"
-                >
-                  ←
-                </button>
-                <button
-                  onClick={() => setSelectedPhotoIndex((prev) => (prev < galleryFrames.length - 1 ? prev + 1 : 0))}
-                  className="absolute right-6 md:right-10 w-11 h-11 rounded-full bg-white/80 backdrop-blur border border-[#1A1A1A]/15 grid place-items-center hover:bg-[#1A1A1A] hover:text-white transition-colors"
-                  aria-label="Next image"
-                >
-                  →
-                </button>
               </div>
-            </div>
-          )}
-        </section>
+            )}
+          </section>
+        )}
 
         {/* ─── The Details Section ─────────────────────────────────────────────────── */}
         <section id="details" className="bg-[#F5F0E8] border-y hairline">
@@ -1623,47 +1673,53 @@ const ModernClassic = ({
               </h2>
             </div>
 
-            <div className="mt-12 grid md:grid-cols-2 gap-6">
-              {/* Ceremony Card */}
-              <div
-                className="reveal group relative bg-white border border-[#1A1A1A]/[0.06] rounded-[4px] p-8 md:p-10 hover:-translate-y-[2px] hover:shadow-[0_20px_60px_rgba(0,0,0,0.06)] transition-all duration-700 flex flex-col justify-between overflow-hidden"
-                style={{ transitionDelay: "0ms" }}
-              >
-                <div>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-[11px] tracking-[0.35em] uppercase opacity-50 font-medium">
-                        {ceremonyTitle}
-                      </p>
-                      {ceremonySubtitle && (
-                        <p className="serif italic text-[14px] opacity-70 mt-0.5">
-                          {ceremonySubtitle}
+            <div className={`mt-12 ${hasCeremony ? "grid md:grid-cols-2 gap-6" : "max-w-[720px] mx-auto"}`}>
+              {/* Ceremony Card - only displayed if ceremony data exists */}
+              {hasCeremony && (
+                <div
+                  className="reveal group relative bg-white border border-[#1A1A1A]/[0.06] rounded-[4px] p-8 md:p-10 hover:-translate-y-[2px] hover:shadow-[0_20px_60px_rgba(0,0,0,0.06)] transition-all duration-700 flex flex-col justify-between overflow-hidden"
+                  style={{ transitionDelay: "0ms" }}
+                >
+                  <div>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-[11px] tracking-[0.35em] uppercase opacity-50 font-medium">
+                          {ceremonyTitle}
                         </p>
+                        {ceremonySubtitle && (
+                          <p className="serif italic text-[14px] opacity-70 mt-0.5">
+                            {ceremonySubtitle}
+                          </p>
+                        )}
+                      </div>
+                      {ceremonyTime && (
+                        <span className="text-[11px] tracking-[0.2em] uppercase px-3 py-1 rounded-full bg-[#F5F0E8] font-medium">
+                          {ceremonyTime}
+                        </span>
                       )}
                     </div>
-                    <span className="text-[11px] tracking-[0.2em] uppercase px-3 py-1 rounded-full bg-[#F5F0E8] font-medium">
-                      {ceremonyTime}
-                    </span>
+                    <h3 className="mt-8 serif text-[28px]">
+                      {ceremonyVenue}
+                    </h3>
+                    {ceremonyAddress && (
+                      <p className="mt-3 text-[13px] opacity-60">
+                        {ceremonyAddress}
+                      </p>
+                    )}
+                    <div className="mt-8 h-[1px] w-full bg-[#1A1A1A]/10 relative overflow-hidden">
+                      <div className="absolute inset-y-0 left-0 w-1/2 gold-line" />
+                    </div>
+                    <p className="mt-6 text-[12px] tracking-[0.18em] uppercase opacity-60">
+                      Dress code — {dressCode}
+                    </p>
                   </div>
-                  <h3 className="mt-8 serif text-[28px]">
-                    {ceremonyVenue}
-                  </h3>
-                  <p className="mt-3 text-[13px] opacity-60">
-                    {ceremonyAddress}
-                  </p>
-                  <div className="mt-8 h-[1px] w-full bg-[#1A1A1A]/10 relative overflow-hidden">
-                    <div className="absolute inset-y-0 left-0 w-1/2 gold-line" />
-                  </div>
-                  <p className="mt-6 text-[12px] tracking-[0.18em] uppercase opacity-60">
-                    Dress code — {dressCode}
-                  </p>
                 </div>
-              </div>
+              )}
 
               {/* Reception Card */}
               <div
-                className="reveal group relative bg-white border border-[#1A1A1A]/[0.06] rounded-[4px] p-8 md:p-10 hover:-translate-y-[2px] hover:shadow-[0_20px_60px_rgba(0,0,0,0.06)] transition-all duration-700 flex flex-col justify-between overflow-hidden"
-                style={{ transitionDelay: "120ms" }}
+                className={`reveal group relative bg-white border border-[#1A1A1A]/[0.06] rounded-[4px] p-8 md:p-10 hover:-translate-y-[2px] hover:shadow-[0_20px_60px_rgba(0,0,0,0.06)] transition-all duration-700 flex flex-col justify-between overflow-hidden ${!hasCeremony ? "w-full" : ""}`}
+                style={{ transitionDelay: hasCeremony ? "120ms" : "0ms" }}
               >
                 <div>
                   <div className="flex items-start justify-between">
@@ -1935,70 +1991,72 @@ const ModernClassic = ({
         </section>
 
         {/* ─── Schedule / Day Flow (Interactive Timeline) ──────────────────────────── */}
-        <section id="schedule" className="bg-white">
-          <div className="mx-auto max-w-[980px] px-6 md:px-10 py-20 md:py-28">
-            <div className="reveal text-center max-w-[520px] mx-auto">
-              <p className="text-[10px] tracking-[0.4em] uppercase opacity-50">
-                Schedule — Day Flow
-              </p>
-              <h2 className="mt-4 serif text-[40px] md:text-[52px] leading-[0.95]">
-                The day unfolds slowly
-              </h2>
-            </div>
-
-            <div ref={scheduleRef} className="relative mt-16 md:mt-24">
-              {/* Desktop Center Line */}
-              <div className="absolute left-1/2 top-0 bottom-0 w-[1px] -translate-x-1/2 bg-[#1A1A1A]/10 hidden md:block">
-                <div
-                  className="absolute top-0 left-0 w-full bg-[#C9A86A] origin-top transition-[height] duration-200"
-                  style={{ height: `${Math.round(scheduleProgress * 100)}%` }}
-                />
+        {timelineList.length > 0 && (
+          <section id="schedule" className="bg-white">
+            <div className="mx-auto max-w-[980px] px-6 md:px-10 py-20 md:py-28">
+              <div className="reveal text-center max-w-[520px] mx-auto">
+                <p className="text-[10px] tracking-[0.4em] uppercase opacity-50">
+                  Schedule — Day Flow
+                </p>
+                <h2 className="mt-4 serif text-[40px] md:text-[52px] leading-[0.95]">
+                  The day unfolds slowly
+                </h2>
               </div>
 
-              {/* Mobile Left Line */}
-              <div className="absolute left-4 top-0 bottom-0 w-[1px] bg-[#1A1A1A]/10 md:hidden">
-                <div
-                  className="absolute top-0 left-0 w-full bg-[#C9A86A] origin-top"
-                  style={{ height: `${Math.round(scheduleProgress * 100)}%` }}
-                />
-              </div>
+              <div ref={scheduleRef} className="relative mt-16 md:mt-24">
+                {/* Desktop Center Line */}
+                <div className="absolute left-1/2 top-0 bottom-0 w-[1px] -translate-x-1/2 bg-[#1A1A1A]/10 hidden md:block">
+                  <div
+                    className="absolute top-0 left-0 w-full bg-[#C9A86A] origin-top transition-[height] duration-200"
+                    style={{ height: `${Math.round(scheduleProgress * 100)}%` }}
+                  />
+                </div>
 
-              <div className="space-y-14 md:space-y-20">
-                {timelineList.map((item, idx) => {
-                  const isEven = idx % 2 === 0;
-                  return (
-                    <div
-                      key={idx}
-                      className={`reveal relative grid md:grid-cols-[1fr_80px_1fr] items-center gap-6 ${isEven ? "" : "md:[&>*:first-child]:order-3 md:[&>*:last-child]:order-1"
-                        }`}
-                      style={{ transitionDelay: `${idx * 80}ms` }}
-                    >
-                      <div className={`${isEven ? "md:text-right" : "md:text-left"} pl-10 md:pl-0`}>
-                        <p className="serif text-[30px] leading-none">
-                          {item.time}
-                        </p>
-                        <h3 className="mt-3 serif text-[22px]">
-                          {item.title}
-                        </h3>
-                        <p className={`mt-2 text-[13px] opacity-60 max-w-[30ch] ${isEven ? "md:ml-auto" : ""}`}>
-                          {item.desc}
-                        </p>
+                {/* Mobile Left Line */}
+                <div className="absolute left-4 top-0 bottom-0 w-[1px] bg-[#1A1A1A]/10 md:hidden">
+                  <div
+                    className="absolute top-0 left-0 w-full bg-[#C9A86A] origin-top"
+                    style={{ height: `${Math.round(scheduleProgress * 100)}%` }}
+                  />
+                </div>
+
+                <div className="space-y-14 md:space-y-20">
+                  {timelineList.map((item, idx) => {
+                    const isEven = idx % 2 === 0;
+                    return (
+                      <div
+                        key={idx}
+                        className={`reveal relative grid md:grid-cols-[1fr_80px_1fr] items-center gap-6 ${isEven ? "" : "md:[&>*:first-child]:order-3 md:[&>*:last-child]:order-1"
+                          }`}
+                        style={{ transitionDelay: `${idx * 80}ms` }}
+                      >
+                        <div className={`${isEven ? "md:text-right" : "md:text-left"} pl-10 md:pl-0`}>
+                          <p className="serif text-[30px] leading-none">
+                            {item.time}
+                          </p>
+                          <h3 className="mt-3 serif text-[22px]">
+                            {item.title}
+                          </h3>
+                          <p className={`mt-2 text-[13px] opacity-60 max-w-[30ch] ${isEven ? "md:ml-auto" : ""}`}>
+                            {item.desc}
+                          </p>
+                        </div>
+
+                        <div className="hidden md:grid place-items-center">
+                          <div className="w-3 h-3 rounded-full bg-[#FFFCF8] border border-[#C9A86A] shadow-[0_0_0_6px_rgba(201,168,106,0.12)]" />
+                        </div>
+
+                        <div className="md:hidden absolute left-4 top-1 -translate-x-1/2 w-3 h-3 rounded-full bg-white border border-[#C9A86A]" />
+
+                        <div className="hidden md:block" />
                       </div>
-
-                      <div className="hidden md:grid place-items-center">
-                        <div className="w-3 h-3 rounded-full bg-[#FFFCF8] border border-[#C9A86A] shadow-[0_0_0_6px_rgba(201,168,106,0.12)]" />
-                      </div>
-
-                      <div className="md:hidden absolute left-4 top-1 -translate-x-1/2 w-3 h-3 rounded-full bg-white border border-[#C9A86A]" />
-
-                      <div className="hidden md:block" />
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* ─── RSVP Section ────────────────────────────────────────────────────────── */}
         <section id="rsvp" className="bg-[#FFFCF8] border-y hairline">
@@ -2370,7 +2428,7 @@ const ModernClassic = ({
                 With Love
               </p>
               <h2 className="mt-6 serif text-[42px] md:text-[64px] leading-[0.9] tracking-[-0.02em]">
-                {brideFirst} & {groomFirst}
+                {groomFirst} & {brideFirst}
               </h2>
 
             </div>
