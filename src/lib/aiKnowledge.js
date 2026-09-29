@@ -1,4 +1,4 @@
-export const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || "";
+export const GROQ_API_KEY = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_GROQ_API_KEY) || (typeof process !== 'undefined' && process.env && process.env.VITE_GROQ_API_KEY) || "";
 export const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 export const GROQ_MODEL = "openai/gpt-oss-20b";
 export const FALLBACK_MODELS = [
