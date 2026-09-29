@@ -1647,67 +1647,23 @@ const AddWedding = () => {
                 <p className="section-description">Tell us about the bride and groom. Add beautiful photos that capture your personality.</p>
             </div>
 
-            {/* AI Fast-Track Quick Banner */}
+            {/* AI Fast-Track Banner */}
             <div
                 className="ai-quick-banner"
                 onClick={() => setShowAiModal(true)}
-                style={{
-                    cursor: 'pointer',
-                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(212, 175, 55, 0.12) 100%)',
-                    border: '1px solid rgba(16, 185, 129, 0.35)',
-                    borderRadius: '16px',
-                    padding: '1rem 1.25rem',
-                    marginBottom: '1.75rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '1rem',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
-                    transition: 'all 0.2s ease'
-                }}
             >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                    <div style={{
-                        width: '42px',
-                        height: '42px',
-                        borderRadius: '12px',
-                        background: 'linear-gradient(135deg, #10b981, #047857)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#fff',
-                        fontSize: '1.15rem',
-                        flexShrink: 0,
-                        boxShadow: '0 0 15px rgba(16, 185, 129, 0.4)'
-                    }}>
-                        <i className="fas fa-wand-magic-sparkles"></i>
+                <div className="ai-banner-left">
+                    <div className="ai-banner-icon">
+                        <i className="fas fa-wand-magic-sparkles" />
+                        <span className="ai-banner-pulse" />
                     </div>
                     <div>
-                        <strong style={{ display: 'block', fontSize: '0.98rem', color: '#10b981', fontWeight: 700 }}>
-                            ✨ Auto-Fill with AI (Save Time)
-                        </strong>
-                        <p style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: '#94a3b8', lineHeight: 1.35 }}>
-                            Have wedding invitation text or a WhatsApp broadcast? Paste it here and let AI fill all 4 steps automatically!
-                        </p>
+                        <strong className="ai-banner-title">AI Auto-Fill</strong>
+                        <span className="ai-banner-sub">Paste your invite — fills all steps instantly</span>
                     </div>
                 </div>
-                <button
-                    type="button"
-                    className="footer-btn btn-next"
-                    style={{
-                        padding: '0.55rem 1.1rem',
-                        fontSize: '0.85rem',
-                        flexShrink: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.45rem',
-                        background: 'linear-gradient(135deg, #10b981, #059669)',
-                        color: '#fff',
-                        border: 'none',
-                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)'
-                    }}
-                >
-                    <i className="fas fa-bolt"></i> Auto-Fill Form
+                <button type="button" className="ai-banner-btn">
+                    <i className="fas fa-bolt" /> Try AI
                 </button>
             </div>
 
