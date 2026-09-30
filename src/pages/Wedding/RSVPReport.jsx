@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
+import { logoBase64 } from '../../assets/logoBase64';
 
 // Set browser theme-color to match hero header
 const setThemeColor = (color) => {
@@ -181,6 +183,86 @@ const RSVPReport = () => {
     const [showQrScanner, setShowQrScanner] = useState(false);
     const [scannedGuest, setScannedGuest] = useState(null);
     const [scanMessage, setScanMessage] = useState(null);
+    const [showCertModal, setShowCertModal] = useState(false);
+    const [selectedCertGuest, setSelectedCertGuest] = useState(null);
+    const [isDownloadingCert, setIsDownloadingCert] = useState(false);
+    const [certRenderedUrl, setCertRenderedUrl] = useState(null);
+
+    const isIOSDevice = typeof navigator !== 'undefined' && (
+        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    );
+
+    const handleOpenCertificate = (guest = null) => {
+        setSelectedCertGuest(guest);
+        setCertRenderedUrl(null);
+        setShowCertModal(true);
+    };
+
+    const downloadCertificate = async () => {
+        const el = document.getElementById('rsvp-wedding-certificate-node');
+        if (!el) {
+            alert('Certificate element not found.');
+            return;
+        }
+        setIsDownloadingCert(true);
+        try {
+            const canvas = await html2canvas(el, {
+                useCORS: true,
+                scale: 2.5,
+                backgroundColor: '#ffffff',
+                logging: false
+            });
+
+            const certRecipientName = selectedCertGuest
+                ? getGuestDetails(selectedCertGuest).displayName
+                : `${wedding?.groom_name || 'Wedding'}-${wedding?.bride_name || 'Certificate'}`;
+            const cleanFilename = `marriage-certificate-${certRecipientName.toLowerCase().replace(/[^a-z0-9]/g, '-')}.png`;
+
+            if (isIOSDevice) {
+                const dataUrl = canvas.toDataURL('image/png');
+                setCertRenderedUrl(dataUrl);
+                setIsDownloadingCert(false);
+                return;
+            }
+
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            if (blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = cleanFilename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 4000);
+            } else {
+                const dataUrl = canvas.toDataURL('image/png');
+                const a = document.createElement('a');
+                a.href = dataUrl;
+                a.download = cleanFilename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+        } catch (err) {
+            console.error('Certificate download error:', err);
+            try {
+                const canvas = await html2canvas(el, { scale: 1.5, backgroundColor: '#ffffff', logging: false });
+                const dataUrl = canvas.toDataURL('image/png');
+                const a = document.createElement('a');
+                a.href = dataUrl;
+                a.download = 'wedding-certificate.png';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } catch (e2) {
+                alert('Could not auto-download the certificate. You can take a screenshot or use Print.');
+            }
+        } finally {
+            setIsDownloadingCert(false);
+        }
+    };
     const weddingUrl = wedding?.slug ? `${window.location.origin}/w/${wedding.slug}` : '';
 
     const parseVendorPortfolio = (portfolio) => {
@@ -532,10 +614,10 @@ const RSVPReport = () => {
 
         const approvedGuests = guests.filter(g => (g.status === 'approved' || !g.status) && g.email);
         if (!approvedGuests.length) { alert("No approved guests with email addresses found."); return; }
-        
+
         const remaining = 2 - currentCount;
         const confirmMessage = `WARNING: You only have ${remaining} round${remaining === 1 ? '' : 's'} of sending reminders left. Users are strictly limited to 2 rounds to prevent email abuse.\n\nAre you sure you want to send reminders to all ${approvedGuests.length} approved guests now? This will consume 1 round.`;
-        
+
         if (!window.confirm(confirmMessage)) return;
 
         setSendingReminders(true);
@@ -648,35 +730,35 @@ const RSVPReport = () => {
                 </div>
             )}
 
-                {scanNextPrompt && (
-                    <div className="vm-overlay" style={{ zIndex: 3100 }} onClick={() => { window.isProcessingScan = false; setScanNextPrompt(null); }}>
-                        <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '2rem', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
-                            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
-                                <i className="fas fa-check" style={{ fontSize: '32px', color: '#fff' }}></i>
-                            </div>
-                            <h4 className="vm-name" style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{scanNextPrompt.name}</h4>
-                            <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
-                                {scanNextPrompt.email}
-                            </p>
-                            <div style={{ background: '#ecfdf5', color: '#166534', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600' }}>
-                                Checked in successfully. Ready for the next guest.
-                            </div>
-                            <button
-                                onClick={() => {
-                                    window.isProcessingScan = false;
-                                    lastScanTimeRef.current = Date.now() + 800;
-                                    lastScannedCodeRef.current = '';
-                                    setScanNextPrompt(null);
-                                    setShowQrScanner(true);
-                                }}
-                                className="ga-approve"
-                                style={{ background: '#10b981', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '1rem', width: '100%' }}
-                            >
-                                <i className="fas fa-qrcode"></i> Scan Next
-                            </button>
+            {scanNextPrompt && (
+                <div className="vm-overlay" style={{ zIndex: 3100 }} onClick={() => { window.isProcessingScan = false; setScanNextPrompt(null); }}>
+                    <div className="vm-box" onClick={(e) => e.stopPropagation()} style={{ padding: '2rem', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
+                        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
+                            <i className="fas fa-check" style={{ fontSize: '32px', color: '#fff' }}></i>
                         </div>
+                        <h4 className="vm-name" style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{scanNextPrompt.name}</h4>
+                        <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+                            {scanNextPrompt.email}
+                        </p>
+                        <div style={{ background: '#ecfdf5', color: '#166534', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600' }}>
+                            Checked in successfully. Ready for the next guest.
+                        </div>
+                        <button
+                            onClick={() => {
+                                window.isProcessingScan = false;
+                                lastScanTimeRef.current = Date.now() + 800;
+                                lastScannedCodeRef.current = '';
+                                setScanNextPrompt(null);
+                                setShowQrScanner(true);
+                            }}
+                            className="ga-approve"
+                            style={{ background: '#10b981', color: '#fff', padding: '0.85rem', justifyContent: 'center', fontSize: '1rem', width: '100%' }}
+                        >
+                            <i className="fas fa-qrcode"></i> Scan Next
+                        </button>
                     </div>
-                )}
+                </div>
+            )}
 
 
 
@@ -711,109 +793,109 @@ const RSVPReport = () => {
 
                                 window.isProcessingScan = true;
                                 setScanMessage(`Scanning code...`);
-                                    try {
-                                        let code = rawCode;
-                                        let embeddedData = null;
-                                        if (rawCode.startsWith('{')) {
-                                            try {
-                                                const parsed = JSON.parse(rawCode);
-                                                code = parsed.id;
-                                                embeddedData = parsed;
-                                                const dispName = parsed.partner_name ? `${parsed.name} & ${parsed.partner_name}` : (parsed.display_name || parsed.name);
-                                                setScanMessage(`✅ Decoded pass for ${dispName}`);
-                                            } catch (e) {
-                                                // Not valid JSON, fallback to raw string
-                                            }
+                                try {
+                                    let code = rawCode;
+                                    let embeddedData = null;
+                                    if (rawCode.startsWith('{')) {
+                                        try {
+                                            const parsed = JSON.parse(rawCode);
+                                            code = parsed.id;
+                                            embeddedData = parsed;
+                                            const dispName = parsed.partner_name ? `${parsed.name} & ${parsed.partner_name}` : (parsed.display_name || parsed.name);
+                                            setScanMessage(`✅ Decoded pass for ${dispName}`);
+                                        } catch (e) {
+                                            // Not valid JSON, fallback to raw string
                                         }
-
-                                        // Prefer token lookup if present in embedded data, otherwise fall back to id lookup
-                                        const tokenLookup = embeddedData?.token || embeddedData?.qr_token || null;
-                                        let data = null;
-                                        let error = null;
-                                        if (tokenLookup) {
-                                            const res = await supabase.from('rsvps').select('*').eq('qr_token', tokenLookup).eq('wedding_id', wedding.id).single();
-                                            data = res.data;
-                                            error = res.error;
-                                        } else {
-                                            const isValidId = /^[0-9a-fA-F-]+$/.test(String(code));
-                                            if (isValidId) {
-                                                const result = await supabase.from('rsvps').select('*').eq('id', code).eq('wedding_id', wedding.id).single();
-                                                data = result.data;
-                                                error = result.error;
-                                            } else {
-                                                error = new Error('Skipping DB lookup for invalid pass ID format');
-                                            }
-                                        }
-
-                                        let guestRecord = data;
-                                        let isFallback = false;
-                                        if (error || !data) {
-                                            console.error("DB lookup fail or skipped, checking embedded data:", error);
-                                            if (embeddedData && embeddedData.wedding_id === wedding.id) {
-                                                guestRecord = {
-                                                    id: embeddedData.id,
-                                                    name: embeddedData.name,
-                                                    partner_name: embeddedData.partner_name || null,
-                                                    email: embeddedData.email,
-                                                    phone: embeddedData.phone,
-                                                    partner_email: embeddedData.partner_email || null,
-                                                    partner_phone: embeddedData.partner_phone || null,
-                                                    guests_count: embeddedData.guests_count || 1,
-                                                    wedding_id: embeddedData.wedding_id,
-                                                    checked_in: false
-                                                };
-                                                isFallback = true;
-                                            }
-                                        }
-
-                                        if (!guestRecord) {
-                                            playWarningSound();
-                                            setScanMessage("❌ Invalid or not found in this guest list.");
-                                            setTimeout(() => { window.isProcessingScan = false; }, 2500);
-                                            return;
-                                        }
-
-                                        // Verify event matches
-                                        if (guestRecord.wedding_id && wedding?.id && String(guestRecord.wedding_id) !== String(wedding.id)) {
-                                            playWarningSound();
-                                            setScanMessage("❌ REJECTED — Pass belongs to a different event.");
-                                            setTimeout(() => { window.isProcessingScan = false; }, 2500);
-                                            return;
-                                        }
-
-                                        const localCheckedIn = checkedInGuests.some(g => g.id === guestRecord.id);
-                                        const isAlreadyCheckedIn = localCheckedIn || guestRecord.checked_in;
-
-                                        if (isAlreadyCheckedIn) {
-                                            playWarningSound();
-                                            setScanMessage("❌ Already Checked In!");
-                                            setShowQrScanner(false);
-                                            setScannedGuest({ ...guestRecord, checked_in: true });
-                                            return;
-                                        }
-
-                                        // Strict approval check: ONLY scan success for approved guests!
-                                        const guestStatus = (guestRecord.status || '').toLowerCase();
-                                        if (guestStatus !== 'approved') {
-                                            playWarningSound();
-                                            const guestName = guestRecord.name || 'Guest';
-                                            const statusLabel = guestStatus === 'pending' ? 'Pending Approval' : (guestStatus ? guestStatus.toUpperCase() : 'Not Approved');
-                                            setScanMessage(`❌ REJECTED — ${guestName} is NOT approved for this event (${statusLabel}).`);
-                                            setShowQrScanner(false);
-                                            setScannedGuest({ ...guestRecord, not_approved: true, checked_in: false, statusText: statusLabel });
-                                            return;
-                                        }
-
-                                        playBeepSound();
-                                        setScanMessage("✅ Guest Found & Approved!");
-                                        // Close scanner and show the guest confirmation modal
-                                        setShowQrScanner(false);
-                                        setScannedGuest(guestRecord);
-                                    } catch (err) {
-                                        console.error("Scanning Error:", err);
-                                        setScanMessage("❌ Error checking database.");
-                                        setTimeout(() => { window.isProcessingScan = false; }, 2500);
                                     }
+
+                                    // Prefer token lookup if present in embedded data, otherwise fall back to id lookup
+                                    const tokenLookup = embeddedData?.token || embeddedData?.qr_token || null;
+                                    let data = null;
+                                    let error = null;
+                                    if (tokenLookup) {
+                                        const res = await supabase.from('rsvps').select('*').eq('qr_token', tokenLookup).eq('wedding_id', wedding.id).single();
+                                        data = res.data;
+                                        error = res.error;
+                                    } else {
+                                        const isValidId = /^[0-9a-fA-F-]+$/.test(String(code));
+                                        if (isValidId) {
+                                            const result = await supabase.from('rsvps').select('*').eq('id', code).eq('wedding_id', wedding.id).single();
+                                            data = result.data;
+                                            error = result.error;
+                                        } else {
+                                            error = new Error('Skipping DB lookup for invalid pass ID format');
+                                        }
+                                    }
+
+                                    let guestRecord = data;
+                                    let isFallback = false;
+                                    if (error || !data) {
+                                        console.error("DB lookup fail or skipped, checking embedded data:", error);
+                                        if (embeddedData && embeddedData.wedding_id === wedding.id) {
+                                            guestRecord = {
+                                                id: embeddedData.id,
+                                                name: embeddedData.name,
+                                                partner_name: embeddedData.partner_name || null,
+                                                email: embeddedData.email,
+                                                phone: embeddedData.phone,
+                                                partner_email: embeddedData.partner_email || null,
+                                                partner_phone: embeddedData.partner_phone || null,
+                                                guests_count: embeddedData.guests_count || 1,
+                                                wedding_id: embeddedData.wedding_id,
+                                                checked_in: false
+                                            };
+                                            isFallback = true;
+                                        }
+                                    }
+
+                                    if (!guestRecord) {
+                                        playWarningSound();
+                                        setScanMessage("❌ Invalid or not found in this guest list.");
+                                        setTimeout(() => { window.isProcessingScan = false; }, 2500);
+                                        return;
+                                    }
+
+                                    // Verify event matches
+                                    if (guestRecord.wedding_id && wedding?.id && String(guestRecord.wedding_id) !== String(wedding.id)) {
+                                        playWarningSound();
+                                        setScanMessage("❌ REJECTED — Pass belongs to a different event.");
+                                        setTimeout(() => { window.isProcessingScan = false; }, 2500);
+                                        return;
+                                    }
+
+                                    const localCheckedIn = checkedInGuests.some(g => g.id === guestRecord.id);
+                                    const isAlreadyCheckedIn = localCheckedIn || guestRecord.checked_in;
+
+                                    if (isAlreadyCheckedIn) {
+                                        playWarningSound();
+                                        setScanMessage("❌ Already Checked In!");
+                                        setShowQrScanner(false);
+                                        setScannedGuest({ ...guestRecord, checked_in: true });
+                                        return;
+                                    }
+
+                                    // Strict approval check: ONLY scan success for approved guests!
+                                    const guestStatus = (guestRecord.status || '').toLowerCase();
+                                    if (guestStatus !== 'approved') {
+                                        playWarningSound();
+                                        const guestName = guestRecord.name || 'Guest';
+                                        const statusLabel = guestStatus === 'pending' ? 'Pending Approval' : (guestStatus ? guestStatus.toUpperCase() : 'Not Approved');
+                                        setScanMessage(`❌ REJECTED — ${guestName} is NOT approved for this event (${statusLabel}).`);
+                                        setShowQrScanner(false);
+                                        setScannedGuest({ ...guestRecord, not_approved: true, checked_in: false, statusText: statusLabel });
+                                        return;
+                                    }
+
+                                    playBeepSound();
+                                    setScanMessage("✅ Guest Found & Approved!");
+                                    // Close scanner and show the guest confirmation modal
+                                    setShowQrScanner(false);
+                                    setScannedGuest(guestRecord);
+                                } catch (err) {
+                                    console.error("Scanning Error:", err);
+                                    setScanMessage("❌ Error checking database.");
+                                    setTimeout(() => { window.isProcessingScan = false; }, 2500);
+                                }
                             }}
                             onError={(e) => console.error("Scanner Error:", e)}
                         />
@@ -858,7 +940,7 @@ const RSVPReport = () => {
                                 <i className={`fas fa-${isNotApproved ? 'times' : isAlreadyIn ? 'exclamation' : 'check'}`} style={{ fontSize: '32px', color: '#fff' }}></i>
                             </div>
                             <h4 className="vm-name" style={{ fontSize: '1.45rem', marginBottom: '0.35rem', fontWeight: '700' }}>{displayName}</h4>
-                            
+
                             {isCouple && (
                                 <div style={{ marginBottom: '1rem' }}>
                                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#fef3c7', color: '#92400e', padding: '3px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '700' }}>
@@ -926,9 +1008,9 @@ const RSVPReport = () => {
                                             // Safe fallback if column doesn't exist yet
                                             if (updateError && (updateError.message.includes('column') || updateError.code === '42703')) {
                                                 const { error: fallbackError } = await supabase
-                                                .from('rsvps')
-                                                .update({ checked_in: true })
-                                                .eq('id', scannedGuest.id);
+                                                    .from('rsvps')
+                                                    .update({ checked_in: true })
+                                                    .eq('id', scannedGuest.id);
                                                 updateError = fallbackError;
                                             }
 
@@ -1197,6 +1279,269 @@ const RSVPReport = () => {
                 </div>
             )}
 
+            {/* ── WEDDING CERTIFICATE MODAL ── */}
+            {showCertModal && (
+                <div className="cert-modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setShowCertModal(false); }}>
+                    <div className="cert-modal-container">
+                        {/* Modal Controls Header */}
+                        <div className="cert-modal-bar">
+                            <div className="cert-modal-title">
+                                <span className="cert-modal-badge"><i className="fas fa-award"></i> Certificate of Marriage</span>
+                                <span className="cert-modal-sub">Holy Matrimony</span>
+                            </div>
+
+                            <div className="cert-modal-actions">
+                                {/* Guest Selector Dropdown */}
+                                <div className="cert-select-wrap">
+                                    <label className="cert-select-lbl">Recipient:</label>
+                                    <select
+                                        className="cert-guest-select"
+                                        value={selectedCertGuest?.id || 'couple'}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === 'couple') {
+                                                setSelectedCertGuest(null);
+                                            } else {
+                                                const allInvites = [...checkedInGuests, ...guests, ...pendingGuests];
+                                                const found = allInvites.find(g => g.id?.toString() === val);
+                                                if (found) setSelectedCertGuest(found);
+                                            }
+                                            setCertRenderedUrl(null);
+                                        }}
+                                    >
+                                        <option value="couple">Wedding Couple: {wedding?.groom_name} &amp; {wedding?.bride_name}</option>
+                                        <optgroup label="Guest Invitations">
+                                            {[...checkedInGuests, ...guests, ...pendingGuests].map(g => {
+                                                const details = getGuestDetails(g);
+                                                const statusText = g.checked_in ? 'Checked In' : (g.status || 'Approved');
+                                                return (
+                                                    <option key={g.id} value={g.id}>
+                                                        {details.displayName} ({statusText})
+                                                    </option>
+                                                );
+                                            })}
+                                        </optgroup>
+                                    </select>
+                                </div>
+
+                                <button
+                                    className="cert-btn-primary"
+                                    onClick={downloadCertificate}
+                                    disabled={isDownloadingCert}
+                                    type="button"
+                                >
+                                    <i className={`fas ${isDownloadingCert ? 'fa-spinner fa-spin' : 'fa-download'}`}></i>
+                                    <span>{isDownloadingCert ? 'Exporting...' : 'Download PNG'}</span>
+                                </button>
+
+                                <button
+                                    className="cert-btn-secondary"
+                                    onClick={() => window.print()}
+                                    title="Print Certificate"
+                                    type="button"
+                                >
+                                    <i className="fas fa-print"></i>
+                                    <span>Print</span>
+                                </button>
+
+                                <button
+                                    className="cert-btn-close"
+                                    onClick={() => setShowCertModal(false)}
+                                    title="Close"
+                                    type="button"
+                                >
+                                    <i className="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* iOS Helper Notice */}
+                        {isIOSDevice && certRenderedUrl && (
+                            <div className="cert-ios-tip">
+                                <i className="fas fa-info-circle"></i>
+                                <span>Touch &amp; hold the certificate below, then tap <strong>&ldquo;Save to Photos&rdquo;</strong>.</span>
+                            </div>
+                        )}
+
+                        {/* Certificate Viewport */}
+                        <div className="cert-viewport-scroll">
+                            {isIOSDevice && certRenderedUrl ? (
+                                <div className="cert-ios-img-wrap">
+                                    <img
+                                        src={certRenderedUrl}
+                                        alt="Wedding Certificate"
+                                        className="cert-ios-img"
+                                    />
+                                </div>
+                            ) : (
+                                <div className="cert-scale-wrapper">
+                                    {/* THE 1000x700 EXPORT NODE */}
+                                    <div id="rsvp-wedding-certificate-node" className="wedding-cert-canvas">
+                                        {/* SVG Decorative Framing, Fluid Waves & Medal */}
+                                        <svg
+                                            viewBox="0 0 1000 700"
+                                            className="cert-svg-layers"
+                                            preserveAspectRatio="none"
+                                        >
+                                            <defs>
+                                                {/* Champagne Gold Linear Gradient */}
+                                                <linearGradient id="certGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                    <stop offset="0%" stopColor="#e3caaa" />
+                                                    <stop offset="22%" stopColor="#b48b56" />
+                                                    <stop offset="48%" stopColor="#fdf0e0" />
+                                                    <stop offset="74%" stopColor="#9e743e" />
+                                                    <stop offset="100%" stopColor="#caa476" />
+                                                </linearGradient>
+
+                                                {/* Gold Accent Rim Gradient */}
+                                                <linearGradient id="certGoldRim" x1="0%" y1="100%" x2="100%" y2="0%">
+                                                    <stop offset="0%" stopColor="#a37944" />
+                                                    <stop offset="50%" stopColor="#faebd7" />
+                                                    <stop offset="100%" stopColor="#8d6330" />
+                                                </linearGradient>
+
+                                                {/* Steel Slate Satin Gradient 1 (Back Layer) */}
+                                                <linearGradient id="certSatinSteel1" x1="10%" y1="0%" x2="90%" y2="100%">
+                                                    <stop offset="0%" stopColor="#d1d7e2" />
+                                                    <stop offset="35%" stopColor="#9aa6ba" />
+                                                    <stop offset="70%" stopColor="#717d92" />
+                                                    <stop offset="100%" stopColor="#515d71" />
+                                                </linearGradient>
+
+                                                {/* Steel Slate Satin Gradient 2 (Foreground Layer) */}
+                                                <linearGradient id="certSatinSteel2" x1="0%" y1="15%" x2="100%" y2="85%">
+                                                    <stop offset="0%" stopColor="#bac4d5" />
+                                                    <stop offset="40%" stopColor="#8794a8" />
+                                                    <stop offset="80%" stopColor="#626e82" />
+                                                    <stop offset="100%" stopColor="#434c5a" />
+                                                </linearGradient>
+
+                                                {/* Soft Layer Drop Shadow */}
+                                                <filter id="certWaveShadow" x="-10%" y="-10%" width="140%" height="140%">
+                                                    <feDropShadow dx="8" dy="5" stdDeviation="9" floodColor="#0c1017" floodOpacity="0.28" />
+                                                </filter>
+
+                                                {/* Rosette Medal Drop Shadow */}
+                                                <filter id="certMedalShadow" x="-25%" y="-25%" width="150%" height="150%">
+                                                    <feDropShadow dx="0" dy="7" stdDeviation="7" floodColor="#080c14" floodOpacity="0.35" />
+                                                </filter>
+                                            </defs>
+
+                                            {/* Base White Canvas */}
+                                            <rect x="0" y="0" width="1000" height="700" fill="#ffffff" />
+
+                                            {/* Top, Right, Bottom Bronze Outer Border */}
+                                            <rect x="974" y="0" width="26" height="700" fill="url(#certGoldGrad)" />
+                                            <path d="M 240,0 L 1000,0 L 1000,26 L 255,26 Z" fill="url(#certGoldGrad)" />
+                                            <path d="M 68,674 L 1000,674 L 1000,700 L 68,700 Z" fill="url(#certGoldGrad)" />
+                                            <line x1="255" y1="26" x2="974" y2="26" stroke="#f6ede3" strokeWidth="1.5" opacity="0.65" />
+                                            <line x1="974" y1="26" x2="974" y2="674" stroke="#f6ede3" strokeWidth="1.5" opacity="0.65" />
+                                            <line x1="68" y1="674" x2="974" y2="674" stroke="#f6ede3" strokeWidth="1.5" opacity="0.65" />
+
+                                            {/* BACK SATIN STEEL WAVE (Layer 1) */}
+                                            <path
+                                                d="M 0,0 L 250,0 C 275,60 310,130 280,240 C 250,350 140,430 85,530 C 50,595 60,650 70,700 L 0,700 Z"
+                                                fill="url(#certSatinSteel1)"
+                                                filter="url(#certWaveShadow)"
+                                            />
+                                            <path
+                                                d="M 250,0 C 275,60 310,130 280,240 C 250,350 140,430 85,530 C 50,595 60,650 70,700"
+                                                fill="none"
+                                                stroke="url(#certGoldRim)"
+                                                strokeWidth="16"
+                                            />
+
+                                            {/* FOREGROUND SATIN STEEL WAVE (Layer 2) */}
+                                            <path
+                                                d="M 0,0 L 175,0 C 205,80 235,160 205,265 C 175,370 85,455 45,550 C 28,595 35,650 40,700 L 0,700 Z"
+                                                fill="url(#certSatinSteel2)"
+                                                filter="url(#certWaveShadow)"
+                                            />
+                                            <path
+                                                d="M 175,0 C 205,80 235,160 205,265 C 175,370 85,455 45,550 C 28,595 35,650 40,700"
+                                                fill="none"
+                                                stroke="url(#certGoldGrad)"
+                                                strokeWidth="16"
+                                            />
+                                            <path
+                                                d="M 175,0 C 205,80 235,160 205,265 C 175,370 85,455 45,550 C 28,595 35,650 40,700"
+                                                fill="none"
+                                                stroke="#ffffff"
+                                                strokeWidth="1.8"
+                                                opacity="0.55"
+                                            />
+
+                                        </svg>
+
+                                        {/* UPPER RIGHT HEADER */}
+                                        <div className="cert-hdr-block">
+                                            <h1 className="cert-main-title">CERTIFICATE</h1>
+                                            <div className="cert-main-sub">OF MARRIAGE</div>
+                                        </div>
+
+                                        {/* MAIN PRESENTATION SECTION */}
+                                        <div className="cert-body-block">
+                                            <div className="cert-pres-eyebrow">
+                                                THIS CERTIFICATE IS PRESENTED TO
+                                            </div>
+
+                                            <div className="cert-recipient-name">
+                                                {selectedCertGuest
+                                                    ? getGuestDetails(selectedCertGuest).displayName
+                                                    : `${wedding?.groom_name || 'Groom'} & ${wedding?.bride_name || 'Bride'}`}
+                                            </div>
+
+                                            {/* Underline Matching Image */}
+                                            <div className="cert-name-underline"></div>
+
+                                            <div className="cert-citation-wrap">
+                                                <p className="cert-citation-text">
+                                                    In celebration of your union in Holy Matrimony, this certificate is presented in honour of the love, commitment, and vows you have shared as you begin your journey together as husband and wife.
+
+                                                    May your marriage be blessed with lifelong love, happiness, peace, harmony, and prosperity, and may your journey together continue to grow stronger with each passing year.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* BOTTOM SIGNATURE & DATE BLOCK */}
+                                        <div className="cert-bottom-block">
+                                            {/* Left Signature */}
+                                            <div className="cert-sig-col">
+                                                <div className="cert-sig-script">
+                                                    {wedding?.groom_name} &amp; {wedding?.bride_name}
+                                                </div>
+                                                <div className="cert-sig-line"></div>
+                                                <div className="cert-sig-label">SIGNATURE</div>
+                                            </div>
+
+                                            {/* Center SaveMeASeat Small Logo */}
+                                            <div className="cert-brand-col">
+                                                <img
+                                                    src={logoBase64}
+                                                    alt="SaveMeASeat"
+                                                    className="cert-brand-logo"
+                                                />
+                                            </div>
+
+                                            {/* Right Date */}
+                                            <div className="cert-sig-col">
+                                                <div className="cert-date-val">
+                                                    {wedding?.date
+                                                        ? new Date(wedding.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()
+                                                        : '26 DECEMBER 2026'}
+                                                </div>
+                                                <div className="cert-sig-line"></div>
+                                                <div className="cert-sig-label">DATE</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* ── PHONE SHELL ── */}
             <div className="phone-shell">
 
@@ -1242,6 +1587,10 @@ const RSVPReport = () => {
                                 <span className="hbtn-icon"><i className="fas fa-file-excel"></i></span>
                                 <span className="hbtn-lbl">Export</span>
                             </button>
+                            <button className="hbtn hbtn-gold" onClick={() => handleOpenCertificate(null)} title="Wedding Certificate">
+                                <span className="hbtn-icon"><i className="fas fa-award"></i></span>
+                                <span className="hbtn-lbl">Certificate</span>
+                            </button>
                             <button className="hbtn" onClick={() => { window.isProcessingScan = false; setScanMessage(null); setShowQrScanner(true); }}>
                                 <span className="hbtn-icon"><i className="fas fa-qrcode"></i></span>
                                 <span className="hbtn-lbl">Scan Pass</span>
@@ -1275,32 +1624,32 @@ const RSVPReport = () => {
                                                             ))}
                                                         </div>
                                                     </div>
-                                                    
+
                                                     <p className="theme-desc">{theme.description}</p>
-                                                    
+
                                                     <div className="theme-palette">
                                                         {theme.colors.map(color => (
-                                                            <div 
-                                                                key={color} 
-                                                                className="theme-color-swatch" 
-                                                                style={{ backgroundColor: color }} 
+                                                            <div
+                                                                key={color}
+                                                                className="theme-color-swatch"
+                                                                style={{ backgroundColor: color }}
                                                                 title={color}
                                                             />
                                                         ))}
                                                     </div>
-                                                    
+
                                                     <div className="theme-actions">
-                                                        <a 
-                                                            href={`${window.location.origin}/w/${wedding.slug}?template=${theme.id}`} 
-                                                            target="_blank" 
-                                                            rel="noopener noreferrer" 
+                                                        <a
+                                                            href={`${window.location.origin}/w/${wedding.slug}?template=${theme.id}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
                                                             className="theme-btn-preview"
                                                         >
                                                             <i className="fas fa-eye"></i> Live Preview
                                                         </a>
                                                         {!isActive && (
-                                                            <button 
-                                                                onClick={() => handleActivateTemplate(theme.id)} 
+                                                            <button
+                                                                onClick={() => handleActivateTemplate(theme.id)}
                                                                 className="theme-btn-activate"
                                                                 disabled={!!processingAction}
                                                             >
@@ -1448,6 +1797,9 @@ const RSVPReport = () => {
                                                             {guest.attending}
                                                         </span>
                                                         <div className="g-acts">
+                                                            <button className="ga-ico ga-gold" onClick={() => handleOpenCertificate(guest)} title="Wedding Certificate">
+                                                                <i className="fas fa-award"></i>
+                                                            </button>
                                                             <button className="ga-approve" onClick={() => handleApprove(guest)} disabled={!!processingAction}>
                                                                 {processingAction === `${guest.id}-approve`
                                                                     ? <i className="fas fa-spinner fa-spin"></i>
@@ -1522,6 +1874,9 @@ const RSVPReport = () => {
                                                             )}
                                                         </div>
                                                         <div className="g-acts">
+                                                            <button className="ga-ico ga-gold" onClick={() => handleOpenCertificate(guest)} title="Wedding Certificate">
+                                                                <i className="fas fa-award"></i>
+                                                            </button>
                                                             <button className="ga-ico ga-amber" onClick={() => handleUndoCheckIn(guest)} disabled={!!processingAction} title="Undo Check-In">
                                                                 {processingAction === `${guest.id}-undocheckin`
                                                                     ? <i className="fas fa-spinner fa-spin"></i>
@@ -1554,7 +1909,7 @@ const RSVPReport = () => {
                                                             <input className="ef-inp" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="Primary Full Name" required />
                                                             <input className="ef-inp" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} placeholder="Primary Email" type="email" />
                                                             <input className="ef-inp" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} placeholder="Primary Phone" />
-                                                            
+
                                                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                                                 <select className="ef-inp" style={{ flex: 1 }} value={editForm.attending} onChange={e => setEditForm({ ...editForm, attending: e.target.value })}>
                                                                     <option value="Yes">Yes — Attending</option>
@@ -1627,6 +1982,9 @@ const RSVPReport = () => {
                                                                     &nbsp;{isAttending ? 'Attending' : 'Declined'}
                                                                 </span>
                                                                 <div className="g-acts">
+                                                                    <button className="ga-ico ga-gold" onClick={() => handleOpenCertificate(guest)} title="Wedding Certificate">
+                                                                        <i className="fas fa-award"></i>
+                                                                    </button>
                                                                     <button className="ga-ico" onClick={() => startEdit(guest)} title="Edit">
                                                                         <i className="fas fa-edit"></i>
                                                                     </button>
@@ -1935,6 +2293,12 @@ const RSVPReport = () => {
                     box-shadow:0 6px 20px rgba(163,230,53,.4);
                 }
                 .hbtn-lime .hbtn-lbl { color:#a3e635; }
+                .hbtn-gold .hbtn-icon {
+                    background:linear-gradient(135deg, #d3a25f 0%, #aa7a38 100%);
+                    color:#ffffff; border-color:rgba(243,206,149,.4);
+                    box-shadow:0 6px 20px rgba(170,122,56,.45);
+                }
+                .hbtn-gold .hbtn-lbl { color:#f3ce95; }
                 .hbtn:hover .hbtn-icon { transform:translateY(-3px); }
                 .hbtn:disabled .hbtn-icon { opacity:.45; }
 
@@ -2063,6 +2427,8 @@ const RSVPReport = () => {
                 .ga-ico:disabled { opacity:.45; cursor:not-allowed; }
                 .ga-amber { background:#fef3c7; color:#b45309; }
                 .ga-amber:hover { background:#f59e0b; color:#fff; }
+                .ga-gold { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
+                .ga-gold:hover { background:linear-gradient(135deg, #d97706, #b45309); color:#fff; border-color:transparent; transform:scale(1.08); }
                 .ga-red { background:#fee2e2; color:#b91c1c; }
                 .ga-red:hover { background:#ef4444; color:#fff; }
 
@@ -2359,6 +2725,400 @@ const RSVPReport = () => {
                         width: 100%;
                         height: 100vh;
                         max-height: 100vh;
+                    }
+                }
+
+                /* ── CERTIFICATE MODAL & CANVAS ── */
+                .cert-modal-backdrop {
+                    position: fixed;
+                    inset: 0;
+                    z-index: 99999;
+                    background: rgba(12, 16, 26, 0.85);
+                    backdrop-filter: blur(10px);
+                    -webkit-backdrop-filter: blur(10px);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 1rem;
+                    overflow-y: auto;
+                }
+                .cert-modal-container {
+                    width: 100%;
+                    max-width: 1080px;
+                    background: #181d29;
+                    border: 1px solid rgba(255, 255, 255, 0.12);
+                    border-radius: 20px;
+                    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.55);
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
+                    animation: certModalPop 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+                }
+                @keyframes certModalPop {
+                    from { opacity: 0; transform: scale(0.96) translateY(10px); }
+                    to { opacity: 1; transform: scale(1) translateY(0); }
+                }
+
+                .cert-modal-bar {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    flex-wrap: wrap;
+                    gap: 1rem;
+                    padding: 1rem 1.4rem;
+                    background: #111520;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+                }
+                .cert-modal-title {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                }
+                .cert-modal-badge {
+                    background: linear-gradient(135deg, #d3a25f, #a27435);
+                    color: #fff;
+                    font-weight: 700;
+                    font-size: 0.88rem;
+                    padding: 0.35rem 0.85rem;
+                    border-radius: 999px;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.4rem;
+                    box-shadow: 0 4px 12px rgba(162, 116, 53, 0.35);
+                }
+                .cert-modal-sub {
+                    font-size: 0.82rem;
+                    color: #94a3b8;
+                    font-weight: 500;
+                }
+
+                .cert-modal-actions {
+                    display: flex;
+                    align-items: center;
+                    flex-wrap: wrap;
+                    gap: 0.65rem;
+                }
+                .cert-select-wrap {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.45rem;
+                }
+                .cert-select-lbl {
+                    font-size: 0.76rem;
+                    color: #94a3b8;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.04em;
+                }
+                .cert-guest-select {
+                    background: #1e2433;
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    border-radius: 10px;
+                    color: #f1f5f9;
+                    padding: 0.45rem 0.85rem;
+                    font-size: 0.82rem;
+                    font-weight: 500;
+                    outline: none;
+                    cursor: pointer;
+                    max-width: 250px;
+                    transition: border-color 0.2s;
+                }
+                .cert-guest-select:focus {
+                    border-color: #d3a25f;
+                }
+                .cert-guest-select option, .cert-guest-select optgroup {
+                    background: #181d29;
+                    color: #f1f5f9;
+                }
+
+                .cert-btn-primary {
+                    background: linear-gradient(135deg, #d3a25f 0%, #aa7a38 100%);
+                    color: #fff;
+                    border: none;
+                    border-radius: 10px;
+                    padding: 0.52rem 1.1rem;
+                    font-size: 0.84rem;
+                    font-weight: 700;
+                    cursor: pointer;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.45rem;
+                    box-shadow: 0 4px 14px rgba(170, 122, 56, 0.38);
+                    transition: all 0.2s ease;
+                }
+                .cert-btn-primary:hover:not(:disabled) {
+                    transform: translateY(-1px);
+                    box-shadow: 0 6px 18px rgba(170, 122, 56, 0.5);
+                }
+                .cert-btn-primary:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                }
+
+                .cert-btn-secondary {
+                    background: rgba(255, 255, 255, 0.08);
+                    color: #e2e8f0;
+                    border: 1px solid rgba(255, 255, 255, 0.12);
+                    border-radius: 10px;
+                    padding: 0.52rem 0.95rem;
+                    font-size: 0.84rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.45rem;
+                    transition: all 0.2s ease;
+                }
+                .cert-btn-secondary:hover {
+                    background: rgba(255, 255, 255, 0.15);
+                    color: #fff;
+                }
+
+                .cert-btn-close {
+                    background: rgba(255, 255, 255, 0.08);
+                    color: #cbd5e1;
+                    border: 1px solid rgba(255, 255, 255, 0.12);
+                    border-radius: 10px;
+                    width: 36px;
+                    height: 36px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 0.9rem;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+                .cert-btn-close:hover {
+                    background: rgba(239, 68, 68, 0.2);
+                    border-color: rgba(239, 68, 68, 0.4);
+                    color: #fca5a5;
+                }
+
+                .cert-ios-tip {
+                    background: rgba(59, 130, 246, 0.14);
+                    border-bottom: 1px solid rgba(59, 130, 246, 0.25);
+                    color: #93c5fd;
+                    font-size: 0.8rem;
+                    padding: 0.6rem 1.2rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
+                }
+                .cert-ios-img-wrap {
+                    padding: 1.5rem;
+                    display: flex;
+                    justify-content: center;
+                }
+                .cert-ios-img {
+                    max-width: 100%;
+                    height: auto;
+                    border-radius: 12px;
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+                }
+
+                .cert-viewport-scroll {
+                    padding: 2rem 1rem;
+                    overflow-x: auto;
+                    display: flex;
+                    justify-content: center;
+                    background: #dbe0e8;
+                    min-height: 520px;
+                }
+                .cert-scale-wrapper {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    transform-origin: top center;
+                }
+
+                /* THE 1000 x 700 EXPORT CANVAS */
+                .wedding-cert-canvas {
+                    width: 1000px;
+                    height: 700px;
+                    min-width: 1000px;
+                    min-height: 700px;
+                    position: relative;
+                    background: #ffffff;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.08);
+                    border-radius: 6px;
+                    overflow: hidden;
+                    box-sizing: border-box;
+                    font-family: 'Outfit', sans-serif;
+                    color: #11141c;
+                }
+
+                .cert-svg-layers {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 1000px;
+                    height: 700px;
+                    pointer-events: none;
+                    z-index: 1;
+                }
+
+                .cert-hdr-block {
+                    position: absolute;
+                    top: 65px;
+                    right: 75px;
+                    text-align: right;
+                    z-index: 4;
+                }
+                .cert-main-title {
+                    margin: 0;
+                    font-family: 'Outfit', 'Montserrat', sans-serif;
+                    font-size: 42px;
+                    font-weight: 800;
+                    letter-spacing: 0.06em;
+                    color: #11141c;
+                    line-height: 1;
+                }
+                .cert-main-sub {
+                    margin-top: 8px;
+                    font-family: 'Outfit', 'Montserrat', sans-serif;
+                    font-size: 19px;
+                    font-weight: 700;
+                    letter-spacing: 0.35em;
+                    color: #1f2533;
+                    text-transform: uppercase;
+                }
+
+                .cert-body-block {
+                    position: absolute;
+                    top: 230px;
+                    left: 330px;
+                    right: 70px;
+                    text-align: center;
+                    z-index: 4;
+                }
+                .cert-pres-eyebrow {
+                    font-size: 11.5px;
+                    font-weight: 700;
+                    letter-spacing: 0.22em;
+                    color: #434a58;
+                    text-transform: uppercase;
+                    margin-bottom: 12px;
+                }
+                .cert-recipient-name {
+                    font-size: 44px;
+                    font-weight: 500;
+                    color: #0d1017;
+                    font-family: 'Outfit', sans-serif;
+                    letter-spacing: 0.01em;
+                    line-height: 1.15;
+                }
+                .cert-name-underline {
+                    width: 460px;
+                    max-width: 90%;
+                    height: 2px;
+                    background: #0d1017;
+                    margin: 10px auto 20px auto;
+                }
+                .cert-citation-text {
+                    margin: 0 auto;
+                    max-width: 550px;
+                    font-size: 13px;
+                    line-height: 1.75;
+                    color: #4a5263;
+                    font-family: 'Outfit', sans-serif;
+                    font-weight: 400;
+                }
+
+                .cert-bottom-block {
+                    position: absolute;
+                    bottom: 68px;
+                    left: 330px;
+                    right: 70px;
+                    display: flex;
+                    align-items: flex-end;
+                    justify-content: space-between;
+                    z-index: 4;
+                }
+                .cert-sig-col {
+                    width: 150px;
+                    text-align: center;
+                }
+                .cert-sig-script {
+                    font-family: 'Cormorant Garamond', Georgia, serif;
+                    font-style: italic;
+                    font-weight: 500;
+                    font-size: 20px;
+                    color: #1a1e28;
+                    min-height: 28px;
+                    line-height: 1.1;
+                    display: flex;
+                    align-items: flex-end;
+                    justify-content: center;
+                    padding-bottom: 4px;
+                }
+                .cert-date-val {
+                    font-size: 13px;
+                    font-weight: 700;
+                    letter-spacing: 0.06em;
+                    color: #1a1e28;
+                    min-height: 28px;
+                    display: flex;
+                    align-items: flex-end;
+                    justify-content: center;
+                    font-family: 'Outfit', sans-serif;
+                    text-transform: uppercase;
+                    padding-bottom: 4px;
+                }
+                .cert-sig-line {
+                    width: 100%;
+                    height: 1.5px;
+                    background: #1a1e28;
+                    margin: 0 auto;
+                }
+                .cert-sig-label {
+                    font-size: 9.5px;
+                    font-weight: 800;
+                    letter-spacing: 0.22em;
+                    color: #4b5262;
+                    text-transform: uppercase;
+                    margin-top: 8px;
+                }
+
+                .cert-brand-col {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: flex-end;
+                    padding-bottom: 2px;
+                }
+                .cert-brand-logo {
+                    height: 26px;
+                    width: auto;
+                    max-width: 120px;
+                    display: block;
+                    object-fit: contain;
+                }
+
+                /* RESPONSIVE SCALING FOR CERTIFICATE VIEWPORT ON PHONES */
+                @media (max-width: 1040px) {
+                    .cert-viewport-scroll {
+                        padding: 1rem 0.5rem;
+                        overflow-x: auto;
+                        -webkit-overflow-scrolling: touch;
+                        justify-content: flex-start;
+                    }
+                }
+
+                @media print {
+                    body * {
+                        visibility: hidden !important;
+                    }
+                    #rsvp-wedding-certificate-node, #rsvp-wedding-certificate-node * {
+                        visibility: visible !important;
+                    }
+                    #rsvp-wedding-certificate-node {
+                        position: fixed !important;
+                        left: 0 !important;
+                        top: 0 !important;
+                        width: 100% !important;
+                        height: auto !important;
+                        box-shadow: none !important;
                     }
                 }
             `}</style>
