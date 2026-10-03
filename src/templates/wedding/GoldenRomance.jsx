@@ -5,6 +5,7 @@ import html2canvas from 'html2canvas';
 import logoImg from '../../assets/images/logo1.png';
 import defaultMusic from '../../assets/music/music.mp3';
 import TemplateFooter from '../../components/TemplateFooter';
+import RsvpLockedGate from '../../components/RsvpLockedGate';
 
 // Helper to format date safely
 const formatDate = (dateString) => {
@@ -921,7 +922,9 @@ const GoldenRomance = ({
                   <h2 className="gh-view-title" style={{ marginBottom: '10px' }}>RSVP</h2>
                   <div style={{ fontFamily: 'Playfair Display', fontSize: '1.2rem', marginBottom: '30px' }}>Be our guest</div>
 
-                  {!rsvpSubmitted ? (
+                  {d.isPendingApproval ? (
+                    <RsvpLockedGate weddingData={d} />
+                  ) : !rsvpSubmitted ? (
                     <form onSubmit={handleRsvpSubmit}>
                       <input type="text" className="gh-input" placeholder="Your Full Name" required
                         value={rsvpForm.name} onChange={e => setRsvpForm({ ...rsvpForm, name: e.target.value })} />

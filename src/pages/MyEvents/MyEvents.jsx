@@ -6,6 +6,7 @@ import { isDraftMeaningful, pushDraftToUserAccount, generateEventId } from '../.
 import { formatKwacha, PAYMENT_PHONE_NUMBER, PAYMENT_PHONE_RAW, formatPricingTier } from '../../utils/pricing';
 import useUserRole from '../../utils/useUserRole';
 import './MyEvents.css';
+import './MyEventsCardActions.css';
 
 // Template styling meta
 const TEMPLATE_META = {
@@ -188,7 +189,7 @@ const MyEvents = () => {
     const handleCopyPreview = (event, e) => {
         e?.stopPropagation();
         const previewUrl = `${window.location.origin}/api/preview?slug=${event.slug || event.id}&template=${event.template_id || 1}`;
-        
+
         const fallbackCopy = () => {
             try {
                 const textArea = document.createElement("textarea");
@@ -515,38 +516,168 @@ const MyEvents = () => {
                                 }
                             }
 
+                            // Extract slider images safely
+                            let sliderList = [];
+                            if (Array.isArray(event.slider_images)) {
+                                sliderList = event.slider_images.filter(Boolean);
+                            } else if (typeof event.slider_images === 'string' && event.slider_images.trim()) {
+                                try {
+                                    const parsed = JSON.parse(event.slider_images);
+                                    if (Array.isArray(parsed)) sliderList = parsed.filter(Boolean);
+                                    else if (event.slider_images.startsWith('http')) sliderList = [event.slider_images];
+                                } catch {
+                                    sliderList = event.slider_images.split(',').map(s => s.trim()).filter(Boolean);
+                                }
+                            }
+
+                            // Best cover image: cover_image -> first slider image -> groom -> bride
+                            const coverImage = event.cover_image || sliderList[0] || event.groom_image || event.bride_image || null;
+
+                            // Collect attached preview thumbnails
+                            const attachedThumbnails = [];
+                            if (event.groom_image) attachedThumbnails.push({ url: event.groom_image, label: 'Groom' });
+                            if (event.bride_image) attachedThumbnails.push({ url: event.bride_image, label: 'Bride' });
+                            sliderList.forEach((img, idx) => {
+                                if (!attachedThumbnails.some(t => t.url === img)) {
+                                    attachedThumbnails.push({ url: img, label: `Slide ${idx + 1}` });
+                                }
+                            });
+
+                            const previewUrl = `${window.location.origin}/w/${event.slug || event.id}?preview=true`;
+
                             return (
                                 <div className="me-modern-card" key={event.id} style={{ zIndex: activeMenuId === event.id ? 50 : 1 }}>
+                                    {/* Cover Area with Attached Images Showcase */}
                                     <div className="me-modern-image-container">
-                                        {event.cover_image ? (
-                                            <img src={event.cover_image} alt="Event Cover" className="me-modern-image" />
+                                        {coverImage ? (
+                                            <img src={coverImage} alt={`${event.groom_name} & ${event.bride_name}`} className="me-modern-image" />
                                         ) : (
-                                            <div className="me-modern-image-placeholder" style={{ background: tpl.bg || '#e2e8f0' }} />
+                                            <div className="me-modern-image-placeholder" style={{ background: tpl.bg || 'linear-gradient(135deg, #111827 0%, #1f2937 100%)' }}>
+                                                <div className="me-placeholder-monogram">
+                                                    <span>{(event.groom_name?.[0] || 'G')} & {(event.bride_name?.[0] || 'B')}</span>
+                                                    <small><i className="fas fa-heart" /></small>
+                                                </div>
+                                            </div>
                                         )}
+
+                                        {/* Top Badges on Cover */}
+                                        <div className="me-cover-top-badges">
+                                            <span className={`me-cover-status-badge ${statusClass(event.status)}`}>
+                                                {isApproved ? <i className="fas fa-check-circle" /> : isPending ? <i className="fas fa-clock" /> : <i className="fas fa-info-circle" />}
+                                                <span>{statusLabel(event.status)}</span>
+                                            </span>
+                                            {sliderList.length > 0 && (
+                                                <span className="me-cover-photos-badge">
+                                                    <i className="fas fa-images" /> {sliderList.length} Slider Photo{sliderList.length > 1 ? 's' : ''}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Bottom Overlay with Couple & Attached Visuals Strip */}
                                         <div className="me-modern-image-overlay">
                                             <div className="me-modern-image-text">
                                                 <h3>{event.groom_name} & {event.bride_name}</h3>
-                                                <p>{event.event_id ? `ID: ${event.event_id}` : tpl.name || 'Premium'}</p>
+                                                <p><i className="fas fa-calendar-alt" /> {eventDate || 'Date TBA'} • {tpl.name || 'Classic'}</p>
+
+                                                {/* Attached Images Micro-Strip */}
+                                                {attachedThumbnails.length > 0 && (
+                                                    <div className="me-cover-thumbnails-strip" title={`${attachedThumbnails.length} attached photo${attachedThumbnails.length > 1 ? 's' : ''}`}>
+                                                        <div className="me-thumb-avatars">
+                                                            {attachedThumbnails.slice(0, 4).map((thumb, idx) => (
+                                                                <img
+                                                                    key={idx}
+                                                                    src={thumb.url}
+                                                                    alt={thumb.label}
+                                                                    className="me-cover-micro-thumb"
+                                                                    title={thumb.label}
+                                                                />
+                                                            ))}
+                                                            {attachedThumbnails.length > 4 && (
+                                                                <span className="me-cover-micro-more">
+                                                                    +{attachedThumbnails.length - 4}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <span className="me-thumb-strip-label">Attached visuals</span>
+                                                    </div>
+                                                )}
                                             </div>
-                                            {isPending ? (
-                                                <button onClick={() => setPaymentTarget(event)} className="me-modern-image-btn" style={{ border: 'none', cursor: 'pointer' }}>
-                                                    Activate
-                                                </button>
-                                            ) : (
-                                                <button onClick={() => navigate(`/report/${event.slug || event.id}`)} className="me-modern-image-btn" style={{ border: 'none', cursor: 'pointer' }}>
-                                                    View Report
-                                                </button>
-                                            )}
+
+                                            <div className="me-cover-actions">
+                                                {isPending ? (
+                                                    <button
+                                                        onClick={() => setPaymentTarget(event)}
+                                                        className="me-cover-btn pay-btn"
+                                                    >
+                                                        <i className="fas fa-wallet" /> Activate
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => navigate(`/report/${event.slug || event.id}`)}
+                                                        className="me-cover-btn report-btn"
+                                                    >
+                                                        <i className="fas fa-chart-pie" /> Report
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 
+                                    {/* Card Content & Details */}
                                     <div className="me-modern-content">
                                         <div className="me-modern-details">
-                                            <div className="me-modern-status-title" style={{ color: isApproved ? '#0f172a' : isPending ? '#d97706' : '#dc2626' }}>
-                                                {statusLabel(event.status)}
-                                            </div>
-                                            <div className="me-modern-subtitle">
-                                                {event.ceremony_venue || event.tagline || 'SaveMeASeat Digital Invitation'}
+                                            <div className="me-modern-header-row">
+                                                <div>
+                                                    <div className="me-modern-status-title" style={{ color: isApproved ? '#059669' : isPending ? '#d97706' : '#dc2626', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <i className={isApproved ? 'fas fa-check-circle' : isPending ? 'fas fa-clock' : 'fas fa-info-circle'} style={{ fontSize: '0.85rem' }} />
+                                                        <span>{isApproved ? 'Live & Accepting RSVPs' : isPending ? 'Awaiting Payment & Activation' : statusLabel(event.status)}</span>
+                                                    </div>
+                                                    <div className="me-modern-subtitle">
+                                                        <i className="fas fa-map-marker-alt" /> {event.ceremony_venue || event.venue_name || event.tagline || 'Digital Invitation'}
+                                                    </div>
+                                                </div>
+
+                                                <div className="me-modern-menu-wrap">
+                                                    <button
+                                                        type="button"
+                                                        className="me-modern-dots"
+                                                        onClick={() => setActiveMenuId(activeMenuId === event.id ? null : event.id)}
+                                                        aria-label="More options"
+                                                    >
+                                                        <i className="fas fa-ellipsis-v" />
+                                                    </button>
+
+                                                    {activeMenuId === event.id && (
+                                                        <div className="me-modern-dropdown" style={{ zIndex: 100 }}>
+                                                            <button type="button" className="me-menu-item" onPointerDown={(e) => { e.preventDefault(); setActiveMenuId(null); navigate(`/edit-event/${event.slug || event.id}`); }}>
+                                                                <i className="fas fa-edit" /> Edit Details
+                                                            </button>
+                                                            <button type="button" className="me-menu-item" onPointerDown={(e) => { e.preventDefault(); setActiveMenuId(null); navigate(`/report/${event.slug || event.id}`); }}>
+                                                                <i className="fas fa-chart-pie" /> RSVP Report
+                                                            </button>
+                                                            <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="me-menu-item" onPointerDown={(e) => e.stopPropagation()}>
+                                                                <i className="fas fa-eye" /> Preview Event
+                                                            </a>
+                                                            {isApproved && (
+                                                                <a href={`${window.location.origin}/w/${event.slug || event.id}`} target="_blank" rel="noopener noreferrer" className="me-menu-item" onPointerDown={(e) => e.stopPropagation()}>
+                                                                    <i className="fas fa-external-link-alt" /> View Public Link
+                                                                </a>
+                                                            )}
+                                                            <button type="button" className="me-menu-item" onPointerDown={(e) => { e.preventDefault(); setActiveMenuId(null); setSampleTarget(event); setPreviewTemplate(event.template_id || 1); }}>
+                                                                <i className="fas fa-palette" /> Change Theme
+                                                            </button>
+                                                            <button type="button" className="me-menu-item" onPointerDown={(e) => { e.preventDefault(); handleCopyEventId(event.event_id, e); setActiveMenuId(null); }}>
+                                                                <i className="fas fa-copy" /> Copy Event ID
+                                                            </button>
+                                                            <button type="button" className="me-menu-item" onPointerDown={(e) => { e.preventDefault(); handleDuplicate(event); }} disabled={duplicating === event.id}>
+                                                                {duplicating === event.id ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-clone" />} Duplicate
+                                                            </button>
+                                                            <button type="button" className="me-menu-item me-menu-danger" onPointerDown={(e) => { e.preventDefault(); setActiveMenuId(null); setDeleteTarget(event); }}>
+                                                                <i className="fas fa-trash" /> Delete Event
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
 
                                             <div className="me-modern-divider" />
@@ -558,91 +689,59 @@ const MyEvents = () => {
                                                 </div>
                                                 <div className="me-modern-stat">
                                                     <strong>{formattedPrice}</strong>
-                                                    <span>Price</span>
+                                                    <span>{isPending ? 'Balance Due' : 'Price'}</span>
                                                 </div>
                                                 <div className="me-modern-stat">
                                                     <strong>{eventDate || 'TBA'}</strong>
                                                     <span>Date</span>
                                                 </div>
+                                                <div className="me-modern-stat">
+                                                    <strong>{sliderList.length}/6</strong>
+                                                    <span>Slider Photos</span>
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        <div className="me-modern-right-badge">
-                                            <button
-                                                type="button"
-                                                className="me-modern-dots"
-                                                onClick={() => setActiveMenuId(activeMenuId === event.id ? null : event.id)}
-                                            >
-                                                <i className="fas fa-ellipsis-h" />
-                                            </button>
-
-                                            {activeMenuId === event.id && (
-                                                <div className="me-modern-dropdown" style={{ zIndex: 100 }}>
-                                                    <button type="button" className="me-menu-item" onPointerDown={(e) => { e.preventDefault(); setActiveMenuId(null); navigate(`/edit-event/${event.slug || event.id}`); }}>
-                                                        <i className="fas fa-edit" /> Edit Details
-                                                    </button>
-                                                    <button type="button" className="me-menu-item" onPointerDown={(e) => { e.preventDefault(); setActiveMenuId(null); navigate(`/report/${event.slug || event.id}`); }}>
-                                                        <i className="fas fa-chart-pie" /> RSVP Report
-                                                    </button>
-                                                    {isApproved && (
-                                                        <a href={`${window.location.origin}/w/${event.slug || event.id}`} target="_blank" rel="noopener noreferrer" className="me-menu-item" onPointerDown={(e) => e.stopPropagation()}>
-                                                            <i className="fas fa-external-link-alt" /> View Live
-                                                        </a>
-                                                    )}
-                                                    {isApproved ? (
-                                                        <button type="button" className="me-menu-item" onPointerDown={(e) => { e.preventDefault(); setActiveMenuId(null); setSampleTarget(event); setPreviewTemplate(event.template_id || 1); }}>
-                                                            <i className="fas fa-palette" /> Change Theme
-                                                        </button>
-                                                    ) : (
-                                                        <a href={`${window.location.origin}/api/preview?slug=${event.slug || event.id}&template=${event.template_id || 1}`} target="_blank" rel="noopener noreferrer" className="me-menu-item" onPointerDown={(e) => e.stopPropagation()}>
-                                                            <i className="fas fa-mobile-alt" /> View Sample
-                                                        </a>
-                                                    )}
-                                                    <button type="button" className="me-menu-item" onPointerDown={(e) => { e.preventDefault(); handleCopyEventId(event.event_id, e); setActiveMenuId(null); }}>
-                                                        <i className="fas fa-copy" /> Copy Event ID
-                                                    </button>
-                                                    <button type="button" className="me-menu-item" onPointerDown={(e) => { e.preventDefault(); handleDuplicate(event); }} disabled={duplicating === event.id}>
-                                                        {duplicating === event.id ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-clone" />} Duplicate
-                                                    </button>
-                                                    <button type="button" className="me-menu-item me-menu-danger" onPointerDown={(e) => { e.preventDefault(); setActiveMenuId(null); setDeleteTarget(event); }}>
-                                                        <i className="fas fa-trash" /> Delete
+                                            {/* If pending, prominent unlock banner */}
+                                            {isPending && (
+                                                <div className="me-pending-activation-banner" onClick={() => setPaymentTarget(event)}>
+                                                    <div className="me-pending-banner-text">
+                                                        <i className="fas fa-lock" />
+                                                        <div>
+                                                            <strong>RSVP Form Locked • Make Payment to Activate</strong>
+                                                            <span>Guests can view the whole invitation, but RSVP unlocks after payment ({formattedPrice}).</span>
+                                                        </div>
+                                                    </div>
+                                                    <button type="button" className="me-pending-pay-chip">
+                                                        Pay Now <i className="fas fa-chevron-right" style={{ fontSize: '0.65rem', marginLeft: '4px' }} />
                                                     </button>
                                                 </div>
                                             )}
 
-                                            {(isPending || isRejected) && (
-                                                <button
-                                                    className="me-modern-icon-wrapper"
-                                                    style={{ cursor: 'pointer', background: '#fffbeb', border: '1px dashed #fcd34d', color: '#b45309', display: 'flex', flexDirection: 'row', gap: '6px', width: 'auto', height: 'auto', padding: '6px 12px', borderRadius: '12px' }}
-                                                    onClick={() => setPaymentTarget(event)}
+                                            {/* Card Action Buttons */}
+                                            <div className="me-modern-actions-row">
+                                                <a
+                                                    href={previewUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="me-card-btn primary"
                                                 >
-                                                    <i className="fas fa-wallet" style={{ fontSize: '0.9rem' }} />
-                                                    <span style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>Pay</span>
+                                                    <i className="fas fa-eye" /> Preview
+                                                </a>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => navigate(`/edit-event/${event.slug || event.id}`)}
+                                                    className="me-card-btn secondary"
+                                                >
+                                                    <i className="fas fa-edit" /> Edit
                                                 </button>
-                                            )}
-                                            {isApproved && (
-                                                <>
-                                                    <button
-                                                        className="me-modern-icon-wrapper"
-                                                        style={{ cursor: 'pointer', background: '#ecfdf5', border: '1px solid #10b981', color: '#047857', display: 'flex', flexDirection: 'row', gap: '6px', width: 'auto', height: 'auto', padding: '6px 12px', borderRadius: '12px' }}
-                                                        onClick={(e) => { e.stopPropagation(); window.open(`${window.location.origin}/w/${event.slug || event.id}`, '_blank'); }}
-                                                    >
-                                                        <i className="fas fa-external-link-alt" style={{ fontSize: '0.9rem' }} />
-                                                        <span style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>Live</span>
-                                                    </button>
-                                                    
-                                                    <button
-                                                        className="me-modern-icon-wrapper"
-                                                        style={{ cursor: 'pointer', background: '#eff6ff', border: '1px solid #3b82f6', color: '#2563eb', display: 'flex', flexDirection: 'row', gap: '6px', width: 'auto', height: 'auto', padding: '6px 12px', borderRadius: '12px' }}
-                                                        onClick={(e) => handleCopyPreview(event, e)}
-                                                        onPointerDown={(e) => { e.preventDefault(); handleCopyPreview(event, e); }}
-                                                        title="Copy Preview Link"
-                                                    >
-                                                        <i className={copiedPreviewId === event.id ? "fas fa-check" : "fas fa-link"} style={{ fontSize: '0.9rem' }} />
-                                                        <span style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>{copiedPreviewId === event.id ? 'Copied' : 'Preview'}</span>
-                                                    </button>
-                                                </>
-                                            )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => navigate(`/report/${event.slug || event.id}`)}
+                                                    className="me-card-btn secondary"
+                                                >
+                                                    <i className="fas fa-chart-pie" /> RSVPs
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -748,10 +847,10 @@ const MyEvents = () => {
                         </div>
                         <button type="button" onClick={() => setSampleTarget(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.5rem', cursor: 'pointer' }}>✕</button>
                     </div>
-                    
+
                     <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-                        <iframe 
-                            src={`${window.location.origin}/w/${sampleTarget.slug || sampleTarget.id}?theme_preview=true&template=${previewTemplate}`} 
+                        <iframe
+                            src={`${window.location.origin}/w/${sampleTarget.slug || sampleTarget.id}?theme_preview=true&template=${previewTemplate}`}
                             style={{ width: '100%', height: '100%', border: 'none' }}
                             title="Template Preview"
                         />
@@ -769,7 +868,7 @@ const MyEvents = () => {
                                 const id = Number(idStr);
                                 const isSelected = previewTemplate === id;
                                 return (
-                                    <div key={id} 
+                                    <div key={id}
                                         onClick={() => setPreviewTemplate(id)}
                                         style={{ minWidth: '110px', background: isSelected ? '#3b82f6' : '#0f172a', border: `2px solid ${isSelected ? '#60a5fa' : '#334155'}`, borderRadius: '10px', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}>
                                         <div style={{ height: '45px', borderRadius: '6px', background: tpl.bg, color: tpl.textColor, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: '0.4rem' }}>

@@ -5,6 +5,7 @@ import html2canvas from 'html2canvas';
 import logoImg from '../../assets/images/logo1.png';
 import defaultMusic from '../../assets/music/music.mp3';
 import TemplateFooter from '../../components/TemplateFooter';
+import RsvpLockedGate from '../../components/RsvpLockedGate';
 
 // Helper to format date safely
 const formatDate = (dateString) => {
@@ -2266,6 +2267,8 @@ const ModernClassic = ({
                   </div>
 
                 </div>
+              ) : d.isPendingApproval ? (
+                <RsvpLockedGate weddingData={d} />
               ) : (
                 <form onSubmit={handleRSVPSubmit} className="space-y-8">
                   {/* Floating label name */}

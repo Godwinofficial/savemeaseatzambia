@@ -210,6 +210,7 @@ const ClientCreateWedding = () => {
     const [publishError, setPublishError] = useState('');
     const [publishedWedding, setPublishedWedding] = useState(null);
     const [showPreview, setShowPreview] = useState(false);
+    const [livePreviewTemplateId, setLivePreviewTemplateId] = useState(null);
 
     // Draft
     const [draftRestored, setDraftRestored] = useState(false);
@@ -527,16 +528,29 @@ const ClientCreateWedding = () => {
         }
     };
 
-    const ImageUpload = ({ label, value, onUpload, path = 'misc', id, multiple = false, subtitle = '' }) => {
+    const ImageUpload = ({ label, value, onUpload, path = 'misc', id, multiple = false, subtitle = '', maxAllowed = null, currentCount = 0 }) => {
         const uid = id || `upload-${Date.now()}`;
         const prog = uploadProgress[uid] || 0;
         const [isLocalUploading, setIsLocalUploading] = useState(false);
+        const isLimitReached = maxAllowed !== null && currentCount >= maxAllowed;
 
         const handleFileChange = async (e) => {
             const fileList = e.target.files;
             if (!fileList || !fileList.length) return;
-            const files = Array.from(fileList);
+            let files = Array.from(fileList);
             e.target.value = ''; // Reset input so re-selection of the same file always triggers onChange
+
+            if (maxAllowed !== null) {
+                const remainingSlots = Math.max(0, maxAllowed - currentCount);
+                if (remainingSlots <= 0) {
+                    toast.error(`Maximum limit of ${maxAllowed} images reached.`);
+                    return;
+                }
+                if (files.length > remainingSlots) {
+                    toast.warning(`You can only add ${remainingSlots} more photo${remainingSlots > 1 ? 's' : ''}. Only the first ${remainingSlots} will be attached.`);
+                    files = files.slice(0, remainingSlots);
+                }
+            }
 
             setIsLocalUploading(true);
             try {
@@ -582,14 +596,27 @@ const ClientCreateWedding = () => {
                 {subtitle && <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '-0.2rem 0 0.5rem' }}>{subtitle}</p>}
                 <div
                     className="studio-upload-box"
-                    onClick={() => document.getElementById(uid)?.click()}
-                    style={{ minHeight: value && !multiple ? '0' : undefined, cursor: 'pointer' }}
+                    onClick={() => {
+                        if (isLimitReached) {
+                            toast.warning(`Maximum limit of ${maxAllowed} photos reached. Remove a photo to upload another.`);
+                            return;
+                        }
+                        document.getElementById(uid)?.click();
+                    }}
+                    style={{
+                        minHeight: value && !multiple ? '0' : undefined,
+                        cursor: isLimitReached ? 'not-allowed' : 'pointer',
+                        opacity: isLimitReached ? 0.65 : 1,
+                        background: isLimitReached ? '#f8fafc' : undefined,
+                        borderColor: isLimitReached ? '#cbd5e1' : undefined
+                    }}
                 >
                     <input
                         type="file"
                         id={uid}
                         accept="image/*"
                         multiple={multiple}
+                        disabled={isLimitReached}
                         onChange={handleFileChange}
                         style={{ display: 'none' }}
                     />
@@ -606,14 +633,26 @@ const ClientCreateWedding = () => {
                         <div className="upload-icon-circle">
                             {(prog > 0 || isLocalUploading) ? (
                                 <i className="fas fa-spinner fa-spin" style={{ color: '#1fa09b' }} />
+                            ) : isLimitReached ? (
+                                <i className="fas fa-lock" style={{ color: '#94a3b8' }} />
                             ) : (
                                 <i className="fas fa-cloud-upload-alt" style={{ color: '#1fa09b' }} />
                             )}
                             <div className="upload-prompt" style={{ marginLeft: '0.75rem' }}>
                                 <h4 style={{ margin: 0, fontSize: '0.85rem' }}>
-                                    {(prog > 0 || isLocalUploading) ? `Attaching ${prog > 0 ? prog + '%' : 'photos...'}...` : multiple ? 'Click or drag to add photos' : 'Click to upload photo'}
+                                    {(prog > 0 || isLocalUploading)
+                                        ? `Attaching ${prog > 0 ? prog + '%' : 'photos...'}...`
+                                        : isLimitReached
+                                            ? `Maximum ${maxAllowed} photos reached`
+                                            : multiple
+                                                ? maxAllowed
+                                                    ? `Click or drag to add photos (${Math.max(0, maxAllowed - currentCount)} slots available)`
+                                                    : 'Click or drag to add photos'
+                                                : 'Click to upload photo'}
                                 </h4>
-                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>Max 10MB · JPG / PNG / WEBP</p>
+                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>
+                                    {isLimitReached ? 'Delete a photo below to attach a new one' : 'Max 10MB per photo · JPG / PNG / WEBP'}
+                                </p>
                             </div>
                         </div>
                     )}
@@ -2027,31 +2066,52 @@ const ClientCreateWedding = () => {
                             <div className="studio-section-subhead" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
                                     <i className="fas fa-film" style={{ color: '#1fa09b' }} />
-                                    <span>Invitation Image Slider</span>
+                                    <span>Invitation Image Slider (Max 6)</span>
                                 </div>
-                                {(formData.slider_images || []).length > 0 && (
-                                    <span style={{ fontSize: '0.78rem', background: '#ecfdf5', color: '#059669', fontWeight: 700, padding: '3px 10px', borderRadius: '999px', border: '1px solid #a7f3d0' }}>
-                                        {(formData.slider_images || []).length} Photo{(formData.slider_images || []).length > 1 ? 's' : ''} Attached
-                                    </span>
-                                )}
+                                <span style={{
+                                    fontSize: '0.78rem',
+                                    background: (formData.slider_images || []).length >= 6 ? '#fef3c7' : '#ecfdf5',
+                                    color: (formData.slider_images || []).length >= 6 ? '#b45309' : '#059669',
+                                    fontWeight: 700,
+                                    padding: '3px 10px',
+                                    borderRadius: '999px',
+                                    border: `1px solid ${(formData.slider_images || []).length >= 6 ? '#fde68a' : '#a7f3d0'}`
+                                }}>
+                                    {(formData.slider_images || []).length}/6 Photos Attached
+                                </span>
                             </div>
                             <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '0.75rem' }}>
-                                These photos will be displayed in the high-impact animated image slider at the top of your wedding invitation.
+                                Up to 6 photos displayed in the high-impact animated image slider at the top of your wedding invitation.
                             </p>
 
                             <ImageUpload
-                                label="Upload Slider Photos (Multiple allowed)"
+                                label="Upload Slider Photos (Up to 6 photos max)"
                                 subtitle="Upload favorite couple portraits, pre-wedding shots, or celebratory photos."
                                 value=""
-                                onUpload={urls => setFormData(p => ({
-                                    ...p,
-                                    slider_images: [...(p.slider_images || []), ...urls],
-                                    gallery_images: [...(p.slider_images || []), ...urls],
-                                }))}
+                                currentCount={(formData.slider_images || []).length}
+                                maxAllowed={6}
+                                onUpload={urls => setFormData(p => {
+                                    const current = p.slider_images || [];
+                                    const remaining = Math.max(0, 6 - current.length);
+                                    const toAdd = urls.slice(0, remaining);
+                                    const updated = [...current, ...toAdd].slice(0, 6);
+                                    return {
+                                        ...p,
+                                        slider_images: updated,
+                                        gallery_images: updated,
+                                    };
+                                })}
                                 path="slider"
                                 id="slider-upload"
                                 multiple
                             />
+
+                            {(formData.slider_images || []).length >= 6 && (
+                                <div style={{ marginTop: '0.4rem', marginBottom: '0.8rem', padding: '0.65rem 1rem', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px', color: '#065f46', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.55rem', fontWeight: 600 }}>
+                                    <i className="fas fa-check-circle" style={{ color: '#059669', fontSize: '1rem' }} />
+                                    <span>Maximum limit of 6 slider photos reached. To change photos, delete an image below.</span>
+                                </div>
+                            )}
 
                             {/* Attached Slider Images Grid */}
                             {(formData.slider_images || []).length > 0 ? (
@@ -2292,13 +2352,20 @@ const ClientCreateWedding = () => {
                                 <p>Pick a luxury layout, customize theme colors and add romantic background music.</p>
                             </div>
 
-                            {/* Templates */}
+                             {/* Templates */}
                             <label className="studio-label">Select Invitation Template</label>
                             <div className="templates-selection-grid">
                                 {TEMPLATE_OPTIONS.map(tpl => {
                                     const isSelected = formData.template_id === tpl.id;
                                     return (
-                                        <div key={tpl.id} className={`template-card-item ${isSelected ? 'selected' : ''}`} onClick={() => setFormData(p => ({ ...p, template_id: tpl.id, theme_colors: [] }))}>
+                                        <div
+                                            key={tpl.id}
+                                            className={`template-card-item ${isSelected ? 'selected' : ''}`}
+                                            onClick={() => {
+                                                setFormData(p => ({ ...p, template_id: tpl.id, theme_colors: [] }));
+                                                setLivePreviewTemplateId(tpl.id);
+                                            }}
+                                        >
                                             {tpl.badge && <span className="template-badge-popular">{tpl.badge}</span>}
                                             <div className="template-card-banner" style={{ background: tpl.bg, color: tpl.textColor }}>
                                                 <span className="template-mini-ornament">{tpl.ornament}</span>
@@ -2308,6 +2375,25 @@ const ClientCreateWedding = () => {
                                             </div>
                                             <h4 className="template-card-name">{tpl.name}</h4>
                                             <p className="template-card-desc">{tpl.desc}</p>
+                                            
+                                            <div className="template-card-actions-row">
+                                                <button
+                                                    type="button"
+                                                    className="template-card-preview-chip"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setFormData(p => ({ ...p, template_id: tpl.id, theme_colors: [] }));
+                                                        setLivePreviewTemplateId(tpl.id);
+                                                    }}
+                                                >
+                                                    <i className="fas fa-eye" /> Live Preview
+                                                </button>
+                                                {isSelected && (
+                                                    <span className="template-selected-chip">
+                                                        <i className="fas fa-check" /> Selected
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -2530,7 +2616,7 @@ const ClientCreateWedding = () => {
                                 <div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                         <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                            Animated Slider Photos ({(formData.slider_images || []).length})
+                                            Animated Slider Photos ({(formData.slider_images || []).length}/6)
                                         </span>
                                         {(formData.slider_images || []).length > 0 && (
                                             <span style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 600 }}>Active in top carousel</span>
@@ -2840,6 +2926,85 @@ const ClientCreateWedding = () => {
                     </div>
                 </div>
             </div>
+            {/* Live Template Preview Modal Overlay */}
+            {livePreviewTemplateId && (() => {
+                const currentTpl = TEMPLATE_OPTIONS.find(t => t.id === livePreviewTemplateId) || TEMPLATE_OPTIONS[0];
+                return (
+                    <div className="template-live-preview-overlay" onClick={() => setLivePreviewTemplateId(null)}>
+                        <div className="template-live-preview-card" onClick={e => e.stopPropagation()}>
+                            {/* Modal Header */}
+                            <div className="template-live-preview-header">
+                                <div className="template-preview-header-meta">
+                                    <span className="template-preview-live-badge">
+                                        <i className="fas fa-eye" /> Live Theme Preview
+                                    </span>
+                                    <div>
+                                        <h3 className="template-preview-head-title">{currentTpl.name}</h3>
+                                        <p className="template-preview-head-desc">Interactive demonstration for {formData.groom_name || 'Groom'} & {formData.bride_name || 'Bride'}</p>
+                                    </div>
+                                </div>
+
+                                <div className="template-preview-header-actions">
+                                    <button
+                                        type="button"
+                                        className="template-preview-apply-btn"
+                                        onClick={() => {
+                                            setFormData(p => ({ ...p, template_id: livePreviewTemplateId, theme_colors: [] }));
+                                            toast.success(`Applied ${currentTpl.name} theme!`);
+                                            setLivePreviewTemplateId(null);
+                                        }}
+                                    >
+                                        <i className="fas fa-check-circle" /> Use This Theme
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="template-preview-close-btn"
+                                        onClick={() => setLivePreviewTemplateId(null)}
+                                        aria-label="Close Live Preview"
+                                    >
+                                        <i className="fas fa-times" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Iframe View */}
+                            <div className="template-preview-iframe-container">
+                                <iframe
+                                    key={livePreviewTemplateId}
+                                    src={`${window.location.origin}/w/${editSlug || formData.slug || 'preview'}?theme_preview=true&template=${livePreviewTemplateId}&groom=${encodeURIComponent(formData.groom_name || 'Groom')}&bride=${encodeURIComponent(formData.bride_name || 'Bride')}`}
+                                    title="Template Preview"
+                                    className="template-preview-iframe-element"
+                                />
+                            </div>
+
+                            {/* Bottom Theme Switcher Strip */}
+                            <div className="template-preview-bottom-bar">
+                                <span className="template-switcher-title">Switch Theme:</span>
+                                <div className="template-switcher-scroll-row">
+                                    {TEMPLATE_OPTIONS.map(tpl => {
+                                        const isSel = livePreviewTemplateId === tpl.id;
+                                        return (
+                                            <button
+                                                key={tpl.id}
+                                                type="button"
+                                                className={`template-switcher-pill ${isSel ? 'active' : ''}`}
+                                                onClick={() => {
+                                                    setLivePreviewTemplateId(tpl.id);
+                                                    setFormData(p => ({ ...p, template_id: tpl.id, theme_colors: [] }));
+                                                }}
+                                            >
+                                                <span className="switcher-color-dot" style={{ background: tpl.accent }} />
+                                                <span>{tpl.name}</span>
+                                                {isSel && <i className="fas fa-check" style={{ marginLeft: 4, fontSize: '0.65rem' }} />}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 };

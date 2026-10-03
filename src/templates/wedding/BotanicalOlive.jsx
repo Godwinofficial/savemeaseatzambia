@@ -5,6 +5,7 @@ import html2canvas from 'html2canvas';
 import logoImg from '../../assets/images/logo1.png';
 import defaultMusic from '../../assets/music/music.mp3';
 import TemplateFooter from '../../components/TemplateFooter';
+import RsvpLockedGate from '../../components/RsvpLockedGate';
 
 // Helper to format date safely
 const formatDate = (dateString) => {
@@ -1229,7 +1230,9 @@ const BotanicalOlive = ({
           <div className="bo-rsvp-wrapper">
             <div className="bo-rsvp-overlay"></div>
             <div className="bo-rsvp-glass bo-fade-up">
-              {!rsvpSubmitted ? (
+              {d.isPendingApproval ? (
+                <RsvpLockedGate weddingData={d} />
+              ) : !rsvpSubmitted ? (
                 <>
                   <h2 className="bo-rsvp-title">RSVP</h2>
                   <div className="bo-rsvp-subtitle">Kindly Respond</div>

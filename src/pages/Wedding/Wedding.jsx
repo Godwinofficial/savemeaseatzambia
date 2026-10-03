@@ -8,6 +8,7 @@ import BotanicalOlive from '../../templates/wedding/BotanicalOlive';
 import TerracottaEarth from '../../templates/wedding/TerracottaEarth';
 import ModernClassic from '../../templates/wedding/ModernClassic';
 import InvitationOverlay from '../../components/InvitationOverlay';
+import PreviewModeBanner from '../../components/PreviewModeBanner';
 
 // Helper to format date safely
 const formatDate = (dateString) => {
@@ -250,7 +251,23 @@ const WeddingTemplate = () => {
     const isPreview = new URLSearchParams(window.location.search).get('preview') === 'true';
     const isThemePreview = new URLSearchParams(window.location.search).get('theme_preview') === 'true';
 
+    // Check if we should load local draft preview from localStorage
+    let useLocalStoragePreview = false;
     if (isPreview && !isThemePreview) {
+      try {
+        const raw = localStorage.getItem('savemeaseat_preview_data');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (!slug || slug === 'preview' || parsed.slug === slug) {
+            useLocalStoragePreview = true;
+          }
+        }
+      } catch (e) {
+        useLocalStoragePreview = false;
+      }
+    }
+
+    if (useLocalStoragePreview) {
       const loadPreviewData = () => {
         try {
           const raw = localStorage.getItem('savemeaseat_preview_data');
@@ -271,6 +288,11 @@ const WeddingTemplate = () => {
             setWeddingData({
               id: dbData.id,
               slug: dbData.slug,
+              status: dbData.status || 'pending',
+              isApproved: false,
+              isPendingApproval: true,
+              price: dbData.price,
+              balance_due: dbData.balance_due,
               couple: {
                 bride: { name: dbData.bride_name, image: dbData.bride_image, description: dbData.bride_description },
                 groom: { name: dbData.groom_name, image: dbData.groom_image, description: dbData.groom_description }
@@ -551,13 +573,7 @@ const WeddingTemplate = () => {
 
           if (data && data.length > 0) {
             const dbData = data[0];
-
-            // Status gate: block non-active events from public view (unless in theme preview mode)
-            if (!isThemePreview && (dbData.status === 'pending' || (dbData.status && dbData.status !== 'active' && dbData.status !== 'approved'))) {
-              setNotApproved(true);
-              setLoading(false);
-              return;
-            }
+            const isApproved = dbData.status === 'active' || dbData.status === 'approved';
 
             let finalName = dbData.venue_name || dbData.reception_venue || dbData.ceremony_venue || "";
             let finalAddress = dbData.venue_address || dbData.reception_address || "";
@@ -574,6 +590,11 @@ const WeddingTemplate = () => {
             setWeddingData({
               id: dbData.id,
               slug: dbData.slug,
+              status: dbData.status,
+              isApproved: isApproved,
+              isPendingApproval: !isApproved,
+              price: dbData.price,
+              balance_due: dbData.balance_due,
               couple: {
                 bride: { name: dbData.bride_name, image: dbData.bride_image, description: dbData.bride_description },
                 groom: { name: dbData.groom_name, image: dbData.groom_image, description: dbData.groom_description }
@@ -900,6 +921,9 @@ const WeddingTemplate = () => {
 
   return (
     <>
+      {weddingData.isPendingApproval && !showOverlay && (
+        <PreviewModeBanner weddingData={weddingData} />
+      )}
       {showOverlay && (
         <InvitationOverlay
           weddingData={weddingData}

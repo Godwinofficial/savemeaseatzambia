@@ -1,0 +1,64 @@
+/* ============================================================
+   MY EVENTS — Card Action Buttons (compact, brand cyan)
+   Loaded after MyEvents.css so these rules take priority.
+   ============================================================ */
+
+.me-modern-card .me-modern-actions-row {
+  margin-top: 14px;
+  display: flex;
+  gap: 6px;
+}
+
+.me-modern-card .me-card-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 8px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.me-modern-card .me-card-btn i {
+  font-size: 0.7rem;
+}
+
+.me-modern-card .me-card-btn.primary {
+  flex: 1.1;
+  background: linear-gradient(135deg, #1fa09b 0%, #0d9488 100%);
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(31, 160, 155, 0.28);
+}
+
+.me-modern-card .me-card-btn.primary:hover {
+  background: linear-gradient(135deg, #22b8b2 0%, #0f766e 100%);
+  box-shadow: 0 4px 14px rgba(31, 160, 155, 0.45);
+  transform: translateY(-1px);
+}
+
+.me-modern-card .me-card-btn.secondary {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+.me-modern-card .me-card-btn.secondary:hover {
+  background: #e6f6f5;
+  border-color: #b5e3e0;
+  color: #0d9488;
+}
+
+/* Cover action (Activate / Report) — compact pill */
+.me-modern-card .me-cover-btn {
+  font-size: 0.7rem;
+  padding: 5px 11px;
+}

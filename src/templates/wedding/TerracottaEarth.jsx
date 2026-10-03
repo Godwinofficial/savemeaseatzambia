@@ -5,6 +5,7 @@ import html2canvas from 'html2canvas';
 import logoImg from '../../assets/images/logo1.png';
 import defaultMusic from '../../assets/music/music.mp3';
 import TemplateFooter from '../../components/TemplateFooter';
+import RsvpLockedGate from '../../components/RsvpLockedGate';
 
 // Helper to format date safely
 const formatDate = (dateString) => {
@@ -1292,7 +1293,9 @@ const TerracottaEarth = ({
             <h2 className="te-rsvp-title te-fade-up">Join Us</h2>
             <div className="te-rsvp-subtitle te-fade-up">Kindly respond</div>
 
-            {!rsvpSubmitted ? (
+            {d.isPendingApproval ? (
+              <RsvpLockedGate weddingData={d} />
+            ) : !rsvpSubmitted ? (
               <form className="te-form te-fade-up" style={{ transitionDelay: '0.2s' }} onSubmit={handleRsvpSubmit}>
                 <div className="te-input-group">
                   <input type="text" className="te-input" placeholder="Your Name" required

@@ -5,6 +5,7 @@ import html2canvas from 'html2canvas';
 import TemplateFooter from '../../components/TemplateFooter';
 import logoImg from '../../assets/images/logo1.png';
 import defaultMusic from '../../assets/music/music.mp3';
+import RsvpLockedGate from '../../components/RsvpLockedGate';
 
 
 
@@ -3795,6 +3796,8 @@ const DefaultElegance = ({ weddingData: propsWeddingData, handleRSVPSubmitFromPa
 
             </div>
 
+          ) : weddingData.isPendingApproval ? (
+            <RsvpLockedGate weddingData={weddingData} />
           ) : (
             <form className="rsvp-form" onSubmit={handleRSVPSubmit}>
               <div className="form-group">
