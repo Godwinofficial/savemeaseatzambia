@@ -5,6 +5,7 @@ import Wedding from './pages/Wedding/Wedding';
 import AddWedding from './pages/Wedding/AddWedding';
 import AddBirthday from './pages/Birthday/AddBirthday';
 import Login from './pages/Admin/Login';
+import AuthPage from './pages/Auth/AuthPage';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import RSVPReport from './pages/Wedding/RSVPReport';
 import BirthdayReport from './pages/Birthday/BirthdayReport';
@@ -92,7 +93,10 @@ function App() {
           <Route path="/bs-report/:slug" element={<BridalShowerReport />} />
           <Route path="/report/:slug" element={<RSVPReport />} />
           <Route path="/b-report/:slug" element={<BirthdayReport />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<AuthPage defaultMode="signin" />} />
+          <Route path="/signup" element={<AuthPage defaultMode="signup" />} />
+          <Route path="/register" element={<AuthPage defaultMode="signup" />} />
+          <Route path="/auth" element={<AuthPage />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 

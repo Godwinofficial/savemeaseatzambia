@@ -128,17 +128,13 @@ const Header = ({ user, onOpenAuth, isSuperAdmin }) => {
                             </>
                         ) : (
                             <li>
-                                <a
-                                    href="#"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        onOpenAuth('signin');
-                                        handleNavClick();
-                                    }}
+                                <Link
+                                    to="/login"
+                                    onClick={handleNavClick}
                                     style={{ fontWeight: 700, color: 'var(--primary)' }}
                                 >
                                     Sign In
-                                </a>
+                                </Link>
                             </li>
                         )}
 
@@ -186,9 +182,9 @@ const Hero = ({ user, onOpenAuth, isSuperAdmin }) => {
                                 <span className="btn-inline-line"></span>{isSuperAdmin ? "ADMIN DASHBOARD" : "MY EVENTS"}
                             </Link>
                         ) : (
-                            <button onClick={() => onOpenAuth('signup')} className="hero-btn-line-link" style={{ border: 'none', background: 'none', cursor: 'pointer', font: 'inherit' }}>
+                            <Link to="/signup" className="hero-btn-line-link" style={{ textDecoration: 'none' }}>
                                 <span className="btn-inline-line"></span>SIGN UP FREE
-                            </button>
+                            </Link>
                         )}
                         <Link to="/templates" className="hero-btn-line-link">
                             <span className="btn-inline-line"></span>VIEW DEMO
@@ -2759,37 +2755,21 @@ function App() {
     const [selectedTemplate, setSelectedTemplate] = useState(null);
     const { user, isSuperAdmin } = useUserRole();
 
-    // Auth Modal states
-    const [showAuthModal, setShowAuthModal] = useState(false);
-    const [authMode, setAuthMode] = useState('signin'); // 'signin' | 'signup'
-    const [authEmail, setAuthEmail] = useState('');
-    const [authPassword, setAuthPassword] = useState('');
-    const [authConfirmPassword, setAuthConfirmPassword] = useState('');
-    const [authName, setAuthName] = useState('');
-    const [authLoading, setAuthLoading] = useState(false);
-    const [authError, setAuthError] = useState('');
-
     const navigate = useNavigate();
 
     // Check email verification redirect
     useEffect(() => {
-        // Check if redirected from sign-up email confirmation link
-        const hash = window.location.hash;
-        const search = window.location.search;
+        // Check if redirected from sign-up email confirmation link to Home
+        const hash = window.location.hash || '';
+        const search = window.location.search || '';
         if (hash.includes('access_token') || hash.includes('type=signup') || search.includes('code=')) {
-            setTimeout(async () => {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session) {
-                    alert("Email verified successfully! Welcome to SaveMeASeat. 🎉 You have been logged in.");
-                    navigate(isSuperAdmin ? '/admin' : '/my-events');
-                }
-            }, 800);
+            navigate('/login?confirmed=true');
         }
 
-        // Listen for open-auth-modal event from anywhere
-        const handleOpenAuth = () => {
-            setAuthMode('signin');
-            setShowAuthModal(true);
+        // Listen for open-auth-modal event and redirect to independent page
+        const handleOpenAuth = (e) => {
+            const mode = e?.detail?.mode === 'signup' ? 'signup' : 'signin';
+            navigate(`/${mode}`);
         };
         window.addEventListener('open-auth-modal', handleOpenAuth);
 
@@ -2798,48 +2778,8 @@ function App() {
         };
     }, [navigate]);
 
-    const handleAuthSubmit = async (e) => {
-        e.preventDefault();
-        setAuthLoading(true);
-        setAuthError('');
-        try {
-            if (authMode === 'signup' && authPassword !== authConfirmPassword) {
-                throw new Error("Passwords do not match.");
-            }
-
-            if (authMode === 'signin') {
-                const { error } = await supabase.auth.signInWithPassword({
-                    email: authEmail,
-                    password: authPassword
-                });
-                if (error) throw error;
-                setShowAuthModal(false);
-                navigate('/admin');
-            } else {
-                const { error, data } = await supabase.auth.signUp({
-                    email: authEmail,
-                    password: authPassword,
-                    options: {
-                        data: {
-                            full_name: authName
-                        }
-                    }
-                });
-                if (error) throw error;
-
-                if (data?.session) {
-                    setShowAuthModal(false);
-                    navigate('/admin');
-                } else {
-                    alert("Account created successfully! Please check your email to verify your account or sign in.");
-                    setAuthMode('signin');
-                }
-            }
-        } catch (error) {
-            setAuthError(error.message);
-        } finally {
-            setAuthLoading(false);
-        }
+    const openAuthWithMode = (mode) => {
+        navigate(mode === 'signup' ? '/signup' : '/login');
     };
 
     // Smooth scroll effect for anchor links
@@ -2880,15 +2820,7 @@ function App() {
         else if (packageType === 'corporate') setActivePopup('corporatePackage');
     };
 
-    const openAuthWithMode = (mode) => {
-        setAuthMode(mode);
-        setAuthError('');
-        setAuthEmail('');
-        setAuthPassword('');
-        setAuthConfirmPassword('');
-        setAuthName('');
-        setShowAuthModal(true);
-    };
+
 
     return (
         <div className="home-page">
@@ -3139,125 +3071,6 @@ function App() {
                     </div>
                 </div>
             </div>
-
-            {/* Auth Modal Overlay */}
-            {showAuthModal && (
-                <div className="auth-overlay" onClick={() => setShowAuthModal(false)}>
-                    <div className="auth-modal-card" onClick={(e) => e.stopPropagation()}>
-                        <button className="auth-modal-close" onClick={() => setShowAuthModal(false)}>&times;</button>
-
-                        <div className="auth-header">
-                            <h3>{authMode === 'signin' ? 'Welcome Back' : 'Create Account'}</h3>
-                            <p>{authMode === 'signin' ? 'Sign in to manage your events and guest lists' : 'Sign up to build your custom wedding & event invitations'}</p>
-                        </div>
-
-                        {authError && (
-                            <div className="auth-error-msg">
-                                <i className="fas fa-exclamation-circle"></i>
-                                <span>{authError}</span>
-                            </div>
-                        )}
-
-                        <form onSubmit={handleAuthSubmit}>
-                            {authMode === 'signup' && (
-                                <div className="auth-form-group">
-                                    <label>Full Name</label>
-                                    <div className="auth-input-wrapper">
-                                        <i className="fas fa-user"></i>
-                                        <input
-                                            type="text"
-                                            className="auth-input"
-                                            placeholder="Enter name"
-                                            required
-                                            value={authName}
-                                            onChange={(e) => setAuthName(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="auth-form-group">
-                                <label>Email Address</label>
-                                <div className="auth-input-wrapper">
-                                    <i className="fas fa-envelope"></i>
-                                    <input
-                                        type="email"
-                                        className="auth-input"
-                                        placeholder="name@domain.com"
-                                        required
-                                        value={authEmail}
-                                        onChange={(e) => setAuthEmail(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="auth-form-group">
-                                <label>Password</label>
-                                <div className="auth-input-wrapper">
-                                    <i className="fas fa-lock"></i>
-                                    <input
-                                        type="password"
-                                        className="auth-input"
-                                        placeholder="••••••••"
-                                        required
-                                        value={authPassword}
-                                        onChange={(e) => setAuthPassword(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-
-                            {authMode === 'signup' && (
-                                <div className="auth-form-group">
-                                    <label>Confirm Password</label>
-                                    <div className="auth-input-wrapper">
-                                        <i className="fas fa-lock"></i>
-                                        <input
-                                            type="password"
-                                            className="auth-input"
-                                            placeholder="••••••••"
-                                            required
-                                            value={authConfirmPassword}
-                                            onChange={(e) => setAuthConfirmPassword(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            <button type="submit" className="auth-btn" disabled={authLoading}>
-                                {authLoading ? (
-                                    <>
-                                        <i className="fas fa-spinner fa-spin"></i>
-                                        Processing...
-                                    </>
-                                ) : (
-                                    <>
-                                        {authMode === 'signin' ? 'Sign In' : 'Sign Up'}
-                                        <i className="fas fa-arrow-right" style={{ marginLeft: 8 }}></i>
-                                    </>
-                                )}
-                            </button>
-                        </form>
-
-                        <div className="auth-switch-text">
-                            {authMode === 'signin' ? (
-                                <>
-                                    New to SaveMeASeat?
-                                    <span className="auth-switch-link" onClick={() => { setAuthMode('signup'); setAuthError(''); }}>
-                                        Create Account
-                                    </span>
-                                </>
-                            ) : (
-                                <>
-                                    Already have an account?
-                                    <span className="auth-switch-link" onClick={() => { setAuthMode('signin'); setAuthError(''); }}>
-                                        Sign In
-                                    </span>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
 
         </div>
     );

@@ -64,8 +64,8 @@ const AuthModal = ({ onAuthSuccess, onClose, draftLabel }) => {
                 password,
                 options: {
                     data: { full_name: name.trim() || email.trim().split('@')[0] },
-                    // Redirect back to create-event after email verification
-                    emailRedirectTo: `${window.location.origin}/create-event?draft=restore`,
+                    // Redirect to login page after email verification
+                    emailRedirectTo: `${window.location.origin}/login?confirmed=true`,
                 },
             });
             if (err) throw err;
@@ -166,13 +166,8 @@ const AuthModal = ({ onAuthSuccess, onClose, draftLabel }) => {
                         <h3>Check Your Email</h3>
                         <p>
                             We sent a confirmation link to <strong>{email}</strong>.<br />
-                            Click it to verify your account — your invitation draft will be saved automatically when you return.
+                            Please click the link in your email to confirm your account and sign in.
                         </p>
-                        
-                        <div className="auth-draft-preserved" style={{ justifyContent: 'center', marginBottom: '1.25rem' }}>
-                            <i className="fas fa-shield-alt" />
-                            <span>Your draft is safely stored and will not be lost</span>
-                        </div>
 
                         {error && (
                             <div className="auth-error-box" style={{ marginBottom: '1rem', textAlign: 'left' }}>
@@ -181,18 +176,7 @@ const AuthModal = ({ onAuthSuccess, onClose, draftLabel }) => {
                             </div>
                         )}
 
-                        {/* Action 1: Attempt direct login if account is already confirmed or password is set */}
-                        <button
-                            type="button"
-                            className="auth-submit-btn"
-                            style={{ marginBottom: '0.75rem' }}
-                            onClick={handleSignIn}
-                            disabled={loading}
-                        >
-                            {loading ? <><i className="fas fa-spinner fa-spin" /> Signing In...</> : <><i className="fas fa-sign-in-alt" style={{ marginRight: 6 }} /> Already Confirmed? Sign In With Password</>}
-                        </button>
-
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '1.25rem' }}>
                             <button
                                 type="button"
                                 className="auth-resend-btn"
@@ -214,28 +198,6 @@ const AuthModal = ({ onAuthSuccess, onClose, draftLabel }) => {
                                 <i className="fas fa-arrow-left" style={{ marginRight: 6 }} />
                                 Back to Sign In
                             </button>
-                        </div>
-
-                        {/* Informational tips on why emails might be delayed or dropped */}
-                        <div style={{
-                            fontSize: '0.75rem',
-                            color: '#64748b',
-                            background: '#f8fafc',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '10px',
-                            padding: '0.75rem',
-                            textAlign: 'left',
-                            lineHeight: 1.45
-                        }}>
-                            <strong style={{ color: '#0f172a', display: 'block', marginBottom: '4px' }}>
-                                <i className="fas fa-info-circle" style={{ color: '#1fa09b', marginRight: '4px' }} />
-                                Why did I not receive the email?
-                            </strong>
-                            <ul style={{ margin: '0', paddingLeft: '1.2rem' }}>
-                                <li>Check your <strong>Junk / Spam / Quarantine</strong> folder (iCloud & Outlook often filter test emails).</li>
-                                <li>Supabase built-in SMTP has strict hourly rate limits on free projects.</li>
-                                <li><strong>Recommended:</strong> In Supabase Dashboard &rarr; Authentication &rarr; Providers &rarr; Email, disable <em>"Confirm email"</em> to allow instant logins without waiting for an email.</li>
-                            </ul>
                         </div>
                     </div>
                 </div>

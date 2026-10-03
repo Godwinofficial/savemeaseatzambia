@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation, Link, useSearchParams, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { supabase } from '../../supabaseClient';
 import defaultMusic from '../../assets/music/music.mp3';
 import logoImg from '../../assets/images/logo1.png';
@@ -94,14 +95,14 @@ const DEFAULT_FORM = {
     dress_code_colors: [],
     extra_card_text: '',
     template_id: 1,
-    theme_colors: ['#000000', '#ffffff', '#ffffff', '#000000'],
+    theme_colors: [],
     music_url: '',
     hero_video_url: '',
     slider_images: [],
     gallery_images: [],
-    bridesmaids: [{ name: '', role: '', photo: '' }],
-    groomsmen: [{ name: '', role: '', photo: '' }],
-    gifts: [{ giftType: '', provider: '', accountName: '', accountNumber: '', instructions: '', url: '' }],
+    bridesmaids: [],
+    groomsmen: [],
+    gifts: [],
     allowed_guests: ['1', '2'],
     guest_count: 100,
     show_gallery_titles: true,
@@ -201,6 +202,8 @@ const ClientCreateWedding = () => {
 
     // UI
     const [currentStep, setCurrentStep] = useState(0);
+    const [validationErrors, setValidationErrors] = useState({});
+    const [stepErrorBanner, setStepErrorBanner] = useState('');
     const [saving, setSaving] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [uploadProgress, setUploadProgress] = useState({});
@@ -286,14 +289,14 @@ const ClientCreateWedding = () => {
                     ceremony_date: data.ceremony_date ? data.ceremony_date.slice(0, 10) : (data.date ? data.date.slice(0, 10) : ''),
                     reception_date: data.reception_date ? data.reception_date.slice(0, 10) : (data.date ? data.date.slice(0, 10) : ''),
                     rsvp_deadline: data.rsvp_deadline ? data.rsvp_deadline.slice(0, 10) : '',
-                    bridesmaids: Array.isArray(data.bridesmaids) && data.bridesmaids.length > 0 ? data.bridesmaids : [{ name: '', role: 'Bridesmaid', photo: '' }],
-                    groomsmen: Array.isArray(data.groomsmen) && data.groomsmen.length > 0 ? data.groomsmen : [{ name: '', role: 'Groomsman', photo: '' }],
-                    gifts: Array.isArray(data.gifts) && data.gifts.length > 0 ? data.gifts : [{ giftType: 'Mobile Money', provider: 'Airtel Money', accountName: '', accountNumber: '', instructions: '', url: '' }],
+                    bridesmaids: Array.isArray(data.bridesmaids) ? data.bridesmaids : [],
+                    groomsmen: Array.isArray(data.groomsmen) ? data.groomsmen : [],
+                    gifts: Array.isArray(data.gifts) ? data.gifts : [],
                     allowed_guests: data.allowed_guests || ['1', '2'],
                     slider_images: Array.isArray(data.slider_images) ? data.slider_images : [],
                     gallery_images: Array.isArray(data.gallery_images) ? data.gallery_images : [],
                     dress_code_colors: Array.isArray(data.dress_code_colors) ? data.dress_code_colors : [],
-                    theme_colors: Array.isArray(data.theme_colors) && data.theme_colors.length > 0 ? data.theme_colors : ['#000000', '#ffffff', '#ffffff', '#000000'],
+                    theme_colors: Array.isArray(data.theme_colors) ? data.theme_colors : [],
                     ceremony_title: data.ceremony_title || (() => {
                         const rawTheme = data.theme_colors;
                         if (rawTheme) {
@@ -451,6 +454,14 @@ const ClientCreateWedding = () => {
         const { name, value } = e.target;
         const bioKey = name === 'bride_name' ? 'bride_description' : 'groom_description';
         const personType = name === 'bride_name' ? 'bride' : 'groom';
+        if (validationErrors[name]) {
+            setValidationErrors(prev => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+            setStepErrorBanner('');
+        }
         setFormData(prev => {
             const prevBio = getAutoBio(personType, prev[name]);
             const newBio = getAutoBio(personType, value);
@@ -460,51 +471,128 @@ const ClientCreateWedding = () => {
     };
 
     // ── Image upload helper ──────────────────────────────────────────────────
+    // ── Image upload helper ──────────────────────────────────────────────────
+    const readFileAsDataUrl = (file) => new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+    });
+
     const uploadImage = async (file, path, uploadId) => {
         if (!file) return null;
         setUploadingImage(true);
-        setUploadProgress(prev => ({ ...prev, [uploadId]: 0 }));
+        if (uploadId) setUploadProgress(prev => ({ ...prev, [uploadId]: 15 }));
+        let interval = null;
         try {
-            const ext = file.name.split('.').pop();
+            const ext = file.name.split('.').pop() || 'jpg';
             const filePath = `${path}/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
-            const interval = setInterval(() => {
-                setUploadProgress(prev => { const c = prev[uploadId] || 0; return c < 90 ? { ...prev, [uploadId]: c + 10 } : prev; });
-            }, 100);
-            const { error } = await supabase.storage.from('wedding-uploads').upload(filePath, file);
-            clearInterval(interval);
-            if (error) { const url = URL.createObjectURL(file); return url; }
+            if (uploadId) {
+                interval = setInterval(() => {
+                    setUploadProgress(prev => {
+                        const c = prev[uploadId] || 15;
+                        return c < 85 ? { ...prev, [uploadId]: c + 15 } : prev;
+                    });
+                }, 100);
+            }
+            const { error } = await supabase.storage.from('wedding-uploads').upload(filePath, file, { upsert: true });
+            if (interval) clearInterval(interval);
+
+            if (error) {
+                console.warn('Supabase storage upload returned error, falling back to Data URL:', error);
+                const dataUrl = await readFileAsDataUrl(file);
+                if (uploadId) {
+                    setUploadProgress(prev => ({ ...prev, [uploadId]: 100 }));
+                    setTimeout(() => setUploadProgress(prev => { const n = { ...prev }; delete n[uploadId]; return n; }), 400);
+                }
+                return dataUrl || (window.URL ? URL.createObjectURL(file) : null);
+            }
+
             const { data } = supabase.storage.from('wedding-uploads').getPublicUrl(filePath);
-            setUploadProgress(prev => ({ ...prev, [uploadId]: 100 }));
-            setTimeout(() => setUploadProgress(prev => { const n = { ...prev }; delete n[uploadId]; return n; }), 600);
+            if (uploadId) {
+                setUploadProgress(prev => ({ ...prev, [uploadId]: 100 }));
+                setTimeout(() => setUploadProgress(prev => { const n = { ...prev }; delete n[uploadId]; return n; }), 400);
+            }
             return data.publicUrl;
-        } catch { return URL.createObjectURL(file); }
-        finally { setUploadingImage(false); }
+        } catch (err) {
+            console.error('Image upload failed, fallback to Data URL:', err);
+            if (interval) clearInterval(interval);
+            const dataUrl = await readFileAsDataUrl(file);
+            if (uploadId) {
+                setUploadProgress(prev => { const n = { ...prev }; delete n[uploadId]; return n; });
+            }
+            return dataUrl || (window.URL ? URL.createObjectURL(file) : null);
+        } finally {
+            setUploadingImage(false);
+        }
     };
 
-    const ImageUpload = ({ label, value, onUpload, path = 'misc', id, multiple = false }) => {
+    const ImageUpload = ({ label, value, onUpload, path = 'misc', id, multiple = false, subtitle = '' }) => {
         const uid = id || `upload-${Date.now()}`;
         const prog = uploadProgress[uid] || 0;
-        const handleChange = async (e) => {
-            const files = Array.from(e.target.files);
-            if (!files.length) return;
-            if (multiple) {
-                const urls = (await Promise.all(files.filter(f => f.size < 5 * 1024 * 1024).map(f => uploadImage(f, path, `${uid}-${Math.random().toString(36).slice(2, 6)}`)))).filter(Boolean);
-                if (urls.length) onUpload(urls);
-            } else {
-                if (files[0].size > 5 * 1024 * 1024) { alert('Max 5MB'); return; }
-                const url = await uploadImage(files[0], path, uid);
-                if (url) onUpload(url);
+        const [isLocalUploading, setIsLocalUploading] = useState(false);
+
+        const handleFileChange = async (e) => {
+            const fileList = e.target.files;
+            if (!fileList || !fileList.length) return;
+            const files = Array.from(fileList);
+            e.target.value = ''; // Reset input so re-selection of the same file always triggers onChange
+
+            setIsLocalUploading(true);
+            try {
+                if (multiple) {
+                    setUploadProgress(prev => ({ ...prev, [uid]: 20 }));
+                    const validFiles = files.filter(f => f.size <= 10 * 1024 * 1024);
+                    if (validFiles.length < files.length) {
+                        toast.error('Some files were skipped because they exceed 10MB.');
+                    }
+                    const uploadedUrls = [];
+                    for (let i = 0; i < validFiles.length; i++) {
+                        const url = await uploadImage(validFiles[i], path);
+                        if (url) uploadedUrls.push(url);
+                        setUploadProgress(prev => ({ ...prev, [uid]: Math.round(((i + 1) / validFiles.length) * 100) }));
+                    }
+                    if (uploadedUrls.length > 0) {
+                        onUpload(uploadedUrls);
+                        toast.success(`${uploadedUrls.length} photo${uploadedUrls.length > 1 ? 's' : ''} attached successfully!`);
+                    }
+                    setTimeout(() => setUploadProgress(prev => { const n = { ...prev }; delete n[uid]; return n; }), 400);
+                } else {
+                    if (files[0].size > 10 * 1024 * 1024) {
+                        toast.error('File size exceeds 10MB limit.');
+                        return;
+                    }
+                    const url = await uploadImage(files[0], path, uid);
+                    if (url) {
+                        onUpload(url);
+                        toast.success('Photo attached successfully!');
+                    }
+                }
+            } catch (err) {
+                console.error('Upload handler error:', err);
+                toast.error('Failed to attach image. Please try again.');
+            } finally {
+                setIsLocalUploading(false);
             }
         };
+
         return (
             <div className="form-group" style={{ marginBottom: '1rem' }}>
                 {label && <label className="studio-label"><span>{label}</span></label>}
+                {subtitle && <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '-0.2rem 0 0.5rem' }}>{subtitle}</p>}
                 <div
                     className="studio-upload-box"
                     onClick={() => document.getElementById(uid)?.click()}
-                    style={{ minHeight: value && !multiple ? '0' : undefined }}
+                    style={{ minHeight: value && !multiple ? '0' : undefined, cursor: 'pointer' }}
                 >
-                    <input type="file" id={uid} accept="image/*" multiple={multiple} onChange={handleChange} style={{ display: 'none' }} />
+                    <input
+                        type="file"
+                        id={uid}
+                        accept="image/*"
+                        multiple={multiple}
+                        onChange={handleFileChange}
+                        style={{ display: 'none' }}
+                    />
                     {value && !multiple ? (
                         <div className="uploaded-preview-wrap" style={{ position: 'relative' }}>
                             <img src={value} alt="Preview" className="uploaded-preview-img" style={{ width: '100%', maxHeight: '160px', objectFit: 'cover', borderRadius: '10px' }} />
@@ -516,10 +604,16 @@ const ClientCreateWedding = () => {
                         </div>
                     ) : (
                         <div className="upload-icon-circle">
-                            {prog > 0 ? <i className="fas fa-spinner fa-spin" style={{ color: '#1fa09b' }} /> : <i className="fas fa-cloud-upload-alt" style={{ color: '#1fa09b' }} />}
+                            {(prog > 0 || isLocalUploading) ? (
+                                <i className="fas fa-spinner fa-spin" style={{ color: '#1fa09b' }} />
+                            ) : (
+                                <i className="fas fa-cloud-upload-alt" style={{ color: '#1fa09b' }} />
+                            )}
                             <div className="upload-prompt" style={{ marginLeft: '0.75rem' }}>
-                                <h4 style={{ margin: 0, fontSize: '0.85rem' }}>{prog > 0 ? `Uploading ${prog}%...` : multiple ? 'Click to add photos' : 'Click to upload'}</h4>
-                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>Max 5MB · JPG / PNG / WEBP</p>
+                                <h4 style={{ margin: 0, fontSize: '0.85rem' }}>
+                                    {(prog > 0 || isLocalUploading) ? `Attaching ${prog > 0 ? prog + '%' : 'photos...'}...` : multiple ? 'Click or drag to add photos' : 'Click to upload photo'}
+                                </h4>
+                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>Max 10MB · JPG / PNG / WEBP</p>
                             </div>
                         </div>
                     )}
@@ -564,7 +658,102 @@ const ClientCreateWedding = () => {
     // ── Handlers ─────────────────────────────────────────────────────────────
     const handleChange = (e) => {
         const { name, value } = e.target;
+        if (validationErrors[name]) {
+            setValidationErrors(prev => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+            setStepErrorBanner('');
+        }
         setFormData(prev => ({ ...prev, [name]: value, ...(name === 'date' ? { ceremony_date: value, reception_date: value } : {}) }));
+    };
+
+    const validateStep = (stepIdx) => {
+        if (isEditMode) return true;
+        const errors = {};
+
+        if (stepIdx === 0) {
+            if (!formData.groom_name?.trim()) {
+                errors.groom_name = "Groom's full name is required";
+            }
+            if (!formData.bride_name?.trim()) {
+                errors.bride_name = "Bride's full name is required";
+            }
+            if (Object.keys(errors).length > 0) {
+                setValidationErrors(errors);
+                const msg = !formData.groom_name?.trim() && !formData.bride_name?.trim()
+                    ? "Please enter both the Groom and Bride's full names to proceed."
+                    : errors.groom_name ? "Please enter the Groom's full name." : "Please enter the Bride's full name.";
+                setStepErrorBanner(msg);
+                toast.error(msg);
+                const firstField = errors.groom_name ? 'groom_name' : 'bride_name';
+                document.querySelector(`[name="${firstField}"]`)?.focus();
+                return false;
+            }
+        }
+
+        if (stepIdx === 1) {
+            if (!formData.date) {
+                errors.date = "Wedding date cannot be empty. Please select your wedding date.";
+            }
+            if (!formData.ceremony_venue?.trim()) {
+                errors.ceremony_venue = "Ceremony venue cannot be empty. Please enter your venue.";
+            }
+            if (Object.keys(errors).length > 0) {
+                setValidationErrors(errors);
+                const msg = errors.date
+                    ? "Wedding date cannot be empty! Please select your wedding date to continue."
+                    : "Ceremony venue cannot be empty! Please enter your ceremony venue to continue.";
+                setStepErrorBanner(msg);
+                toast.error(msg);
+                const firstField = errors.date ? 'date' : 'ceremony_venue';
+                document.querySelector(`[name="${firstField}"]`)?.focus();
+                return false;
+            }
+        }
+
+        setValidationErrors({});
+        setStepErrorBanner('');
+        return true;
+    };
+
+    const handleNextStep = () => {
+        if (!validateStep(currentStep)) {
+            return;
+        }
+        setCurrentStep(prev => Math.min(prev + 1, 5));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleStepClick = (targetIdx) => {
+        if (isEditMode) {
+            setCurrentStep(targetIdx);
+            return;
+        }
+        if (targetIdx <= currentStep) {
+            setValidationErrors({});
+            setStepErrorBanner('');
+            setCurrentStep(targetIdx);
+            return;
+        }
+        if (!validateStep(currentStep)) {
+            return;
+        }
+        if (targetIdx > 1) {
+            if (!formData.groom_name?.trim() || !formData.bride_name?.trim()) {
+                setCurrentStep(0);
+                validateStep(0);
+                return;
+            }
+            if (!formData.date || !formData.ceremony_venue?.trim()) {
+                setCurrentStep(1);
+                validateStep(1);
+                return;
+            }
+        }
+        setCurrentStep(targetIdx);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const canProceed = (stepIdx) => {
@@ -576,7 +765,8 @@ const ClientCreateWedding = () => {
 
     const handleSaveCurrentChanges = async (finish = false) => {
         if (!currentUser) {
-            setShowAuthModal(true);
+            saveDraft(formData);
+            navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
             return;
         }
 
@@ -707,8 +897,13 @@ const ClientCreateWedding = () => {
             handleSaveCurrentChanges(true);
             return;
         }
-        if (!currentUser) { setShowAuthModal(true); }
-        else { saveDraftToDatabase(currentUser, formData); }
+        if (!currentUser) {
+            saveDraft(formData);
+            navigate(`/signup?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+            return;
+        } else {
+            saveDraftToDatabase(currentUser, formData);
+        }
     };
 
     const handleAuthSuccess = useCallback((user) => {
@@ -731,7 +926,12 @@ const ClientCreateWedding = () => {
                 throw new Error(res.error?.message || res.reason || 'Failed to save invitation');
             }
             setDraftRestored(false);
-            navigate('/my-events');
+            if (res.event) {
+                setPublishedWedding(res.event);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                navigate('/my-events');
+            }
         } catch (err) {
             console.error('Publish error:', err);
             setPublishError(err.message || 'Failed to save. Please try again.');
@@ -843,6 +1043,52 @@ const ClientCreateWedding = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Attached Photos Showcase */}
+                        {((publishedWedding.slider_images && publishedWedding.slider_images.length > 0) || publishedWedding.groom_image || publishedWedding.bride_image) && (
+                            <div className="payment-media-showcase">
+                                <div className="payment-media-label">
+                                    <i className="fas fa-camera" style={{ color: '#1fa09b' }} />
+                                    <span>ATTACHED MEDIA & VISUALS</span>
+                                </div>
+                                <div className="payment-media-row">
+                                    {/* Couple Avatars */}
+                                    <div className="payment-avatars-pair">
+                                        <div className="payment-avatar-item">
+                                            {publishedWedding.groom_image ? (
+                                                <img src={publishedWedding.groom_image} alt={publishedWedding.groom_name} className="payment-thumb-avatar" />
+                                            ) : (
+                                                <div className="payment-thumb-placeholder"><i className="fas fa-male" /></div>
+                                            )}
+                                            <span>{publishedWedding.groom_name || 'Groom'}</span>
+                                        </div>
+                                        <span className="payment-avatar-amp">&</span>
+                                        <div className="payment-avatar-item">
+                                            {publishedWedding.bride_image ? (
+                                                <img src={publishedWedding.bride_image} alt={publishedWedding.bride_name} className="payment-thumb-avatar" />
+                                            ) : (
+                                                <div className="payment-thumb-placeholder"><i className="fas fa-female" /></div>
+                                            )}
+                                            <span>{publishedWedding.bride_name || 'Bride'}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Slider Thumbnails Strip */}
+                                    {publishedWedding.slider_images && publishedWedding.slider_images.length > 0 && (
+                                        <div className="payment-slider-group">
+                                            <div className="payment-slider-head">
+                                                <span>Slider Carousel Photos ({publishedWedding.slider_images.length})</span>
+                                            </div>
+                                            <div className="payment-slider-strip">
+                                                {publishedWedding.slider_images.map((img, idx) => (
+                                                    <img key={idx} src={img} alt={`Slide ${idx + 1}`} className="payment-slider-thumb" />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Payment Methods (Dimmed & Disabled) */}
                         <div className="payment-methods-section">
@@ -1043,7 +1289,10 @@ const ClientCreateWedding = () => {
             {/* Navbar */}
             <NavBar
                 user={currentUser}
-                onSignIn={() => setShowAuthModal(true)}
+                onSignIn={() => {
+                    saveDraft(formData);
+                    navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+                }}
                 showExit
             />
 
@@ -1120,14 +1369,14 @@ const ClientCreateWedding = () => {
                         { label: 'The Couple', icon: 'fa-heart' },
                         { label: 'Event Details', icon: 'fa-calendar-alt' },
                         { label: 'Our Story', icon: 'fa-book-open' },
-                        { label: 'Party & Photos', icon: 'fa-images' },
+                        { label: 'Party & Slider', icon: 'fa-film' },
                         { label: 'Style & Music', icon: 'fa-palette' },
                         { label: 'Preview & Launch', icon: 'fa-paper-plane' },
                     ].map((step, idx) => (
                         <button
                             key={idx} type="button"
                             className={`studio-step-btn ${currentStep === idx ? 'active' : ''} ${currentStep > idx ? 'completed' : ''}`}
-                            onClick={() => isEditMode ? setCurrentStep(idx) : (idx === 0 ? setCurrentStep(0) : canProceed(Math.min(idx - 1, 1)) && setCurrentStep(idx))}
+                            onClick={() => handleStepClick(idx)}
                             title={isEditMode ? `Jump to ${step.label}` : step.label}
                         >
                             <div className="step-label-group">
@@ -1168,11 +1417,25 @@ const ClientCreateWedding = () => {
                                         <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>The Groom</h3>
                                     </div>
                                     <label className="studio-label"><span>Full Name *</span></label>
-                                    <div className="studio-input-wrap" style={{ marginBottom: '1rem' }}>
+                                    <div className="studio-input-wrap">
                                         <i className="fas fa-user input-icon-left" style={{ color: '#1fa09b' }} />
-                                        <input type="text" name="groom_name" value={formData.groom_name} onChange={handlePersonNameChange} placeholder="e.g. Chanda Banda" className="studio-input" />
+                                        <input
+                                            type="text"
+                                            name="groom_name"
+                                            value={formData.groom_name}
+                                            onChange={handlePersonNameChange}
+                                            placeholder="e.g. Chanda Banda"
+                                            className={`studio-input ${validationErrors.groom_name ? 'input-error' : ''}`}
+                                        />
                                     </div>
-                                    <ImageUpload label="Groom's Photo" value={formData.groom_image} onUpload={url => setFormData(p => ({ ...p, groom_image: url }))} path="couples" id="groom-photo-upload" />
+                                    {validationErrors.groom_name && (
+                                        <div className="studio-field-error-msg">
+                                            <i className="fas fa-exclamation-circle" /> {validationErrors.groom_name}
+                                        </div>
+                                    )}
+                                    <div style={{ marginTop: '0.85rem' }}>
+                                        <ImageUpload label="Groom's Photo" value={formData.groom_image} onUpload={url => setFormData(p => ({ ...p, groom_image: url }))} path="couples" id="groom-photo-upload" />
+                                    </div>
                                     <label className="studio-label"><span>Bio & Description</span></label>
                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                                         <textarea name="groom_description" value={formData.groom_description} onChange={handleChange} className="studio-textarea" placeholder="Share his personality and story..." style={{ flex: 1, minHeight: '80px' }} />
@@ -1189,11 +1452,25 @@ const ClientCreateWedding = () => {
                                         <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>The Bride</h3>
                                     </div>
                                     <label className="studio-label"><span>Full Name *</span></label>
-                                    <div className="studio-input-wrap" style={{ marginBottom: '1rem' }}>
+                                    <div className="studio-input-wrap">
                                         <i className="fas fa-user input-icon-left" style={{ color: '#ec4899' }} />
-                                        <input type="text" name="bride_name" value={formData.bride_name} onChange={handlePersonNameChange} placeholder="e.g. Mutale Mwila" className="studio-input" />
+                                        <input
+                                            type="text"
+                                            name="bride_name"
+                                            value={formData.bride_name}
+                                            onChange={handlePersonNameChange}
+                                            placeholder="e.g. Mutale Mwila"
+                                            className={`studio-input ${validationErrors.bride_name ? 'input-error' : ''}`}
+                                        />
                                     </div>
-                                    <ImageUpload label="Bride's Photo" value={formData.bride_image} onUpload={url => setFormData(p => ({ ...p, bride_image: url }))} path="couples" id="bride-photo-upload" />
+                                    {validationErrors.bride_name && (
+                                        <div className="studio-field-error-msg">
+                                            <i className="fas fa-exclamation-circle" /> {validationErrors.bride_name}
+                                        </div>
+                                    )}
+                                    <div style={{ marginTop: '0.85rem' }}>
+                                        <ImageUpload label="Bride's Photo" value={formData.bride_image} onUpload={url => setFormData(p => ({ ...p, bride_image: url }))} path="couples" id="bride-photo-upload" />
+                                    </div>
                                     <label className="studio-label"><span>Bio & Description</span></label>
                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                                         <textarea name="bride_description" value={formData.bride_description} onChange={handleChange} className="studio-textarea" placeholder="Share her personality and story..." style={{ flex: 1, minHeight: '80px' }} />
@@ -1232,8 +1509,20 @@ const ClientCreateWedding = () => {
                                     <label className="studio-label">Wedding Date *</label>
                                     <div className="studio-input-wrap">
                                         <i className="fas fa-calendar input-icon-left" style={{ color: '#1fa09b' }} />
-                                        <input type="date" name="date" value={formData.date} onChange={handleChange} className="studio-input" required />
+                                        <input
+                                            type="date"
+                                            name="date"
+                                            value={formData.date}
+                                            onChange={handleChange}
+                                            className={`studio-input ${validationErrors.date ? 'input-error' : ''}`}
+                                            required
+                                        />
                                     </div>
+                                    {validationErrors.date && (
+                                        <div className="studio-field-error-msg">
+                                            <i className="fas fa-exclamation-circle" /> {validationErrors.date}
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="studio-label">RSVP Deadline</label>
@@ -1434,8 +1723,21 @@ const ClientCreateWedding = () => {
                                     <label className="studio-label">Ceremony Venue *</label>
                                     <div className="studio-input-wrap">
                                         <i className="fas fa-landmark input-icon-left" style={{ color: '#1fa09b' }} />
-                                        <input type="text" name="ceremony_venue" value={formData.ceremony_venue} onChange={handleChange} placeholder="e.g. Cathedral of the Holy Cross" className="studio-input" required />
+                                        <input
+                                            type="text"
+                                            name="ceremony_venue"
+                                            value={formData.ceremony_venue}
+                                            onChange={handleChange}
+                                            placeholder="e.g. Cathedral of the Holy Cross"
+                                            className={`studio-input ${validationErrors.ceremony_venue ? 'input-error' : ''}`}
+                                            required
+                                        />
                                     </div>
+                                    {validationErrors.ceremony_venue && (
+                                        <div className="studio-field-error-msg">
+                                            <i className="fas fa-exclamation-circle" /> {validationErrors.ceremony_venue}
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="studio-label">Ceremony Time</label>
@@ -1711,119 +2013,270 @@ const ClientCreateWedding = () => {
                     )}
 
                     {/* ══════════════════════════════════════════════════════
-                        STEP 4 — Party & Photos
+                        STEP 4 — Party & Slider
                     ══════════════════════════════════════════════════════ */}
                     {currentStep === 3 && (
                         <div>
                             <div className="form-step-header">
-                                <span className="step-badge"><i className="fas fa-images" /> Step 4 of 6 • Party & Photos</span>
-                                <h2>Wedding Party, Gallery & Gifts</h2>
-                                <p>Add bridesmaids, groomsmen, gallery photos, and gift/payment options.</p>
+                                <span className="step-badge"><i className="fas fa-film" /> Step 4 of 6 • Party & Slider</span>
+                                <h2>Wedding Party & Image Slider</h2>
+                                <p>Add your animated image slider photos, wedding party members, and gift options.</p>
                             </div>
 
-                            {/* Bridesmaids */}
+                            {/* ── Image Slider Section (Hero Carousel) ── */}
+                            <div className="studio-section-subhead" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                                    <i className="fas fa-film" style={{ color: '#1fa09b' }} />
+                                    <span>Invitation Image Slider</span>
+                                </div>
+                                {(formData.slider_images || []).length > 0 && (
+                                    <span style={{ fontSize: '0.78rem', background: '#ecfdf5', color: '#059669', fontWeight: 700, padding: '3px 10px', borderRadius: '999px', border: '1px solid #a7f3d0' }}>
+                                        {(formData.slider_images || []).length} Photo{(formData.slider_images || []).length > 1 ? 's' : ''} Attached
+                                    </span>
+                                )}
+                            </div>
+                            <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '0.75rem' }}>
+                                These photos will be displayed in the high-impact animated image slider at the top of your wedding invitation.
+                            </p>
+
+                            <ImageUpload
+                                label="Upload Slider Photos (Multiple allowed)"
+                                subtitle="Upload favorite couple portraits, pre-wedding shots, or celebratory photos."
+                                value=""
+                                onUpload={urls => setFormData(p => ({
+                                    ...p,
+                                    slider_images: [...(p.slider_images || []), ...urls],
+                                    gallery_images: [...(p.slider_images || []), ...urls],
+                                }))}
+                                path="slider"
+                                id="slider-upload"
+                                multiple
+                            />
+
+                            {/* Attached Slider Images Grid */}
+                            {(formData.slider_images || []).length > 0 ? (
+                                <div style={{ marginTop: '0.75rem', marginBottom: '2.5rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                                        <label className="studio-label" style={{ margin: 0 }}>
+                                            <span>Attached Slider Images ({(formData.slider_images || []).length})</span>
+                                        </label>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (window.confirm('Remove all slider photos?')) {
+                                                    setFormData(p => ({ ...p, slider_images: [], gallery_images: [] }));
+                                                }
+                                            }}
+                                            style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
+                                        >
+                                            Clear All Photos
+                                        </button>
+                                    </div>
+                                    <div className="slider-images-grid">
+                                        {formData.slider_images.map((img, i) => (
+                                            <div
+                                                key={i}
+                                                className={`slider-img-item ${i === 0 ? 'is-cover' : ''}`}
+                                            >
+                                                <img src={img} alt={`Slide ${i + 1}`} />
+                                                <span className={`slider-img-badge ${i === 0 ? 'cover' : ''}`}>
+                                                    {i === 0 ? 'Cover Slide' : `#${i + 1}`}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    className="slider-img-delete-btn"
+                                                    onClick={() => setFormData(p => {
+                                                        const next = [...(p.slider_images || [])];
+                                                        next.splice(i, 1);
+                                                        return { ...p, slider_images: next, gallery_images: next };
+                                                    })}
+                                                    title="Remove photo"
+                                                >
+                                                    ✕
+                                                </button>
+                                                <div className="slider-img-controls">
+                                                    {i > 0 ? (
+                                                        <button
+                                                            type="button"
+                                                            className="slider-reorder-btn"
+                                                            onClick={() => moveItem('slider_images', i, i - 1)}
+                                                            title="Move earlier"
+                                                        >
+                                                            ‹
+                                                        </button>
+                                                    ) : <span />}
+                                                    {i < (formData.slider_images.length - 1) && (
+                                                        <button
+                                                            type="button"
+                                                            className="slider-reorder-btn"
+                                                            onClick={() => moveItem('slider_images', i, i + 1)}
+                                                            title="Move later"
+                                                        >
+                                                            ›
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div style={{
+                                    background: '#f8fafc',
+                                    border: '1.5px dashed #cbd5e1',
+                                    borderRadius: '12px',
+                                    padding: '1.25rem',
+                                    textAlign: 'center',
+                                    color: '#64748b',
+                                    fontSize: '0.84rem',
+                                    marginBottom: '2.5rem'
+                                }}>
+                                    <i className="fas fa-images" style={{ fontSize: '1.6rem', color: '#94a3b8', marginBottom: '0.4rem', display: 'block' }} />
+                                    No slider images attached yet. Click the upload box above to add your couple photos.
+                                </div>
+                            )}
+
+                            {/* ── Bridesmaids Section ── */}
                             <div className="studio-section-subhead"><i className="fas fa-female" style={{ color: '#ec4899' }} /><span>Bridesmaids</span></div>
-                            {(formData.bridesmaids || []).map((bm, i) => (
-                                <div key={i} className="form-row-2" style={{ background: '#fdf2f8', padding: '1rem', borderRadius: '12px', marginBottom: '0.75rem', position: 'relative', border: '1px solid #fce7f3' }}>
-                                    <button type="button" onClick={() => removeItem('bridesmaids', i)} style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: '#fee2e2', border: 'none', color: '#ef4444', borderRadius: '6px', padding: '2px 8px', cursor: 'pointer', fontSize: '0.78rem' }}><i className="fas fa-trash" /></button>
-                                    <div>
-                                        <label className="studio-label">Name</label>
-                                        <input type="text" className="studio-input" value={bm.name} onChange={e => updateItem('bridesmaids', i, 'name', e.target.value)} placeholder="e.g. Thandiwe Phiri" />
-                                        <label className="studio-label" style={{ marginTop: '0.5rem' }}>Role</label>
-                                        <input type="text" className="studio-input" value={bm.role} onChange={e => updateItem('bridesmaids', i, 'role', e.target.value)} placeholder="e.g. Maid of Honour" />
+                            {(formData.bridesmaids || []).length === 0 ? (
+                                <div className="party-empty-card bridesmaid">
+                                    <div className="party-empty-info">
+                                        <h4 style={{ color: '#831843' }}>No Bridesmaids Added</h4>
+                                        <p style={{ color: '#9d174d' }}>If you have bridesmaids, click the button below to add them to your invitation.</p>
                                     </div>
-                                    <ImageUpload label="Photo" value={bm.photo} onUpload={url => updateItem('bridesmaids', i, 'photo', url)} path="party" id={`bm-photo-${i}`} />
+                                    <button
+                                        type="button"
+                                        className="studio-btn"
+                                        onClick={() => addItem('bridesmaids', { name: '', role: 'Bridesmaid', photo: '' })}
+                                        style={{ background: '#ec4899', color: '#fff', border: 'none', padding: '0.45rem 1rem', fontSize: '0.82rem', fontWeight: 600, borderRadius: '8px', cursor: 'pointer' }}
+                                    >
+                                        <i className="fas fa-plus" /> Add Bridesmaid
+                                    </button>
                                 </div>
-                            ))}
-                            <button type="button" className="studio-btn studio-btn-outline" onClick={() => addItem('bridesmaids', { name: '', role: 'Bridesmaid', photo: '' })} style={{ marginBottom: '1.5rem' }}>
-                                <i className="fas fa-plus" /> Add Bridesmaid
-                            </button>
-
-                            {/* Groomsmen */}
-                            <div className="studio-section-subhead"><i className="fas fa-male" style={{ color: '#1fa09b' }} /><span>Groomsmen</span></div>
-                            {(formData.groomsmen || []).map((gm, i) => (
-                                <div key={i} className="form-row-2" style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '12px', marginBottom: '0.75rem', position: 'relative', border: '1px solid #bbf7d0' }}>
-                                    <button type="button" onClick={() => removeItem('groomsmen', i)} style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: '#fee2e2', border: 'none', color: '#ef4444', borderRadius: '6px', padding: '2px 8px', cursor: 'pointer', fontSize: '0.78rem' }}><i className="fas fa-trash" /></button>
-                                    <div>
-                                        <label className="studio-label">Name</label>
-                                        <input type="text" className="studio-input" value={gm.name} onChange={e => updateItem('groomsmen', i, 'name', e.target.value)} placeholder="e.g. Bwalya Mwansa" />
-                                        <label className="studio-label" style={{ marginTop: '0.5rem' }}>Role</label>
-                                        <input type="text" className="studio-input" value={gm.role} onChange={e => updateItem('groomsmen', i, 'role', e.target.value)} placeholder="e.g. Best Man" />
-                                    </div>
-                                    <ImageUpload label="Photo" value={gm.photo} onUpload={url => updateItem('groomsmen', i, 'photo', url)} path="party" id={`gm-photo-${i}`} />
-                                </div>
-                            ))}
-                            <button type="button" className="studio-btn studio-btn-outline" onClick={() => addItem('groomsmen', { name: '', role: 'Groomsman', photo: '' })} style={{ marginBottom: '1.5rem' }}>
-                                <i className="fas fa-plus" /> Add Groomsman
-                            </button>
-
-                            {/* Gifts */}
-                            <div className="studio-section-subhead"><i className="fas fa-gift" style={{ color: '#1fa09b' }} /><span>Gifts & Contributions</span></div>
-                            <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '0.75rem' }}>Add payment identifiers for cash gifts or links to gift registries.</p>
-                            {(formData.gifts || []).map((gift, i) => (
-                                <div key={i} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1rem', marginBottom: '0.75rem', position: 'relative' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                        <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>Gift Option #{i + 1}</strong>
-                                        <button type="button" onClick={() => removeItem('gifts', i)} style={{ background: '#fee2e2', border: 'none', color: '#ef4444', borderRadius: '6px', padding: '2px 8px', cursor: 'pointer', fontSize: '0.78rem' }}><i className="fas fa-trash" /> Remove</button>
-                                    </div>
-                                    <div className="form-row-2">
-                                        <div>
-                                            <label className="studio-label">Type</label>
-                                            <select className="studio-input" value={gift.giftType} onChange={e => updateItem('gifts', i, 'giftType', e.target.value)} style={{ paddingLeft: '0.9rem' }}>
-                                                <option value="Mobile Money">Mobile Money</option>
-                                                <option value="Bank Transfer">Bank Transfer</option>
-                                                <option value="Cash at Event">Cash at Event</option>
-                                                <option value="Gift Registry">Gift Registry / URL</option>
-                                                <option value="Other">Other</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="studio-label">Provider / Bank Name</label>
-                                            <input type="text" className="studio-input" value={gift.provider} onChange={e => updateItem('gifts', i, 'provider', e.target.value)} placeholder="e.g. MTN, FNB" />
-                                        </div>
-                                        {(gift.giftType === 'Mobile Money' || gift.giftType === 'Bank Transfer' || gift.giftType === 'Other') && (
-                                            <>
-                                                <div>
-                                                    <label className="studio-label">Account Name</label>
-                                                    <input type="text" className="studio-input" value={gift.accountName} onChange={e => updateItem('gifts', i, 'accountName', e.target.value)} placeholder="Account Holder Name" />
-                                                </div>
-                                                <div>
-                                                    <label className="studio-label">Account / Phone Number</label>
-                                                    <input type="text" className="studio-input" value={gift.accountNumber} onChange={e => updateItem('gifts', i, 'accountNumber', e.target.value)} placeholder="e.g. 097 000 0000" />
-                                                </div>
-                                            </>
-                                        )}
-                                        <div>
-                                            <label className="studio-label">Instructions (Optional)</label>
-                                            <input type="text" className="studio-input" value={gift.instructions} onChange={e => updateItem('gifts', i, 'instructions', e.target.value)} placeholder="e.g. Use ref: Wedding" />
-                                        </div>
-                                        <div>
-                                            <label className="studio-label">Registry URL (Optional)</label>
-                                            <input type="url" className="studio-input" value={gift.url} onChange={e => updateItem('gifts', i, 'url', e.target.value)} placeholder="https://..." />
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                            <button type="button" className="studio-btn studio-btn-outline" onClick={() => addItem('gifts', { giftType: 'Mobile Money', provider: '', accountName: '', accountNumber: '', instructions: '', url: '' })} style={{ marginBottom: '1.5rem' }}>
-                                <i className="fas fa-plus" /> Add Gift Option
-                            </button>
-
-                            {/* Gallery / Slider */}
-                            <div className="studio-section-subhead"><i className="fas fa-images" style={{ color: '#1fa09b' }} /><span>Photo Gallery</span></div>
-                            <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '0.75rem' }}>Upload photos for the invitation gallery and image slider.</p>
-                            <div className="form-row-2">
-                                <ImageUpload label="Add Slider / Hero Images (multiple)" value="" onUpload={urls => setFormData(p => ({ ...p, slider_images: [...(p.slider_images || []), ...urls] }))} path="hero" id="slider-upload" multiple />
-                                <ImageUpload label="Add Gallery Photos (multiple)" value="" onUpload={urls => setFormData(p => ({ ...p, gallery_images: [...(p.gallery_images || []), ...urls] }))} path="gallery" id="gallery-upload" multiple />
-                            </div>
-                            {(formData.gallery_images || []).length > 0 && (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '0.5rem', marginTop: '0.75rem' }}>
-                                    {formData.gallery_images.map((img, i) => (
-                                        <div key={i} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', aspectRatio: '1', background: '#f1f5f9' }}>
-                                            <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                            <button type="button" onClick={() => setFormData(p => { const arr = [...(p.gallery_images || [])]; arr.splice(i, 1); return { ...p, gallery_images: arr }; })} style={{ position: 'absolute', top: 3, right: 3, background: 'rgba(239,68,68,0.85)', border: 'none', color: '#fff', borderRadius: '50%', width: 20, height: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem' }}>✕</button>
+                            ) : (
+                                <>
+                                    {(formData.bridesmaids || []).map((bm, i) => (
+                                        <div key={i} className="form-row-2" style={{ background: '#fdf2f8', padding: '1rem', borderRadius: '12px', marginBottom: '0.75rem', position: 'relative', border: '1px solid #fce7f3' }}>
+                                            <button type="button" onClick={() => removeItem('bridesmaids', i)} style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: '#fee2e2', border: 'none', color: '#ef4444', borderRadius: '6px', padding: '2px 8px', cursor: 'pointer', fontSize: '0.78rem' }}><i className="fas fa-trash" /></button>
+                                            <div>
+                                                <label className="studio-label">Name</label>
+                                                <input type="text" className="studio-input" value={bm.name} onChange={e => updateItem('bridesmaids', i, 'name', e.target.value)} placeholder="e.g. Thandiwe Phiri" />
+                                                <label className="studio-label" style={{ marginTop: '0.5rem' }}>Role</label>
+                                                <input type="text" className="studio-input" value={bm.role} onChange={e => updateItem('bridesmaids', i, 'role', e.target.value)} placeholder="e.g. Maid of Honour" />
+                                            </div>
+                                            <ImageUpload label="Photo" value={bm.photo} onUpload={url => updateItem('bridesmaids', i, 'photo', url)} path="party" id={`bm-photo-${i}`} />
                                         </div>
                                     ))}
+                                    <button type="button" className="studio-btn studio-btn-outline" onClick={() => addItem('bridesmaids', { name: '', role: 'Bridesmaid', photo: '' })} style={{ marginBottom: '1.5rem' }}>
+                                        <i className="fas fa-plus" /> Add Another Bridesmaid
+                                    </button>
+                                </>
+                            )}
+
+                            {/* ── Groomsmen Section ── */}
+                            <div className="studio-section-subhead"><i className="fas fa-male" style={{ color: '#1fa09b' }} /><span>Groomsmen</span></div>
+                            {(formData.groomsmen || []).length === 0 ? (
+                                <div className="party-empty-card groomsman">
+                                    <div className="party-empty-info">
+                                        <h4 style={{ color: '#14532d' }}>No Groomsmen Added</h4>
+                                        <p style={{ color: '#166534' }}>If you have groomsmen, click the button below to add them to your invitation.</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="studio-btn"
+                                        onClick={() => addItem('groomsmen', { name: '', role: 'Groomsman', photo: '' })}
+                                        style={{ background: '#1fa09b', color: '#fff', border: 'none', padding: '0.45rem 1rem', fontSize: '0.82rem', fontWeight: 600, borderRadius: '8px', cursor: 'pointer' }}
+                                    >
+                                        <i className="fas fa-plus" /> Add Groomsman
+                                    </button>
                                 </div>
+                            ) : (
+                                <>
+                                    {(formData.groomsmen || []).map((gm, i) => (
+                                        <div key={i} className="form-row-2" style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '12px', marginBottom: '0.75rem', position: 'relative', border: '1px solid #bbf7d0' }}>
+                                            <button type="button" onClick={() => removeItem('groomsmen', i)} style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: '#fee2e2', border: 'none', color: '#ef4444', borderRadius: '6px', padding: '2px 8px', cursor: 'pointer', fontSize: '0.78rem' }}><i className="fas fa-trash" /></button>
+                                            <div>
+                                                <label className="studio-label">Name</label>
+                                                <input type="text" className="studio-input" value={gm.name} onChange={e => updateItem('groomsmen', i, 'name', e.target.value)} placeholder="e.g. Bwalya Mwansa" />
+                                                <label className="studio-label" style={{ marginTop: '0.5rem' }}>Role</label>
+                                                <input type="text" className="studio-input" value={gm.role} onChange={e => updateItem('groomsmen', i, 'role', e.target.value)} placeholder="e.g. Best Man" />
+                                            </div>
+                                            <ImageUpload label="Photo" value={gm.photo} onUpload={url => updateItem('groomsmen', i, 'photo', url)} path="party" id={`gm-photo-${i}`} />
+                                        </div>
+                                    ))}
+                                    <button type="button" className="studio-btn studio-btn-outline" onClick={() => addItem('groomsmen', { name: '', role: 'Groomsman', photo: '' })} style={{ marginBottom: '1.5rem' }}>
+                                        <i className="fas fa-plus" /> Add Another Groomsman
+                                    </button>
+                                </>
+                            )}
+
+                            {/* ── Gifts & Contributions Section ── */}
+                            <div className="studio-section-subhead"><i className="fas fa-gift" style={{ color: '#1fa09b' }} /><span>Gifts & Contributions</span></div>
+                            <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '0.75rem' }}>Add payment identifiers for mobile money, bank details, cash gifts, or registry links.</p>
+                            {(formData.gifts || []).length === 0 ? (
+                                <div className="party-empty-card gift">
+                                    <div className="party-empty-info">
+                                        <h4 style={{ color: '#0f172a' }}>No Gift / Payment Options Added</h4>
+                                        <p style={{ color: '#64748b' }}>If you would like to provide gift or payment options for guests, click the button below.</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="studio-btn studio-btn-outline"
+                                        onClick={() => addItem('gifts', { giftType: 'Mobile Money', provider: 'Airtel Money', accountName: '', accountNumber: '', instructions: '', url: '' })}
+                                    >
+                                        <i className="fas fa-plus" /> Add Gift Option
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    {(formData.gifts || []).map((gift, i) => (
+                                        <div key={i} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1rem', marginBottom: '0.75rem', position: 'relative' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                                <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>Gift Option #{i + 1}</strong>
+                                                <button type="button" onClick={() => removeItem('gifts', i)} style={{ background: '#fee2e2', border: 'none', color: '#ef4444', borderRadius: '6px', padding: '2px 8px', cursor: 'pointer', fontSize: '0.78rem' }}><i className="fas fa-trash" /> Remove</button>
+                                            </div>
+                                            <div className="form-row-2">
+                                                <div>
+                                                    <label className="studio-label">Type</label>
+                                                    <select className="studio-input" value={gift.giftType} onChange={e => updateItem('gifts', i, 'giftType', e.target.value)} style={{ paddingLeft: '0.9rem' }}>
+                                                        <option value="Mobile Money">Mobile Money</option>
+                                                        <option value="Bank Transfer">Bank Transfer</option>
+                                                        <option value="Cash at Event">Cash at Event</option>
+                                                        <option value="Gift Registry">Gift Registry / URL</option>
+                                                        <option value="Other">Other</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="studio-label">Provider / Bank Name</label>
+                                                    <input type="text" className="studio-input" value={gift.provider} onChange={e => updateItem('gifts', i, 'provider', e.target.value)} placeholder="e.g. MTN, Airtel, FNB" />
+                                                </div>
+                                                {(gift.giftType === 'Mobile Money' || gift.giftType === 'Bank Transfer' || gift.giftType === 'Other') && (
+                                                    <>
+                                                        <div>
+                                                            <label className="studio-label">Account Name</label>
+                                                            <input type="text" className="studio-input" value={gift.accountName} onChange={e => updateItem('gifts', i, 'accountName', e.target.value)} placeholder="Account Holder Name" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="studio-label">Account / Phone Number</label>
+                                                            <input type="text" className="studio-input" value={gift.accountNumber} onChange={e => updateItem('gifts', i, 'accountNumber', e.target.value)} placeholder="e.g. 097 000 0000" />
+                                                        </div>
+                                                    </>
+                                                )}
+                                                <div>
+                                                    <label className="studio-label">Instructions (Optional)</label>
+                                                    <input type="text" className="studio-input" value={gift.instructions} onChange={e => updateItem('gifts', i, 'instructions', e.target.value)} placeholder="e.g. Use ref: Wedding" />
+                                                </div>
+                                                <div>
+                                                    <label className="studio-label">Registry URL (Optional)</label>
+                                                    <input type="url" className="studio-input" value={gift.url} onChange={e => updateItem('gifts', i, 'url', e.target.value)} placeholder="https://..." />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <button type="button" className="studio-btn studio-btn-outline" onClick={() => addItem('gifts', { giftType: 'Mobile Money', provider: 'Airtel Money', accountName: '', accountNumber: '', instructions: '', url: '' })} style={{ marginBottom: '1.5rem' }}>
+                                        <i className="fas fa-plus" /> Add Another Gift Option
+                                    </button>
+                                </>
                             )}
                         </div>
                     )}
@@ -1845,7 +2298,7 @@ const ClientCreateWedding = () => {
                                 {TEMPLATE_OPTIONS.map(tpl => {
                                     const isSelected = formData.template_id === tpl.id;
                                     return (
-                                        <div key={tpl.id} className={`template-card-item ${isSelected ? 'selected' : ''}`} onClick={() => setFormData(p => ({ ...p, template_id: tpl.id }))}>
+                                        <div key={tpl.id} className={`template-card-item ${isSelected ? 'selected' : ''}`} onClick={() => setFormData(p => ({ ...p, template_id: tpl.id, theme_colors: [] }))}>
                                             {tpl.badge && <span className="template-badge-popular">{tpl.badge}</span>}
                                             <div className="template-card-banner" style={{ background: tpl.bg, color: tpl.textColor }}>
                                                 <span className="template-mini-ornament">{tpl.ornament}</span>
@@ -1858,20 +2311,6 @@ const ClientCreateWedding = () => {
                                         </div>
                                     );
                                 })}
-                            </div>
-
-                            {/* Theme Colors */}
-                            <div style={{ marginTop: '2rem' }}>
-                                <label className="studio-label">Theme Accent Colors</label>
-                                <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.75rem' }}>Colors control: 1st = Accent/Buttons, 2nd = Background, 3rd = Cards, 4th = Text</p>
-                                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                                    {(formData.theme_colors || []).map((color, idx) => (
-                                        <div key={idx} style={{ textAlign: 'center' }}>
-                                            <input type="color" value={color} onChange={e => setFormData(prev => { const arr = [...prev.theme_colors]; arr[idx] = e.target.value; return { ...prev, theme_colors: arr }; })} style={{ width: 44, height: 44, border: 'none', borderRadius: '50%', cursor: 'pointer', padding: 0, background: 'none' }} title={['Accent', 'Background', 'Card', 'Text'][idx] || `Color ${idx + 1}`} />
-                                            <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px' }}>{['Accent', 'BG', 'Card', 'Text'][idx] || `#${idx + 1}`}</div>
-                                        </div>
-                                    ))}
-                                </div>
                             </div>
 
                             {/* Music */}
@@ -2019,22 +2458,192 @@ const ClientCreateWedding = () => {
                                 <p>Check all details below and launch your wedding website.</p>
                             </div>
 
-                            <div className="publish-card-summary">
-                                <div className="summary-couple-header">
-                                    {formData.cover_image ? <img src={formData.cover_image} alt="Couple" className="summary-avatar" /> : <div className="summary-avatar-placeholder"><i className="fas fa-heart" /></div>}
-                                    <div>
-                                        <h3 className="summary-couple-names">{formData.groom_name} & {formData.bride_name}</h3>
-                                        <div className="summary-meta-badge">Template: <strong>{activeTemplate.name}</strong></div>
+                            {/* ── Modern Hero Review Banner ── */}
+                            <div
+                                className="review-hero-banner"
+                                style={{
+                                    backgroundImage: (formData.slider_images && formData.slider_images.length > 0)
+                                        ? `url(${formData.slider_images[0]})`
+                                        : (formData.cover_image ? `url(${formData.cover_image})` : 'none')
+                                }}
+                            >
+                                <div className="review-hero-overlay" />
+                                <div className="review-hero-content">
+                                    <div className="review-hero-tagline">{formData.tagline || 'WE ARE GETTING MARRIED'}</div>
+                                    <h3 className="review-hero-title">
+                                        {formData.groom_name || 'Groom'} & {formData.bride_name || 'Bride'}
+                                    </h3>
+                                    <div className="review-hero-meta-row">
+                                        <span className="review-hero-pill">
+                                            <i className="fas fa-calendar-alt" style={{ color: '#1fa09b' }} />
+                                            {formData.date ? new Date(formData.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'Date not set'}
+                                        </span>
+                                        <span className="review-hero-pill">
+                                            <i className="fas fa-map-marker-alt" style={{ color: '#1fa09b' }} />
+                                            {formData.location || formData.ceremony_venue || 'Zambia'}
+                                        </span>
+                                        <span className="review-hero-pill">
+                                            <i className="fas fa-palette" style={{ color: '#1fa09b' }} />
+                                            {activeTemplate.name}
+                                        </span>
                                     </div>
                                 </div>
-                                <div className="summary-grid-details">
-                                    <div className="summary-detail-item"><i className="fas fa-calendar" style={{ color: '#1fa09b' }} /><span>{formData.date ? new Date(formData.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Date not set'}</span></div>
-                                    <div className="summary-detail-item"><i className="fas fa-church" style={{ color: '#1fa09b' }} /><span>{formData.ceremony_title || 'Ceremony'}: {formData.ceremony_venue || 'Venue not set'}</span></div>
-                                    <div className="summary-detail-item"><i className="fas fa-hotel" style={{ color: '#1fa09b' }} /><span>{formData.reception_title || 'Reception'}: {formData.reception_venue || 'Venue not set'}</span></div>
-                                    <div className="summary-detail-item"><i className="fas fa-list-ol" style={{ color: '#1fa09b' }} /><span>{(formData.program || []).length} program parts</span></div>
-                                    <div className="summary-detail-item"><i className="fas fa-tshirt" style={{ color: '#1fa09b' }} /><span>{formData.dress_code || 'Formal Attire'}</span></div>
-                                    <div className="summary-detail-item"><i className="fas fa-users" style={{ color: '#1fa09b' }} /><span>{(formData.bridesmaids || []).length} bridesmaids · {(formData.groomsmen || []).length} groomsmen</span></div>
-                                    <div className="summary-detail-item"><i className="fas fa-images" style={{ color: '#1fa09b' }} /><span>{(formData.gallery_images || []).length} gallery photos</span></div>
+                            </div>
+
+                            {/* ── Attached Photos & Media Showcase ── */}
+                            <div className="review-media-card">
+                                <div className="review-section-header">
+                                    <h4><i className="fas fa-images" style={{ color: '#1fa09b' }} /> Attached Photos & Visuals</h4>
+                                    <button type="button" className="edit-jump-link" onClick={() => setCurrentStep(3)}>
+                                        Manage Photos
+                                    </button>
+                                </div>
+
+                                {/* Couple Avatars */}
+                                <div className="review-couple-media-grid">
+                                    <div className="review-person-card">
+                                        {formData.groom_image ? (
+                                            <img src={formData.groom_image} alt={formData.groom_name || 'Groom'} className="review-person-img" />
+                                        ) : (
+                                            <div className="review-person-placeholder"><i className="fas fa-male" /></div>
+                                        )}
+                                        <div>
+                                            <strong style={{ fontSize: '0.88rem', color: '#0f172a', display: 'block' }}>{formData.groom_name || 'Groom'}</strong>
+                                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>The Groom {formData.groom_image ? '· Photo Attached' : '· No photo'}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="review-person-card">
+                                        {formData.bride_image ? (
+                                            <img src={formData.bride_image} alt={formData.bride_name || 'Bride'} className="review-person-img" />
+                                        ) : (
+                                            <div className="review-person-placeholder"><i className="fas fa-female" /></div>
+                                        )}
+                                        <div>
+                                            <strong style={{ fontSize: '0.88rem', color: '#0f172a', display: 'block' }}>{formData.bride_name || 'Bride'}</strong>
+                                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>The Bride {formData.bride_image ? '· Photo Attached' : '· No photo'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Slider Photos Strip */}
+                                <div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                            Animated Slider Photos ({(formData.slider_images || []).length})
+                                        </span>
+                                        {(formData.slider_images || []).length > 0 && (
+                                            <span style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 600 }}>Active in top carousel</span>
+                                        )}
+                                    </div>
+                                    {(formData.slider_images || []).length > 0 ? (
+                                        <div className="review-slider-strip">
+                                            {formData.slider_images.map((img, i) => (
+                                                <div key={i} style={{ position: 'relative' }}>
+                                                    <img src={img} alt={`Slide ${i + 1}`} className="review-slider-thumb" />
+                                                    <span style={{
+                                                        position: 'absolute',
+                                                        bottom: 4,
+                                                        left: 4,
+                                                        background: 'rgba(15,23,42,0.8)',
+                                                        color: '#fff',
+                                                        fontSize: '0.62rem',
+                                                        fontWeight: 700,
+                                                        padding: '1px 5px',
+                                                        borderRadius: '4px'
+                                                    }}>
+                                                        #{i + 1}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div style={{ padding: '0.85rem 1rem', background: '#f8fafc', borderRadius: '10px', border: '1px dashed #cbd5e1', fontSize: '0.82rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span>No slider photos added yet. Default template backgrounds will be used.</span>
+                                            <button type="button" onClick={() => setCurrentStep(3)} style={{ border: 'none', background: 'none', color: '#1fa09b', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer' }}>
+                                                + Add Slider Photos
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* ── Key Event Details Grid ── */}
+                            <div className="review-details-grid">
+                                {/* Ceremony & Reception Card */}
+                                <div className="review-detail-card">
+                                    <div>
+                                        <div className="review-detail-card-head">
+                                            <span><i className="fas fa-church" style={{ color: '#1fa09b' }} /> Ceremony & Reception</span>
+                                            <button type="button" className="edit-jump-link" onClick={() => setCurrentStep(1)}>Edit</button>
+                                        </div>
+                                        <div style={{ marginBottom: '0.65rem' }}>
+                                            <h5 className="review-detail-item-title">{formData.ceremony_venue || 'Venue not specified'}</h5>
+                                            <p className="review-detail-item-sub">
+                                                {formData.ceremony_title || 'Ceremony'} {formData.ceremony_time ? `· ${formData.ceremony_time}` : ''}
+                                            </p>
+                                        </div>
+                                        {formData.reception_venue && (
+                                            <div>
+                                                <h5 className="review-detail-item-title">{formData.reception_venue}</h5>
+                                                <p className="review-detail-item-sub">
+                                                    {formData.reception_title || 'Reception'} {formData.reception_time ? `· ${formData.reception_time}` : ''}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Wedding Party & Registry Card */}
+                                <div className="review-detail-card">
+                                    <div>
+                                        <div className="review-detail-card-head">
+                                            <span><i className="fas fa-users" style={{ color: '#1fa09b' }} /> Party & Registry</span>
+                                            <button type="button" className="edit-jump-link" onClick={() => setCurrentStep(3)}>Edit</button>
+                                        </div>
+                                        <div style={{ marginBottom: '0.65rem' }}>
+                                            <h5 className="review-detail-item-title">
+                                                {(formData.bridesmaids || []).length} Bridesmaids · {(formData.groomsmen || []).length} Groomsmen
+                                            </h5>
+                                            <p className="review-detail-item-sub">
+                                                {((formData.bridesmaids || []).length + (formData.groomsmen || []).length) > 0 ? 'Wedding entourage listed' : 'No party members added'}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <h5 className="review-detail-item-title">
+                                                {(formData.gifts || []).length} Gift / Payment Option{(formData.gifts || []).length !== 1 ? 's' : ''}
+                                            </h5>
+                                            <p className="review-detail-item-sub">
+                                                {(formData.gifts || []).length > 0 ? 'Contributions enabled for guests' : 'No registry details added'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Atmosphere & Soundtrack Card */}
+                                <div className="review-detail-card">
+                                    <div>
+                                        <div className="review-detail-card-head">
+                                            <span><i className="fas fa-music" style={{ color: '#1fa09b' }} /> Music & Dress Code</span>
+                                            <button type="button" className="edit-jump-link" onClick={() => setCurrentStep(4)}>Edit</button>
+                                        </div>
+                                        <div style={{ marginBottom: '0.65rem' }}>
+                                            <h5 className="review-detail-item-title">
+                                                {selectedSongMeta?.title || (formData.music_url && formData.music_url !== 'none' ? 'Custom Music Track' : 'Default Romantic Soundtrack')}
+                                            </h5>
+                                            <p className="review-detail-item-sub">
+                                                {formData.music_url === 'none' ? 'Music disabled' : 'Plays automatically when invitation opens'}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <h5 className="review-detail-item-title">
+                                                {formData.dress_code || 'Formal Attire'}
+                                            </h5>
+                                            <p className="review-detail-item-sub">
+                                                {(formData.dress_code_colors || []).length > 0 ? `${(formData.dress_code_colors || []).length} theme colors highlighted` : 'Guest attire guideline'}
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -2090,7 +2699,7 @@ const ClientCreateWedding = () => {
                                     <i className="fas fa-info-circle" style={{ color: '#d97706', fontSize: '1.2rem' }} />
                                     <div>
                                         <span style={{ fontSize: '0.88rem', color: '#92400e', fontWeight: 700 }}>You're not signed in</span>
-                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#78350f' }}>You'll be asked to log in when you click Launch — your draft is safe and will not be lost.</p>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#78350f' }}>You'll be taken to sign up to create your account when you click Save & Launch — your draft is safe and will not be lost.</p>
                                     </div>
                                 </div>
                             )}
@@ -2103,13 +2712,35 @@ const ClientCreateWedding = () => {
                         </div>
                     )}
 
+                    {/* Step Validation Banner */}
+                    {stepErrorBanner && (
+                        <div className="studio-step-validation-banner">
+                            <i className="fas fa-exclamation-triangle" style={{ fontSize: '1.2rem', flexShrink: 0 }} />
+                            <span>{stepErrorBanner}</span>
+                        </div>
+                    )}
+
                     {/* Footer navigation */}
                     <div className="studio-footer-actions">
-                        <button type="button" className="studio-btn studio-btn-outline" disabled={currentStep === 0} onClick={() => setCurrentStep(p => p - 1)}>
+                        <button
+                            type="button"
+                            className="studio-btn studio-btn-outline"
+                            disabled={currentStep === 0}
+                            onClick={() => {
+                                setStepErrorBanner('');
+                                setValidationErrors({});
+                                setCurrentStep(p => p - 1);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                        >
                             <i className="fas fa-arrow-left" /> Back
                         </button>
                         {currentStep < 5 ? (
-                            <button type="button" className="studio-btn studio-btn-primary" disabled={currentStep <= 1 && !canProceed(currentStep)} onClick={() => setCurrentStep(p => p + 1)}>
+                            <button
+                                type="button"
+                                className="studio-btn studio-btn-primary"
+                                onClick={handleNextStep}
+                            >
                                 Next Step <i className="fas fa-arrow-right" style={{ color: '#1fa09b', marginLeft: '4px' }} />
                             </button>
                         ) : (
@@ -2136,8 +2767,8 @@ const ClientCreateWedding = () => {
                         <div className="phone-speaker-island" />
                         <div className="phone-screen">
                             <div className="mock-invitation-container" style={{ background: activeTemplate.bg }}>
-                                <div className="mock-hero" style={{ backgroundImage: formData.cover_image ? `url(${formData.cover_image})` : 'none' }}>
-                                    <div className="mock-hero-overlay" style={{ background: activeTemplate.bg, opacity: formData.cover_image ? 0.75 : 1 }} />
+                                <div className="mock-hero" style={{ backgroundImage: (formData.slider_images && formData.slider_images.length > 0) ? `url(${formData.slider_images[0]})` : (formData.cover_image ? `url(${formData.cover_image})` : 'none') }}>
+                                    <div className="mock-hero-overlay" style={{ background: activeTemplate.bg, opacity: ((formData.slider_images && formData.slider_images.length > 0) || formData.cover_image) ? 0.75 : 1 }} />
                                     <div className="mock-hero-content" style={{ color: activeTemplate.textColor }}>
                                         <span className="mock-ornament" style={{ color: activeTemplate.accent }}>{activeTemplate.ornament}</span>
                                         <div className="mock-tagline" style={{ color: activeTemplate.accent }}>{formData.tagline || 'WE ARE GETTING MARRIED'}</div>
